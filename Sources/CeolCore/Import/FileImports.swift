@@ -398,13 +398,49 @@ public enum FileImports {
               json["ceol"] as? Int == 1 else { throw ImportError.notCeolFile }
 
         var summary = try importLibrary(json: json, context: context)
+        // "media" is what export-ceol-json.py writes, but a folder dragged out
+        // of the phone through Finder is called "Media" — that is what
+        // MediaStore names it in the app's Documents. Both are accepted, and
+        // any other single folder alongside the JSON is taken as the media
+        // folder rather than refused: there is only ever one.
+        let mediaFolder = Self.mediaFolder(beside: bundleFolder)
         summary.mediaAttached = await attachMedia(
             from: json,
-            mediaFolder: bundleFolder.appendingPathComponent("media"),
+            mediaFolder: mediaFolder,
             context: context,
             progress: progress)
         try? context.save()
         return summary
+    }
+
+    /// Where the recordings are, beside the library file.
+    ///
+    /// The Pi writes `media`. A folder dragged out of the phone in Finder is
+    /// `Media`, because that is what `MediaStore` calls it inside Documents.
+    /// On a case-insensitive disk those are the same folder and this never
+    /// matters; on a case-sensitive one, the difference is the whole import
+    /// silently attaching nothing.
+    private static func mediaFolder(beside folder: URL) -> URL {
+        let manager = FileManager.default
+        for name in ["media", "Media"] {
+            let candidate = folder.appendingPathComponent(name, isDirectory: true)
+            var isDirectory: ObjCBool = false
+            if manager.fileExists(atPath: candidate.path, isDirectory: &isDirectory),
+               isDirectory.boolValue {
+                return candidate
+            }
+        }
+        // Neither name: if there is exactly one folder sitting beside the
+        // library file, that is what the recordings are in whatever it is
+        // called. Better than refusing over a name.
+        let children = (try? manager.contentsOfDirectory(
+            at: folder, includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles])) ?? []
+        let folders = children.filter {
+            (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+        }
+        if folders.count == 1 { return folders[0] }
+        return folder.appendingPathComponent("media", isDirectory: true)
     }
 
     /// Create MediaItems for every attachment the export listed, copying files
