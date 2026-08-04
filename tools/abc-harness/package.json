@@ -1,0 +1,12 @@
+{
+  "name": "ceol-abc-harness",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Render Ceol's ABC through the app's own abcjs, headlessly, and count what came out.",
+  "scripts": {
+    "cases": "node render.js cases/*.abc"
+  },
+  "dependencies": {
+    "jsdom": "^24.0.0"
+  }
+}
