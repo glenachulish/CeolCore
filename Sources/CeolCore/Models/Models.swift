@@ -82,11 +82,36 @@ public final class Tune {
 
     public var isInASet: Bool { !(setEntries ?? []).isEmpty }
 
-    /// Display key like "Ddor" or "G"
+    /// Display key like "Ddor" or "G".
+    ///
+    /// This used to be `key + mode.prefix(3)`, which assumed `key` held only a
+    /// root note. Much of this library came from the Pi with the whole thing in
+    /// that one field — `key` is "A dorian" and `mode` is "dorian" — so the
+    /// result was "A doriandor", and "B minormin", and "E minormin". The phone
+    /// shows one tune at a time and it went unnoticed for months; a Mac window
+    /// listing six hundred of them made it obvious at a glance.
+    ///
+    /// So the root is taken from the front of `key` — a letter and any
+    /// accidental — and the mode from whatever is left, falling back to the
+    /// `mode` field when `key` carries nothing but the root. Forgiving of the
+    /// data rather than demanding the data be tidied, because the same file
+    /// has to keep round-tripping to the Pi and back.
     public var displayKey: String {
-        let m = mode.lowercased()
-        if m.isEmpty || m == "major" || m == "maj" { return key }
-        return key + String(m.prefix(3))
+        let trimmed = key.trimmingCharacters(in: .whitespaces)
+        guard let first = trimmed.first else { return "" }
+
+        var root = String(first).uppercased()
+        var rest = trimmed.dropFirst()
+        // "Bb" and "F#" — but not the "b" of "B dorian", which is a space away.
+        if let next = rest.first, next == "#" || next == "b" {
+            root.append(next)
+            rest = rest.dropFirst()
+        }
+
+        let carried = rest.trimmingCharacters(in: .whitespaces).lowercased()
+        let m = carried.isEmpty ? mode.lowercased() : carried
+        if m.isEmpty || m.hasPrefix("maj") || m == "ionian" { return root }
+        return root + String(m.prefix(3))
     }
 }
 
