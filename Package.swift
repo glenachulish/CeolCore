@@ -30,23 +30,22 @@ let package = Package(
 
     targets: [
         .target(
-            name: "CeolCore"
-
-            // The abcjs pages and library arrive here at step 4 of the move,
-            // once the six Bundle.main.url(forResource:) call sites in the iOS
-            // app have been changed over in the same pass. Until then this
-            // stays commented out — an empty Resources folder is a build error,
-            // and a half-done move is a blank sheet-music view with nothing in
-            // the console.
-            //
-            // When it goes in it must be .copy, NOT .process:
-            // abc.html and set.html load their scripts with a relative
-            // <script src="abcjs-basic-min.js">, and loadFileURL(_:
-            // allowingReadAccessTo:) grants the containing directory.
-            // .process may rearrange that layout, and the scripts then
-            // silently stop resolving.
-            //
-            // resources: [.copy("Resources")]
+            name: "CeolCore",
+            resources: [
+                // .copy, NOT .process — and this is not a style preference.
+                //
+                // abc.html and set.html load their scripts with relative tags,
+                // <script src="abcjs-basic-min.js">, and the web view is given
+                // read access to the page's own directory. .copy preserves the
+                // folder exactly, so the scripts sit beside the page and
+                // resolve. .process is free to flatten or rename, and then the
+                // page loads, the scripts do not, abcjs is undefined, and you
+                // get an empty sheet of music with nothing in the console.
+                //
+                // It also keeps Resources/soundfont/ as a directory, which is
+                // what CeolResources.soundfont(folder:note:) looks in.
+                .copy("Resources"),
+            ]
         ),
         .testTarget(
             name: "CeolCoreTests",

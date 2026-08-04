@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script src="abcjs-basic-min.js"></script>
+<script>
+// audioParams() reads this. The preview is a single line of melody — there is
+// nothing to accompany — so chords are off and the variable exists only so the
+// shared helper doesn't trip over an undeclared name.
+var chordsOn = false;
+</script>
+<script src="voices.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; -webkit-text-size-adjust: 100%; }
+  #bar {
+    display: flex; gap: 8px; align-items: center; padding: 8px 16px 2px;
+    font: 13px -apple-system, sans-serif; color: #666;
+  }
+  #tools {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    padding: 4px 16px 8px;
+    font: 13px -apple-system, sans-serif; color: #666;
+    border-bottom: 1px solid #e2e2e7;
+  }
+  button {
+    font: 600 14px -apple-system, sans-serif; border: none; border-radius: 6px;
+    padding: 6px 12px; background: #e8e8ed; color: #333;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button.small { padding: 6px 10px; }
+  button:disabled { opacity: 0.35; }
+  button.on { background: #2f6f4f; color: #fff; }
+  #count { margin-left: auto; white-space: nowrap; font-size: 12px; }
+
+  /* The music had almost no side margin, which is fine for reading and wrong
+     for editing: the first and last note of a line sat under the edge of the
+     screen where a thumb can't land on them without also grabbing the page. */
+  #render { padding: 6px 16px 96px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #render svg { max-width: none; height: auto; }
+
+  /* The note sounding now. The class may land on the group or on the leaf, so
+     both are covered — same as the cursor on the main sheet. */
+  .ceol-playing, .ceol-playing path, .ceol-playing rect, .ceol-playing ellipse {
+    fill: #e67e22 !important; stroke: #e67e22 !important;
+  }
+
+  /* The move controls sit at the bottom, where a thumb already is, and stay
+     put while the music scrolls. Editing is a lot of small repeated taps. */
+  #move {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    display: flex; gap: 10px; align-items: center; justify-content: center;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: rgba(255,255,255,0.94);
+    border-top: 1px solid #e2e2e7;
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+  }
+  #move button { font-size: 20px; padding: 12px 18px; min-width: 62px; }
+  #move .oct { font-size: 13px; padding: 12px 12px; min-width: 54px; }
+  #selName {
+    flex: 1; text-align: center; font: 13px -apple-system, sans-serif;
+    color: #666; min-width: 0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    #render svg { filter: invert(0.88) hue-rotate(180deg); }
+    #bar, #tools, #selName { color: #aaa; }
+    #tools { border-bottom-color: #3a3a3f; }
+    button { background: #3a3a3f; color: #eee; }
+    button.on { background: #2f6f4f; color: #fff; }
+    #move { background: rgba(28,28,30,0.94); border-top-color: #3a3a3f; }
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span id="hint" style="flex:1">Tap a note, then move it with the arrows.</span>
+  <button id="undo" disabled>&#8617; Undo</button>
+  <button id="reset" disabled>Reset</button>
+</div>
+<div id="tools">
+  <button id="compare" class="small">Original</button>
+  <button id="sizeDown" class="small" title="Smaller notation">A&#8722;</button>
+  <button id="sizeUp" class="small" title="Larger notation">A&#43;</button>
+  <span id="count"></span>
+</div>
+<div id="render"></div>
+<div id="move">
+  <button id="octDown" class="oct" title="Down an octave">&#9660;8</button>
+  <button id="down" title="Down a step">&#9660;</button>
+  <span id="selName">No note selected</span>
+  <button id="up" title="Up a step">&#9650;</button>
+  <button id="octUp" class="oct" title="Up an octave">&#9650;8</button>
+  <button id="play" class="oct" title="Hear it">&#9654;</button>
+</div>
+<div id="audio" style="display:none"></div>
+<script>
+// Notes are SELECTED and OFFSET rather than rewritten in place, the same
+// arrangement the octave editor uses and for the same reason: `steps` holds a
+// number of scale steps per note of the ORIGINAL tune, and the ABC shown is
+// rebuilt from the original every time. That is what lets a note be moved back
+// to where it started, and what makes Reset a single line.
+//
+// The difference from the octave editor is the unit. There it was whole
+// octaves, so a note kept its letter and its accidental. Here it is one line
+// or space on the stave — the letter changes, which is why an accidental
+// written on the old letter is dropped and the key signature is left to decide.
+var LETTERS = "CDEFGAB";
+var MAX_STEPS = 21;      // three octaves either way is more than enough
+
+var original = "";
+var origNotes = [];      // [{s, e}] character ranges, in playing order
+var steps = [];          // scale steps per note, same indexes as origNotes
+var undoStack = [];
+var selected = -1;       // index into origNotes, or -1
+var showOriginal = false;
+var zoom = 1;
+var workRanges = [];     // ranges in the ABC currently rendered
+var workElements = [];   // abcjs elements for those ranges, same order
+var visibleTune = null;  // the engraving on screen — what the preview plays
+
+/// Move every pitch in an ABC slice by a number of scale steps, leaving quoted
+/// chord symbols, decorations (!trill!) and grace notes ({...}) alone.
+function stepShiftSlice(slice, n) {
+  if (!n) return slice;
+  var wholeOctaves = (n % 7) === 0;
+  return slice.split(/("[^"]*"|![^!]*!|\{[^}]*\})/).map(function (part) {
+    if (!part || part[0] === '"' || part[0] === "!" || part[0] === "{") return part;
+    return part.replace(/([_^=]{0,2})([A-Ga-g])([,']*)/g, function (m, acc, letter, marks) {
+      var commas = (marks.match(/,/g) || []).length;
+      var apos = (marks.match(/'/g) || []).length;
+      var upper = letter === letter.toUpperCase();
+      // ABC octave index: C=0, c=1; each , is -1, each ' is +1.
+      var octave = (upper ? 0 : 1) - commas + apos;
+      var position = octave * 7 + LETTERS.indexOf(letter.toUpperCase()) + n;
+      var newOctave = Math.floor(position / 7);
+      var newLetter = LETTERS[((position % 7) + 7) % 7];
+      var written = newOctave >= 1
+        ? newLetter.toLowerCase() + Array(newOctave).join("'")
+        : newLetter + Array(-newOctave + 1).join(",");
+      // A whole octave keeps the letter, so its accidental still belongs to it.
+      return (wholeOctaves ? acc : "") + written;
+    });
+  }).join("");
+}
+
+/// Every sounding note in playing order — the ranges and the drawn elements.
+/// The order is the same in the original and in any shifted build of it, so a
+/// tap on the stave maps straight back to a note in the untouched source.
+function walkNotes(visualObjs) {
+  var ranges = [], elements = [], seen = {};
+  (visualObjs || []).forEach(function (vo) {
+    ((vo && vo.lines) || []).forEach(function (line) {
+      ((line && line.staff) || []).forEach(function (staff) {
+        ((staff && staff.voices) || []).forEach(function (voice) {
+          (voice || []).forEach(function (el) {
+            if (!el || el.el_type !== "note" || el.rest) return;
+            var s = el.startChar, e = el.endChar;
+            if (typeof s !== "number" || typeof e !== "number" || e <= s) return;
+            var k = s + ":" + e;
+            if (seen[k]) return;
+            seen[k] = 1;
+            ranges.push({ s: s, e: e, el: el });
+          });
+        });
+      });
+    });
+  });
+  ranges.sort(function (a, b) { return a.s - b.s; });
+  ranges.forEach(function (r) { elements.push(r.el); });
+  return { ranges: ranges, elements: elements };
+}
+
+/// Which note was tapped.
+///
+/// Looking the character up in a map keyed on each note's exact startChar is
+/// what made the odd note untappable: abcjs reports the start of the whole
+/// group for a note carrying grace notes or a decoration, which is a character
+/// or two before the note itself. Falling back to the range that CONTAINS the
+/// character catches those instead of ignoring the tap.
+function indexForChar(ch) {
+  for (var i = 0; i < workRanges.length; i++) {
+    if (workRanges[i].s === ch) return i;
+  }
+  for (var j = 0; j < workRanges.length; j++) {
+    if (ch >= workRanges[j].s && ch < workRanges[j].e) return j;
+  }
+  // Last resort: the nearest note starting at or before it.
+  var best = -1;
+  for (var k = 0; k < workRanges.length; k++) {
+    if (workRanges[k].s <= ch) best = k; else break;
+  }
+  return best >= 0 ? best : undefined;
+}
+
+function buildWorking() {
+  var out = original;
+  for (var i = origNotes.length - 1; i >= 0; i--) {
+    var n = steps[i] | 0;
+    if (!n) continue;
+    var r = origNotes[i];
+    out = out.slice(0, r.s) + stepShiftSlice(out.slice(r.s, r.e), n) + out.slice(r.e);
+  }
+  return out;
+}
+
+function changedCount() {
+  var n = 0;
+  for (var i = 0; i < steps.length; i++) if (steps[i]) n++;
+  return n;
+}
+
+function notifyDirty() {
+  try {
+    window.webkit.messageHandlers.noteedit.postMessage({ dirty: changedCount() > 0 });
+  } catch (e) {}
+}
+
+/// The note as it now reads, for the label between the arrows — a name is
+/// worth more than "note 34" when you are checking you moved the right one.
+function selectedName() {
+  if (selected < 0 || !workRanges[selected]) return "No note selected";
+  var el = workElements[selected];
+  var pitch = el && typeof el.averagepitch === "number" ? el.averagepitch : null;
+  var text = buildWorking().slice(workRanges[selected].s, workRanges[selected].e)
+    .replace(/[0-9\/]+$/, "").trim();
+  var moved = steps[selected] | 0;
+  var suffix = moved === 0 ? "" :
+    (moved > 0 ? " · up " : " · down ") + Math.abs(moved) +
+    (Math.abs(moved) === 1 ? " step" : " steps");
+  return (text || "note") + suffix;
+}
+
+function syncButtons() {
+  var n = changedCount();
+  document.getElementById("undo").disabled = undoStack.length === 0;
+  document.getElementById("reset").disabled = n === 0;
+  document.getElementById("count").textContent =
+    n === 0 ? (origNotes.length ? "" : "no notes read")
+            : n + (n === 1 ? " note changed" : " notes changed");
+  var cmp = document.getElementById("compare");
+  cmp.className = "small" + (showOriginal ? " on" : "");
+  document.getElementById("hint").textContent = showOriginal
+    ? "This is the tune as it was. Tap Original again to see your changes."
+    : (selected < 0 ? "Tap a note, then move it with the arrows."
+                    : "Move it with the arrows. Tap another note to change it too.");
+  document.getElementById("selName").textContent = selectedName();
+  var none = selected < 0 || showOriginal;
+  ["up", "down", "octUp", "octDown"].forEach(function (id) {
+    document.getElementById(id).disabled = none;
+  });
+  notifyDirty();
+}
+
+function pushUndo() {
+  undoStack.push({ steps: steps.slice(), selected: selected });
+  if (undoStack.length > 300) undoStack.shift();
+}
+
+function move(by) {
+  if (selected < 0 || showOriginal) return;
+  var next = (steps[selected] | 0) + by;
+  if (next > MAX_STEPS || next < -MAX_STEPS) return;
+  pushUndo();
+  steps[selected] = next;
+  render();
+  syncButtons();
+}
+
+function highlightSelected() {
+  if (selected < 0 || showOriginal) return;
+  var el = workElements[selected];
+  if (el && el.abselem && el.abselem.highlight) {
+    try { el.abselem.highlight(undefined, "#c9a227"); } catch (e) {}
+  }
+}
+
+function render() {
+  // What you hear must be what is on the stave. Anything that redraws has
+  // changed the music, so the sounding copy is out of date.
+  stopPreview();
+  var host = document.getElementById("render");
+  var src = showOriginal ? original : buildWorking();
+  // Clearing first is the fix for the music shrinking on every tap: abcjs's
+  // responsive sizing measured a container that still held the previous SVG,
+  // so each redraw scaled the notation down again.
+  host.innerHTML = "";
+  // clientWidth INCLUDES the padding, so asking abcjs for that width laid the
+  // music out over the top of the right-hand margin and ran the last note off
+  // the edge of the screen. Take the padding off before asking.
+  var pad = 0;
+  try {
+    var cs = window.getComputedStyle(host);
+    pad = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  } catch (e) { pad = 32; }
+  var avail = Math.max(240, host.clientWidth - pad - 8);
+  var perLine = Math.max(1, Math.round((window.innerWidth > 700 ? 4 : 3) / zoom));
+  var visual = null;
+  try {
+    visual = ABCJS.renderAbc("render", src, {
+      add_classes: true,
+      staffwidth: Math.round(avail / zoom),
+      scale: zoom,
+      wrap: { preferredMeasuresPerLine: perLine },
+      paddingtop: 8, paddingbottom: 8, paddingleft: 12, paddingright: 12,
+      clickListener: function (abcElem) {
+        if (showOriginal) return;
+        if (!abcElem || abcElem.el_type !== "note" || abcElem.rest) return;
+        var i = indexForChar(abcElem.startChar);
+        if (i === undefined || i < 0) return;
+        selected = i;
+        render();
+        syncButtons();
+      }
+    });
+  } catch (e) {}
+  visibleTune = (visual && visual[0]) || null;
+  var walked = walkNotes(visual);
+  workRanges = walked.ranges;
+  workElements = walked.elements;
+  if (selected >= workRanges.length) selected = -1;
+  highlightSelected();
+}
+
+document.getElementById("up").addEventListener("click", function () { move(1); });
+document.getElementById("down").addEventListener("click", function () { move(-1); });
+document.getElementById("octUp").addEventListener("click", function () { move(7); });
+document.getElementById("octDown").addEventListener("click", function () { move(-7); });
+
+document.getElementById("undo").addEventListener("click", function () {
+  if (!undoStack.length) return;
+  var back = undoStack.pop();
+  steps = back.steps;
+  selected = back.selected;
+  render();
+  syncButtons();
+});
+
+document.getElementById("reset").addEventListener("click", function () {
+  if (!changedCount()) return;
+  pushUndo();
+  steps = steps.map(function () { return 0; });
+  render();
+  syncButtons();
+});
+
+document.getElementById("compare").addEventListener("click", function () {
+  showOriginal = !showOriginal;
+  render();
+  syncButtons();
+});
+
+document.getElementById("sizeUp").addEventListener("click", function () {
+  zoom = Math.min(2.5, Math.round((zoom + 0.15) * 100) / 100);
+  render();
+});
+
+document.getElementById("sizeDown").addEventListener("click", function () {
+  zoom = Math.max(0.7, Math.round((zoom - 0.15) * 100) / 100);
+  render();
+});
+
+// ── Hearing it ──────────────────────────────────────────────────────────────
+//
+// Moving a note is a guess until you hear it. The whole point of an editor
+// like this is trying something, listening, and putting it back if it was
+// wrong — and putting it back is the part that needs no courage only when the
+// listening is one tap away.
+//
+// It plays whatever is on the stave: your edit, or — with Original showing —
+// the tune as it was, so the two can be compared against each other.
+var previewSynth = null;
+var previewTimer = null;
+var previewing = false;
+
+function clearHighlight() {
+  var host = document.getElementById("render");
+  if (!host) return;
+  var lit = host.querySelectorAll(".ceol-playing");
+  for (var i = 0; i < lit.length; i++) lit[i].classList.remove("ceol-playing");
+}
+
+function stopPreview() {
+  previewing = false;
+  if (previewTimer) { try { previewTimer.stop(); } catch (e) {} }
+  if (previewSynth) { try { previewSynth.stop(); } catch (e) {} }
+  clearHighlight();
+  syncPlayButton();
+}
+
+function syncPlayButton() {
+  var b = document.getElementById("play");
+  if (!b) return;
+  b.innerHTML = previewing ? "&#9632;" : "&#9654;";
+  b.classList.toggle("on", previewing);
+  b.title = previewing ? "Stop" : "Hear it";
+}
+
+/// Light the note that is sounding.
+///
+/// The timing runs off the SAME engraving that is on the screen, which is why
+/// the highlight lands on the right note: a second, off-screen render would
+/// have its own element list and nothing to hang the class on.
+function startTimer() {
+  if (previewTimer) { try { previewTimer.stop(); } catch (e) {} }
+  try {
+    previewTimer = new ABCJS.TimingCallbacks(visibleTune, {
+      eventCallback: function (ev) {
+        clearHighlight();
+        // abcjs passes null at the end of the tune.
+        if (!ev) { stopPreview(); return null; }
+        var groups = ev.elements || [];
+        for (var i = 0; i < groups.length; i++) {
+          var group = groups[i] || [];
+          for (var j = 0; j < group.length; j++) {
+            if (group[j] && group[j].classList) group[j].classList.add("ceol-playing");
+          }
+        }
+      }
+    });
+    previewTimer.start();
+  } catch (e) {}
+}
+
+function startPreview() {
+  if (!ABCJS.synth.supportsAudio() || !visibleTune) return;
+  previewing = true;
+  syncPlayButton();
+  // Nothing may be primed before the soundfont check has answered — priming
+  // against a URL not yet known to work is what plays a tune in silence. See
+  // voices.js.
+  ceolWhenFontReady(function () {
+    if (!previewing) return;
+    if (previewSynth) { try { previewSynth.stop(); } catch (e) {} }
+    previewSynth = new ABCJS.synth.CreateSynth();
+    previewSynth.init({ visualObj: visibleTune, options: audioParams() })
+      .then(function () { return previewSynth.prime(); })
+      .then(function () {
+        if (!previewing) { try { previewSynth.stop(); } catch (e) {} return; }
+        previewSynth.start();
+        startTimer();
+      })
+      .catch(function () { previewing = false; syncPlayButton(); });
+  });
+}
+
+document.getElementById("play").addEventListener("click", function () {
+  if (previewing) stopPreview(); else startPreview();
+});
+
+function loadABC(abc) {
+  original = abc;
+  undoStack = [];
+  showOriginal = false;
+  selected = -1;
+  // Parse the untouched tune once, off-screen, for a stable note ordering.
+  var probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;left:-10000px;top:0;width:800px;height:0;overflow:hidden";
+  document.body.appendChild(probe);
+  try {
+    origNotes = walkNotes(ABCJS.renderAbc(probe, original, { staffwidth: 700 })).ranges;
+  } catch (e) {
+    origNotes = [];
+  }
+  probe.parentNode.removeChild(probe);
+  steps = [];
+  for (var i = 0; i < origNotes.length; i++) steps.push(0);
+  render();
+  syncButtons();
+}
+
+window.addEventListener("resize", function () { render(); });
+
+function getWorkingABC() { return buildWorking(); }
+function isDirty() { return changedCount() > 0; }
+</script>
+</body>
+</html>

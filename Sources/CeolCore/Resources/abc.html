@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script src="abcjs-basic-min.js"></script>
+<script src="voices.js"></script>
+<script src="abctools.js"></script>
+<link rel="stylesheet" href="abcjs-audio.css">
+<style>
+  /* The page owns its scrolling: a fixed-height flex column with the sheet
+     music in its own scroller. Relying on the web view's document scroll is
+     unreliable inside SwiftUI (the host may size the view to its content, so
+     there is nothing to scroll and programmatic scrolling silently does
+     nothing). This way scrolling is always ours to control. */
+  html, body {
+    margin: 0; padding: 0; background: transparent; -webkit-text-size-adjust: 100%;
+    height: 100%; overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; }
+  #scroller {
+    flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
+  #topbar {
+    flex: 0 0 auto; z-index: 10;
+    background: rgba(247,247,249,0.96);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    padding-bottom: 2px;
+  }
+  #audio { padding: 4px 8px; }
+  #audio.notready { opacity: 0.45; pointer-events: none; }
+  #audioMsg { display: none; font: 12px -apple-system, sans-serif; color: #888; padding: 0 12px 4px; }
+  #audioMsg.visible { display: block; }
+  #ctlRow {
+    display: none; align-items: center; gap: 8px; padding: 2px 12px 6px;
+    font: 13px -apple-system, sans-serif; color: #666; flex-wrap: wrap;
+  }
+  #ctlRow.visible { display: flex; }
+  #ctlRow select {
+    font: 14px -apple-system, sans-serif; padding: 4px 8px;
+    border: 1px solid #ccc; border-radius: 8px; background: transparent; color: inherit;
+  }
+  #ctlRow button, #selInfo button {
+    font: 600 13px -apple-system, sans-serif; border: none; border-radius: 8px;
+    padding: 5px 11px; background: #e8e8ed; color: #333;
+  }
+  #ctlRow button.on { background: #2f6f4f; color: white; }
+  /* Transpose sits with the other things you do while looking at the music,
+     not buried in a details sheet under a heading it has nothing to do with. */
+  #transGroup { display: inline-flex; align-items: center; gap: 2px; }
+  #transGroup button { padding: 5px 9px; }
+  #transVal { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }
+  /* Speed: two plain labels for everyday use — Fast is simply the tune's
+     written tempo — with a slider that sets how slow "Slow" is. Replaces
+     abcjs's own numeric warp box (displayWarp is off below). */
+  #speedRow {
+    display: none; align-items: center; gap: 8px; padding: 0 12px 6px;
+    font: 13px -apple-system, sans-serif; color: #666;
+  }
+  #speedRow.visible { display: flex; }
+  /* Slow and Fast are the two controls reached for mid-tune, with the flute
+     still up — half a size bigger than the rest so they can be hit without
+     looking. */
+  #speedRow button {
+    font: 600 19px -apple-system, sans-serif; border: none; border-radius: 10px;
+    padding: 8px 21px; background: #e8e8ed; color: #333;
+  }
+  #speedRow button.on { background: #2f6f4f; color: white; }
+  .speed-slider-wrap {
+    position: relative; flex: 1 1 auto; min-width: 80px; max-width: 190px;
+    display: flex; align-items: center;
+  }
+  #speedSlider { width: 100%; accent-color: #2f6f4f; }
+  /* The detent mark: 100% sits dead centre, and the slider sticks there. */
+  .speed-centre-tick {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px; height: 13px; border-radius: 1px;
+    background: currentColor; opacity: 0.35; pointer-events: none;
+  }
+  #speedVal { min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+  #selInfo {
+    display: none; flex-wrap: wrap; align-items: center; gap: 8px;
+    padding: 4px 12px 6px; font: 13px -apple-system, sans-serif; color: #666;
+  }
+  #selInfo.visible { display: flex; }
+  #selInfo button.loop-active { background: #2f6f4f; color: white; }
+  #selInfo button.prac-active { background: #8a5a00; color: white; }
+  #selInfo button.danger { background: #b33; color: white; }
+  #pracPanel {
+    display: none; align-items: center; gap: 6px; flex-wrap: wrap;
+    padding: 0 12px 8px; font: 13px -apple-system, sans-serif; color: #666;
+  }
+  #pracPanel.visible { display: flex; }
+  #pracPanel input {
+    width: 52px; font: 15px -apple-system, sans-serif; padding: 4px;
+    border: 1px solid #ccc; border-radius: 6px; text-align: center;
+  }
+  #paper { padding: 2px 0 16px; }
+  #paper svg { max-width: 100%; height: auto; }
+  /* Hidden render drives the audio; kept out of sight but laid out so abcjs
+     produces real geometry (Pi approach). */
+  #hidden { position: absolute; left: -99999px; top: 0; width: 800px; overflow: hidden; }
+  /* Cursor: class may land on the group or the leaf, so cover both (Pi CSS). */
+  .abc-playing path, .abc-playing rect, .abc-playing ellipse,
+  path.abc-playing, rect.abc-playing, ellipse.abc-playing {
+    fill: #e67e22 !important; stroke: #e67e22 !important;
+  }
+  .ceol-sel { fill: #c9a227; pointer-events: none; }
+
+  /* Landscape (music-stand) mode: give the screen to the music. The player
+     transport and loop controls stay; decorative chrome steps aside. */
+  @media (orientation: landscape) {
+    #ctlRow, #soundRow { padding-top: 0; padding-bottom: 2px; }
+    #topbar { padding-bottom: 0; }
+    .tune-hd { padding: 2px 8px 0; font-size: 13px; }
+    #timeline { height: 22px; margin: 1px 8px 2px; }
+    #paper { padding-top: 0; }
+    .tune-section { padding: 0 4px 2px; }
+  }
+
+  /* Night mode. Driven by the app's Appearance setting (html.dark), not the
+     system, so Day/Night can be chosen independently of the phone. */
+  html.dark #topbar { background: rgba(28,28,30,0.96); border-bottom-color: rgba(255,255,255,0.1); }
+  html.dark #paper svg { filter: invert(0.88) hue-rotate(180deg); }
+  html.dark #ctlRow, html.dark #selInfo, html.dark #pracPanel, html.dark #speedRow { color: #aaa; }
+  html.dark #ctlRow button, html.dark #selInfo button, html.dark #speedRow button { background: #3a3a3f; color: #eee; }
+  html.dark #ctlRow button.on, html.dark #selInfo button.loop-active,
+  html.dark #speedRow button.on { background: #2f6f4f; color: #fff; }
+  html.dark #ctlRow select { border-color: #555; color: #eee; }
+  html.dark #audioMsg, html.dark #dbg { color: #999; }
+
+</style>
+</head>
+<body>
+<div id="topbar">
+  <div id="audio" style="display:none"></div>
+  <div id="audioMsg">Preparing audio…</div>
+  <div id="ctlRow">
+    <!-- Kept in the page but not on screen: the app's ⋯ menu drives them
+         through ceolApplySound(), and every control left on the music costs a
+         line of sheet music. The elements stay because syncCtlUI() and the
+         voices.js helpers still read and write them. -->
+    <select id="instSelect" title="Melody instrument" style="display:none">
+      <option value="flute">Irish Flute</option>
+      <option value="mflute">Concert Flute</option>
+      <option value="whistle">Tin Whistle</option>
+      <option value="violin">Fiddle</option>
+      <option value="accordion">Accordion</option>
+      <option value="banjo">Banjo</option>
+      <option value="acoustic_guitar_nylon">Guitar</option>
+      <option value="orchestral_harp">Harp</option>
+      <option value="acoustic_grand_piano">Piano</option>
+    </select>
+    <button id="chordsBtn" style="display:none"></button>
+    <!-- The click moved up beside the stars, where there is room for it at a
+         size you can hit. Kept here, hidden, because ceolSetClick() still
+         writes to it and postMetronome() still reads it. -->
+    <button id="clickBtn" title="Metronome — tap to cycle off / on / half / double"
+            style="display:none">Click</button>
+    <!-- Notation size and transpose are driven from the app now: they sit on
+         the line with the instrument, where there is room for them, and every
+         control kept on the music costs a stave you could have been reading.
+         The elements stay because syncCtlUI() still reads and writes them. -->
+    <button id="sizeDown" title="Smaller notation" style="display:none">A−</button>
+    <button id="sizeUp" title="Larger notation" style="display:none">A+</button>
+    <span id="transGroup" title="Transpose in semitones" style="display:none">
+      <button id="transDown">♭</button><button id="transVal" title="Tap to reset">0</button><button id="transUp">♯</button>
+    </span>
+    <button id="dbgBtn" title="Diagnostics" style="display:none">?</button>
+  </div>
+  <div id="speedRow">
+    <button id="speedSlow" title="10% slower">Slow</button>
+    <span class="speed-slider-wrap">
+      <input id="speedSlider" type="range" min="0" max="100" step="1" value="50"
+             title="Playback speed">
+      <span class="speed-centre-tick"></span>
+    </span>
+    <span id="speedVal">100%</span>
+    <button id="speedFast" title="10% faster">Fast</button>
+    <!-- Only worth offering when you are away from the written tempo. -->
+    <button id="speedKeep" title="Write this speed into the tune"
+            style="display:none">Keep</button>
+  </div>
+  <div id="dbg" style="display:none;font:11px -apple-system,sans-serif;color:#888;padding:0 12px 4px"></div>
+  <div id="selInfo"></div>
+  <div id="pracPanel">
+    <span>Start</span><input id="pracStart" type="number" min="20" max="100" value="60">%
+    <span>+</span><input id="pracStep" type="number" min="1" max="25" value="5">%
+    <span>every</span><input id="pracLoops" type="number" min="1" max="20" value="2"><span>loops</span>
+    <span id="pracNow"></span>
+  </div>
+</div>
+<div id="scroller">
+  <div id="paper"></div>
+</div>
+<div id="hidden"></div>
+<script>
+// Architecture mirrors the Pi (v3 app.js): a HIDDEN plain render provides the
+// visualObj for the synth, a VISIBLE responsive render is what you see, and
+// notes are matched hidden→visible by sequential index. Cursor highlighting
+// and bar timing both go through that map — driving the synth off the
+// responsive render is what silently broke the cursor.
+
+var visualObj = null;      // hidden render (audio + timing)
+var synthControl = null;
+var audioReady = false;
+// A bar's length at the tune's WRITTEN tempo, and the same scaled for whatever
+// speed is actually playing. Keeping both matters: every cached bar time is in
+// the playing clock, and mixing the two is what broke practice mode — the loop
+// end was computed at one tempo and compared against events arriving at
+// another, so the loop either restarted early or seeked past the end and
+// stopped rather than stepping the tempo up.
+var baseMsPerMeasure = null;
+var msPerMeasure = null;
+var currentABC = "";
+var currentTranspose = 0;
+var playbackEnabled = true;
+
+var hiddenToVis = new Map();
+var lastEls = [];
+
+// Notation size: 4 steps combining a real scale factor with bars-per-line,
+// so A−/A+ visibly resize the notation rather than just re-wrapping it.
+var SIZE_SCALE = [0.8, 1.0, 1.35, 1.8];
+var SIZE_MEASURES = [6, 4, 3, 2];
+var MAX_SIZE = 4;
+var sizeStep = 2;
+try {
+  var _s = parseInt(localStorage.getItem("ceol.size"), 10);
+  if (_s >= 1 && _s <= MAX_SIZE) sizeStep = _s;
+} catch (e) {}
+function sizeScale() { return SIZE_SCALE[sizeStep - 1] || 1; }
+function measuresPerLine() { return SIZE_MEASURES[sizeStep - 1] || 4; }
+
+// The title and friends are drawn only in the hidden render; the visible one
+// gets the notes, since the app shows the name above the music already.
+function stripDisplayHeaders(abc) {
+  return abc.replace(/^(T|C|S|Z|N|O|B|D|F|W|H|R):[^\n]*\n?/gm, "");
+}
+
+// Vertical spacing, in UNSCALED units — which is the whole problem: abcjs
+// multiplies these by `scale`, so at the largest notation size every gap
+// between staves was nearly twice as tall as at normal size, and the screen
+// filled with white bands instead of music. Dividing by the scale keeps the
+// gaps looking the same however big the notes are. They are minimums; abcjs
+// still opens up for high notes, beams and ledger lines.
+function spacingFormat() {
+  var s = sizeScale();
+  return {
+    staffsep: Math.round(32 / s),     // between staves (default ~60)
+    musicspace: Math.round(6 / s),    // above the first staff
+    composerspace: 0,
+    titlespace: 0,
+    topspace: 0,
+    partsspace: Math.round(4 / s)
+  };
+}
+
+// Wrap settings shared by both renders. `maxSpacing` is the important one:
+// abcjs will only stretch a line to fill the staff width up to this multiple
+// of its natural note spacing, and the default (2.7) leaves short lines
+// stranded with a wide white gap on the right. Letting it stretch further
+// fills the page. `lastLineLimit` is kept lower so a two-bar final line isn't
+// pulled grotesquely across the whole width, as engraving convention expects.
+//
+// There used to be a `preferredMeasuresPerLine` here, computed from how busy
+// the bars were. It never did anything: rendering the same tune with 2, 3, 4,
+// 6, 8 and 12 preferred bars produced identical engravings — same width, same
+// number of staves — at every notation size. abcjs's wrap picks its line
+// breaks from the spacing limits alone. renderFitted() is what actually
+// governs the width now.
+function wrapOptions(abc) {
+  return {
+    minSpacing: 1.4,
+    maxSpacing: 6,
+    minSpacingLimit: 1,
+    lastLineLimit: 3.5
+  };
+}
+
+
+// ── Day / Night ─────────────────────────────────────────────────────────────
+// The app tells us which appearance to use ("system", "light" or "dark") so
+// the sheet music matches the rest of the app rather than the phone's setting.
+var themeMode = "system";
+function applyTheme() {
+  var dark = themeMode === "dark";
+  if (themeMode === "system") {
+    try { dark = window.matchMedia("(prefers-color-scheme: dark)").matches; } catch (e) {}
+  }
+  document.documentElement.classList.toggle("dark", dark);
+}
+function setTheme(mode) {
+  themeMode = mode || "system";
+  try { localStorage.setItem("ceol.theme", themeMode); } catch (e) {}
+  applyTheme();
+}
+try { themeMode = localStorage.getItem("ceol.theme") || "system"; } catch (e) {}
+applyTheme();
+try {
+  window.matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", function () { if (themeMode === "system") applyTheme(); });
+} catch (e) {}
+
+// ── Audio readiness (prevents "plays but silent") ───────────────────────────
+var pendingPlay = null;
+
+// iOS suspends the Web Audio context when the app is backgrounded, the screen
+// locks, a call arrives, or another app takes audio — and a suspended context
+// plays silently rather than failing. Resume it on any user interaction, when
+// the page becomes visible again, and via a watchdog while playing, so the
+// user never has to leave the screen and come back to get sound.
+function resumeAudioContext() {
+  try {
+    var ctx = ABCJS.synth.activeAudioContext && ABCJS.synth.activeAudioContext();
+    if (ctx && ctx.state !== "running" && typeof ctx.resume === "function") {
+      ctx.resume();
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+["touchstart", "touchend", "click", "pointerdown"].forEach(function (evt) {
+  document.addEventListener(evt, resumeAudioContext, { passive: true, capture: true });
+});
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) resumeAudioContext();
+});
+window.addEventListener("focus", resumeAudioContext);
+window.addEventListener("pageshow", resumeAudioContext);
+
+// Screen slept mid-tune: pick it up again where it stopped, rebuilding the
+// audio if the device was lost. See abctools.js.
+ceolWatchForWake(
+  function () { return synthControl; },
+  function (then) { if (visualObj) primeTune(then); }
+);
+
+// Watchdog: if the transport thinks it is playing but the context has been
+// suspended underneath it, revive it (and nudge playback if it stalled).
+setInterval(function () {
+  try {
+    if (synthControl && synthControl.isStarted) resumeAudioContext();
+  } catch (e) {}
+}, 1000);
+
+function setAudioReady(ready) {
+  audioReady = ready;
+  var el = document.getElementById("audio");
+  var msg = document.getElementById("audioMsg");
+  if (el) el.classList.toggle("notready", !ready);
+  if (msg) msg.classList.toggle("visible", !ready);
+}
+
+function whenAudioReady(fn) {
+  if (audioReady) { resumeAudioContext(); fn(); }
+  else pendingPlay = fn;
+}
+
+function flushPendingPlay() {
+  var fn = pendingPlay;
+  pendingPlay = null;
+  if (fn) { resumeAudioContext(); fn(); }
+}
+
+// Sound options — instruments, saved choice and audioParams() all live in
+// voices.js, shared with the set player.
+
+// ── Speed: Slow ——slider—— Fast ─────────────────────────────────────────────
+// The row reads left to right the way the music does: Slow at one end, Fast
+// at the other, and the slider between them showing the speed actually in
+// use. "Fast" is the tune's written tempo (100%); slide right to 100 and you
+// are simply on Fast again. Two taps cover almost every use; the slider is
+// there for when a tune needs to come down further. abcjs's own numeric warp
+// box is switched off (displayWarp: false) so there is one control, not two.
+// speedPct is what actually plays, 40–200% of the written tempo. The range
+// runs past 100 because plenty of tunes are written slower than they are
+// played — a hornpipe at Q:1/4=88 needs winding up, not down.
+var speedPct = 100;
+// What the Slow button jumps back to: the last sub-100 speed you chose.
+var slowPct = 70;
+try {
+  // The speed is NOT restored. It used to be saved globally, so winding one
+  // set up to 140% left every tune you opened afterwards at 140% with nothing
+  // on screen to say why. A speed you didn't choose for this piece is worse
+  // than no memory at all — and "Keep" is there to make a speed permanent
+  // for a tune that really wants it. Slow's target is still remembered,
+  // because that's a preference rather than a property of the music.
+  var _sl = parseInt(localStorage.getItem("ceol.slow"), 10);
+  if (_sl >= 40 && _sl < 100) slowPct = _sl;
+} catch (e) {}
+
+function currentWarp() { return speedPct; }
+
+// The slider runs 0–100 in POSITION units, not percent, so that 100% — the
+// written tempo, the thing you keep coming back to — sits dead centre with
+// equal travel either side. Left half spans 40–100%, right half 100–200%.
+function pctFromPos(pos) {
+  var p = Math.max(0, Math.min(100, pos));
+  var pct = p <= 50 ? 40 + (p / 50) * 60
+                    : 100 + ((p - 50) / 50) * 100;
+  return Math.round(pct / 5) * 5;
+}
+function posFromPct(pct) {
+  return pct <= 100 ? ((pct - 40) / 60) * 50
+                    : 50 + ((pct - 100) / 100) * 50;
+}
+// How close to the centre counts as "on the detent".
+var SPEED_DETENT = 4;
+
+// Practice mode ramps the tempo itself, so it owns the warp while it runs.
+function applySpeed() {
+  if (pracEnabled || !synthControl) return;
+  // Natively, speed is one property on the player and the file is untouched —
+  // so the bar times never move and there is nothing to re-measure. This is
+  // the whole reason the audio was moved out of the web view.
+  if (nativeMode) {
+    transport("speed", { percent: speedPct });
+    nativeTempoChanged(speedPct);
+    return;
+  }
+  // Still waiting for the handover? Leave abcjs at its written tempo — warping
+  // it now bakes the speed into the waveform about to be handed over, and the
+  // player then applies it a second time. Only the fallback path may warp.
+  if (nativeAllowed) return;
+  // Otherwise through ceolSetWarp, so a change of speed can't kill playback —
+  // and so the re-measure happens after the synth has actually been rebuilt
+  // rather than on a guessed delay.
+  ceolSetWarp(synthControl, speedPct, function () { refreshTiming(); });
+}
+
+function syncSpeedUI() {
+  var slow = document.getElementById("speedSlow");
+  if (!slow) return;
+  // Above 100 neither button is lit — you're past "as written", and the
+  // number is the honest description of where you are.
+  // While practice is on, it owns the tempo — so the whole row shows the ramp
+  // rather than whatever the slider was last left at. The thumb then climbs
+  // from wherever you started towards 100 as the loop comes round, which is
+  // the point of the exercise made visible.
+  var shown = pracEnabled ? pracWarp : speedPct;
+  slow.classList.toggle("on", shown < 100);
+  document.getElementById("speedFast").classList.toggle("on", shown === 100);
+  document.getElementById("speedSlider").value = String(Math.round(posFromPct(shown)));
+  document.getElementById("speedVal").textContent =
+    pracEnabled ? pracWarp + "% practice" : speedPct + "%";
+  var keep = document.getElementById("speedKeep");
+  if (keep) keep.style.display = (!pracEnabled && speedPct !== 100) ? "" : "none";
+}
+
+/// Write the speed you are actually playing at into the tune, so it becomes
+/// the tune's own tempo and the slider goes back to 100%.
+///
+/// Plenty of tunes come in from elsewhere marked far slower or faster than
+/// anyone plays them, and correcting that once is better than correcting it
+/// every time. abcjs is asked for the written tempo rather than the ABC being
+/// parsed here, because it already knows the beat length — a jig marked in
+/// dotted crotchets is not the same arithmetic as a reel in crotchets.
+document.getElementById("speedKeep").addEventListener("click", function () {
+  if (!visualObj || speedPct === 100) return;
+  var beatLength = 0.25, written = 0;
+  try {
+    beatLength = visualObj.getBeatLength() || 0.25;
+    written = visualObj.getBpm(visualObj.metaText ? visualObj.metaText.tempo : null);
+  } catch (e) { return; }
+  if (!written) return;
+  // Q: is written in quarter notes, whatever the tune counts in.
+  var quarterBpm = Math.round(written * (beatLength / 0.25) * speedPct / 100);
+  if (!isFinite(quarterBpm) || quarterBpm < 20 || quarterBpm > 400) return;
+  post("saveTempo", { bpm: quarterBpm, percent: speedPct });
+});
+
+function saveSpeed() {
+  try {
+    localStorage.setItem("ceol.slow", String(slowPct));
+  } catch (e) {}
+}
+
+function setSpeed(pct) {
+  // Dragging the slider while practising adjusts the practice speed rather
+  // than a setting that has no effect until practice ends. Otherwise the
+  // thumb would spring back to the ramp the moment you let go.
+  if (pracEnabled) {
+    pracWarp = Math.max(40, Math.min(100, Math.round(pct || 60)));
+    syncSpeedUI();
+    applyWarp();
+    return;
+  }
+  var was = speedPct;
+  speedPct = Math.max(40, Math.min(200, pct || 100));
+  if (speedPct < 100) slowPct = speedPct;   // remember it for the Slow button
+  // A click stop deserves a click: tap the phone's selection haptic the
+  // moment the slider settles onto 100%.
+  if (speedPct === 100 && was !== 100) {
+    try { window.webkit.messageHandlers.haptic.postMessage({}); } catch (e) {}
+  }
+  saveSpeed(); syncSpeedUI(); applySpeed();
+}
+
+// A step at a time, rather than a jump. The slider is fiddly with a thumb on a
+// phone; these are the coarse control and want to be usable without looking.
+document.getElementById("speedSlow").addEventListener("click", function () {
+  setSpeed((pracEnabled ? pracWarp : speedPct) - 10);
+});
+document.getElementById("speedFast").addEventListener("click", function () {
+  setSpeed((pracEnabled ? pracWarp : speedPct) + 10);
+});
+document.getElementById("speedSlider").addEventListener("input", function () {
+  var pos = parseInt(this.value, 10);
+  // Stick to the centre: anywhere within the detent snaps to exactly 100%,
+  // and the thumb is pulled back to the middle so it feels like a notch.
+  if (Math.abs(pos - 50) <= SPEED_DETENT) {
+    setSpeed(100);
+    return;
+  }
+  setSpeed(pctFromPos(pos));
+});
+
+function syncCtlUI() {
+  var inst = document.getElementById("instSelect");
+  ceolFillVoiceSelect(inst);
+  inst.value = melodyVoice;
+  // A saved instrument that no longer matches an option leaves the dropdown
+  // blank and the instrument a mystery. Fall back to the flute rather than
+  // show nothing.
+  if (inst.selectedIndex < 0) { ceolSetVoice("flute"); inst.value = melodyVoice; }
+  var btn = document.getElementById("chordsBtn");
+  btn.textContent = chordsOn ? "Chords on" : "Chords off";
+  btn.classList.toggle("on", chordsOn);
+  document.getElementById("sizeDown").disabled = sizeStep <= 1;
+  document.getElementById("sizeUp").disabled = sizeStep >= MAX_SIZE;
+  syncSpeedUI();
+}
+
+document.getElementById("instSelect").addEventListener("change", function () {
+  ceolSetVoice(this.value);
+  syncCtlUI();
+  reloadAudio(true);   // new instrument — the synth has to be rebuilt
+});
+document.getElementById("chordsBtn").addEventListener("click", function () {
+  chordsOn = !chordsOn;
+  try { localStorage.setItem("ceol.chords", chordsOn ? "on" : "off"); } catch (e) {}
+  syncCtlUI();
+  reloadAudio();
+});
+
+// The instrument and the chords now live in the app's ⋯ menu, as they already
+// did for a set. They are chosen once and then left alone, so keeping them on
+// the music cost a line of sheet music on every tune for a decision nobody
+// makes twice. Same entry point and same name as set.html, so the app drives
+// both the same way.
+function ceolApplySound(voiceId, chords) {
+  var voiceChanged = voiceId && voiceId !== melodyVoice;
+  var chordsChanged = (typeof chords === "boolean") && chords !== chordsOn;
+  if (!voiceChanged && !chordsChanged) return;
+  if (voiceChanged) ceolSetVoice(voiceId);
+  if (chordsChanged) {
+    chordsOn = chords;
+    try { localStorage.setItem("ceol.chords", chordsOn ? "on" : "off"); } catch (e) {}
+  }
+  syncCtlUI();
+  // A new instrument needs the synth built again; chords only need re-priming.
+  reloadAudio(voiceChanged);
+}
+// ── Transpose ───────────────────────────────────────────────────────────────
+// Both renders take visualTranspose, so the notes you SEE and the notes you
+// HEAR move together — the hidden render is what the synth plays from. The
+// app owns the value (it belongs to the tune and is saved); we just ask it to
+// change, and it re-renders us.
+function syncTransposeUI() {
+  var el = document.getElementById("transVal");
+  if (!el) return;
+  el.textContent = currentTranspose > 0 ? "+" + currentTranspose : String(currentTranspose);
+  el.classList.toggle("on", currentTranspose !== 0);
+}
+
+function requestTranspose(v) {
+  v = Math.max(-12, Math.min(12, v));
+  if (v === currentTranspose) return;
+  currentTranspose = v;
+  syncTransposeUI();
+  try {
+    window.webkit.messageHandlers.transpose.postMessage({ transpose: v });
+  } catch (e) {}
+}
+
+document.getElementById("transDown").addEventListener("click", function () {
+  requestTranspose(currentTranspose - 1);
+});
+document.getElementById("transUp").addEventListener("click", function () {
+  requestTranspose(currentTranspose + 1);
+});
+document.getElementById("transVal").addEventListener("click", function () {
+  requestTranspose(0);   // tap the number to go back to the written key
+});
+
+// Hand the app REAL transposed ABC, not just a display offset. abcjs ships
+// strTranspose, which rewrites the note letters and the key signature — so
+// the saved version is a tune in its own right rather than one that only
+// looks right while this setting happens to be applied.
+function transposedABC() {
+  if (!currentTranspose || !currentABC) return null;
+  try {
+    var parsed = ABCJS.renderAbc("hidden", currentABC, { add_classes: true });
+    var out = ABCJS.strTranspose(currentABC, parsed, currentTranspose);
+    // Put the hidden render back the way the synth expects it.
+    renderABC({ abc: currentABC, transpose: currentTranspose, playback: playbackEnabled });
+    return out;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ── What the synth plays ────────────────────────────────────────────────────
+// Normally the tune as written, repeats and all. While a loop is set, the
+// repeat marks come out (see abctools.js): a loop is meant to be the bars
+// between its two ends, played once each, and the written repeats were
+// dragging other music into it.
+var loopIgnoresRepeats = true;
+var synthIsLinear = false;
+/// True when the repeat-free version was built but didn't line up with the
+/// page, so the tune as written is being played instead. Shown in diagnostics.
+var linearRefused = false;
+
+function wantLinear() {
+  return loopIgnoresRepeats && barLooping && !linearRefused;
+}
+
+function synthABC() {
+  return wantLinear() ? linearABC(currentABC) : currentABC;
+}
+
+function renderHidden() {
+  var source = synthABC();
+  synthIsLinear = (source !== currentABC);
+  var out = ABCJS.renderAbc("hidden", source, {
+    add_classes: true,
+    visualTranspose: currentTranspose
+  });
+  visualObj = out && out[0] ? out[0] : null;
+
+  // The loop is chosen by tapping bars on the page, and played by bar number.
+  // If taking the repeats out has changed how many bars there are — two tunes
+  // in the library are written oddly enough to do that — every bar number
+  // after the change points at the wrong music. Rather than loop the wrong
+  // bars, play the tune as written.
+  if (synthIsLinear && barMap.length) {
+    var linearBars = buildBarMapIn(document.getElementById("hidden")).length;
+    if (linearBars !== barMap.length) {
+      synthIsLinear = false;
+      linearRefused = true;
+      out = ABCJS.renderAbc("hidden", currentABC, {
+        add_classes: true,
+        visualTranspose: currentTranspose
+      });
+      visualObj = out && out[0] ? out[0] : null;
+    } else {
+      linearRefused = false;
+    }
+  }
+}
+
+/// Swap the synth between the written tune and the repeat-free one, and only
+/// when it actually has to change. Re-priming is the operation that has killed
+/// playback before now, so it happens once per change of state, not per tap.
+///
+/// `setTune` is called with userAction true on purpose. With false — the way
+/// every other call here does it — abcjs resolves immediately and doesn't
+/// build the audio at all; the buffer appears later, on the first play. That
+/// is fine at load time, but useless here: the old buffer has just been thrown
+/// away, so there is nothing to seek into, the bar times can't be measured,
+/// and the tune starts from the top with the loop pointing at nothing. This is
+/// a bar tap, so it is a user action, and priming now is exactly right.
+function syncSynthSource(then) {
+  if (!synthControl || !playbackEnabled) { if (then) then(); return; }
+  if (barLooping) linearRefused = false;   // a fresh attempt for a new loop
+  if (wantLinear() === synthIsLinear) { if (then) then(); return; }
+  var wasPlaying = synthControl.isStarted;
+  try { synthControl.pause(); } catch (e) {}
+  setAudioReady(false);
+  // Anything that throws between here and priming would leave the screen on
+  // "Preparing audio…" with no way back but leaving the tune — which is
+  // exactly what a missing helper did. Nothing may escape.
+  try {
+    renderHidden();
+  } catch (e) {
+    lastSwapError = "renderHidden: " + String((e && (e.message || e)) || "threw");
+    setAudioReady(true);
+    if (then) then();
+    return;
+  }
+  if (!visualObj) { setAudioReady(true); if (then) then(); return; }
+  // Everything past here has to be able to fail without stranding the screen
+  // on "Preparing audio…". setTune can throw where it stands rather than
+  // rejecting — abcjs pokes at its own transport DOM inside it — and a throw
+  // that escapes leaves the flag stuck off, with no way back short of leaving
+  // the tune and coming in again.
+  primeTune(function () {
+    applySpeed();
+    try { baseMsPerMeasure = visualObj.millisecondsPerMeasure(); } catch (e) {}
+    // The whole hidden render has just been replaced, so every element the
+    // note map pointed at is gone. Rebuilding only the bar map left the
+    // hidden→visible pairing stale: the cursor had nothing to light up, and
+    // the bar times — which are read through that same pairing — came back
+    // empty, so the loop was running on estimated bar lengths rather than
+    // measured ones. rebuildMaps does the pairing, the bars, the tap targets
+    // and the timing together, which is exactly what a new render needs.
+    rebuildMaps();
+    refreshTiming();
+    if (barLooping && barSel.start !== null) seekToBar(barSel.start);
+    // play() toggles. setTune has just cleared isStarted, but check anyway —
+    // calling it on a running transport pauses instead of playing, which is
+    // indistinguishable from "the sound stopped working".
+    if (wasPlaying && !synthControl.isStarted) {
+      try { synthControl.play(); } catch (e) {}
+    }
+    if (then) then();
+  });
+}
+// ── Native playback ─────────────────────────────────────────────────────────
+//
+// Once the app has the rendered waveform, the sound comes from AVPlayer rather
+// than from Web Audio in here. This page keeps doing what it is good at —
+// engraving the music, knowing which note is where — and stops trying to be an
+// audio player, which is the part that fails at the lock screen.
+//
+// The web-audio path is left entirely intact underneath. If the transfer fails
+// for any reason, `nativeMode` stays false and everything behaves as before.
+var nativeMode = false;
+/// Settings → "Play through the system". Off puts everything back on Web
+/// Audio, immediately and without a rebuild — the web-audio path is never
+/// dismantled, only bypassed, so there is always something to fall back to.
+var nativeAllowed = true;
+var nativeToken = "";
+/// Note events sorted by time, for finding what is sounding at a given moment.
+/// abcjs's own list is in playback order, which repeats send back and forth, so
+/// it cannot be searched directly.
+var nativeEvents = [];
+var nativeIndex = -1;
+var nativeDurationMs = 0;
+/// Where the native player last reported being, so handing playback back to
+/// Web Audio can carry on from the same place.
+var lastNativeMs = 0;
+/// Coalesces the retries while the buffer is being rebuilt.
+var offerAudioTimer = null;
+/// What the app says it is configured for — background modes, audio session.
+var nativeEnvironmentText = "";
+
+function nativeEnvironment(text) { nativeEnvironmentText = text || ""; updateDbg(); }
+
+function post(channel, payload) {
+  try { window.webkit.messageHandlers[channel].postMessage(payload); } catch (e) {}
+}
+
+function transport(action, extra) {
+  var message = { action: action };
+  if (extra) for (var key in extra) message[key] = extra[key];
+  post("transport", message);
+}
+
+/// Hand the finished audio over. Called once the synth has primed.
+/// Turn native playback on or off at any moment. Called from Swift when the
+/// setting changes, and safe to call while a tune is sounding.
+function setNativeAudioAllowed(allowed) {
+  nativeAllowed = !!allowed;
+  if (nativeAllowed) {
+    if (!nativeMode) offerAudioToApp();
+    return;
+  }
+  if (!nativeMode) return;
+  // Hand playback back to Web Audio where it left off. The abcjs buffer has
+  // been kept primed all along, so there is nothing to rebuild.
+  var wasPlaying = synthControl && synthControl.isStarted;
+  var at = nativeDurationMs ? (lastNativeMs / nativeDurationMs) : 0;
+  transport("pause");
+  transport("loop", {});
+  nativeMode = false;
+  synthControl.isStarted = false;
+  if (wasPlaying && synthControl) {
+    try {
+      synthControl.seek(Math.max(0, Math.min(1, at)));
+      synthControl.play();
+    } catch (e) {}
+  }
+}
+
+/// Hand the audio over once there is audio to hand over.
+///
+/// The buffer is not reliably there the moment priming reports done: anything
+/// that calls setWarp — and applySpeed does, right after — destroys it and
+/// rebuilds it asynchronously. Rather than depend on catching it at the right
+/// instant, wait for it. Ten tries at 250ms covers a rebuild comfortably and
+/// gives up long before anyone would notice.
+function offerAudioToApp(attempt) {
+  if (!nativeAllowed) return;
+  if (!synthControl || !playbackEnabled) return;
+
+  // The file must be at the WRITTEN tempo, always.
+  //
+  // abcjs bakes the current warp into the buffer it renders. Hand over a
+  // buffer rendered at 160% and then ask the player for 160% and you get
+  // 160% of 160% — and worse, every bar time and loop point is measured on a
+  // clock the audio no longer keeps. Speed belongs to the player and nowhere
+  // else, so unwarp first and offer once that has settled.
+  if (synthControl.warp !== 100) {
+    ceolSetWarp(synthControl, 100, function () { offerAudioToApp(0); });
+    return;
+  }
+
+  var ready = false;
+  try {
+    var buffer = synthControl.midiBuffer && synthControl.midiBuffer.getAudioBuffer();
+    ready = !!(buffer && buffer.length);
+  } catch (e) { ready = false; }
+
+  if (!ready) {
+    var tries = (attempt || 0) + 1;
+    if (tries > 10) {
+      ceolAudioError = "no rendered audio after " + tries + " tries";
+      return;
+    }
+    clearTimeout(offerAudioTimer);
+    offerAudioTimer = setTimeout(function () { offerAudioToApp(tries); }, 250);
+    return;
+  }
+
+  nativeToken = "t" + Date.now() + "-" + Math.floor(Math.random() * 1e6);
+  // Deliberately NOT clearing nativeMode while the new waveform is on its way.
+  // Turning it off would leave the play button doing nothing at all for the
+  // second or so of the transfer; leaving it on means the worst case is
+  // hearing the previous version of the tune for a moment, which is a far
+  // better failure.
+  ceolSendRenderedAudio(synthControl, nativeToken);
+}
+
+/// The app has it (or hasn't). Called from Swift.
+function nativeAudioReady(ok, reason) {
+  if (!ok && reason) ceolAudioError = reason;
+  var wasWebAudioPlaying = !nativeMode && synthControl && synthControl.isStarted;
+  var resumeAt = wasWebAudioPlaying ? (synthControl.percent || 0) : 0;
+  // Web Audio may have been started before the transfer landed — the tune is
+  // ready long before its waveform has crossed. Silence it before the native
+  // player takes over, or both sound at once.
+  if (wasWebAudioPlaying) {
+    try { synthControl.pause(); } catch (e) {}
+  }
+
+  nativeMode = !!ok;
+  if (!nativeMode) {
+    // Back on Web Audio for good, so abcjs has to carry the speed after all.
+    nativeAllowed = false;
+    applySpeed();
+    return;
+  }
+  buildNativeEvents();
+  takeOverTransport();
+  transport("title", { title: currentTitle(), subtitle: "Ceòl" });
+  transport("speed", { percent: activeWarp() });
+  sendLoopToApp();
+
+  if (wasWebAudioPlaying) {
+    transport("seek", { seconds: resumeAt * nativeDurationMs / 1000 });
+    nativeSetPlaying(true);
+  }
+}
+
+function currentTitle() {
+  var match = (currentABC || "").match(/^T:\s*(.+)$/m);
+  return match ? match[1].trim() : "Ceòl";
+}
+
+/// abcjs's own transport row stays — it is the familiar one, and it already
+/// has the play button, the restart and the scrubber — but the buttons now
+/// drive the native player instead of Web Audio.
+///
+/// The patch has to go on `control.options`, not on the controller. `load()`
+/// captures `e.play` by reference when it builds the control, so replacing
+/// `synthControl.play` afterwards would leave the button calling the original
+/// and starting Web Audio behind our backs. The click listeners, though, read
+/// `options.playPromiseHandler` at the moment of the click — so that is what to
+/// replace.
+function takeOverTransport() {
+  if (!synthControl) return;
+  var control = synthControl.control;
+
+  // Our own code paths (bar taps, the stop-everything notification) go through
+  // the controller, so wrap those too.
+  if (!synthControl._ceolNative) {
+    synthControl._ceolNative = true;
+    var originalPause = synthControl.pause.bind(synthControl);
+    synthControl.play = function () {
+      if (!nativeMode) return Promise.resolve();
+      nativeSetPlaying(true);
+      return Promise.resolve();
+    };
+    synthControl.pause = function () {
+      if (!nativeMode) return originalPause();
+      nativeSetPlaying(false);
+    };
+    synthControl.seek = function (fraction) {
+      if (!nativeMode) return;
+      transport("seek", { seconds: fraction * nativeDurationMs / 1000 });
+    };
+  }
+
+  if (!control || !control.options || control.options._ceolNative) return;
+  control.options._ceolNative = true;
+
+  // Keep abcjs's own handlers. The patch is permanent once applied, but
+  // `nativeMode` is not — a later transfer can fail and turn it off — and a
+  // handler that only knows how to talk to the native player would leave the
+  // play button doing nothing at all. Every one of these falls back to what
+  // abcjs would have done.
+  var webPlay = control.options.playPromiseHandler;
+  var webRestart = control.options.restartHandler;
+  var webProgress = control.options.progressHandler;
+
+  control.options.playPromiseHandler = function (arg) {
+    if (!nativeMode) return webPlay ? webPlay(arg) : Promise.resolve();
+    nativeSetPlaying(!synthControl.isStarted);
+    return Promise.resolve();
+  };
+  control.options.restartHandler = function (arg) {
+    if (!nativeMode) return webRestart ? webRestart(arg) : undefined;
+    transport("seek", { seconds: 0 });
+    nativeIndex = -1;
+  };
+  // Dragging the progress bar. abcjs works the fraction out from the click
+  // position; the same sum, without reaching into its internals.
+  control.options.progressHandler = function (event) {
+    if (!nativeMode) return webProgress ? webProgress(event) : undefined;
+    var target = event.target;
+    if (target.classList && target.classList.contains("abcjs-midi-progress-indicator")) {
+      target = target.parentNode;
+    }
+    var box = target.getBoundingClientRect();
+    if (!box.width) return;
+    var fraction = Math.max(0, Math.min(1, (event.clientX - box.left) / box.width));
+    transport("seek", { seconds: fraction * nativeDurationMs / 1000 });
+    nativeIndex = -1;
+  };
+}
+
+/// The metronome takes its beat from `msPerMeasure`, which only refreshTiming
+/// keeps up to date — and natively there is no timing to refresh, because the
+/// file never changes. So the bar length is worked out here instead, from the
+/// written tempo and the speed being played at.
+function nativeTempoChanged(percent) {
+  if (baseMsPerMeasure) msPerMeasure = baseMsPerMeasure * 100 / (percent || 100);
+  postTempo();
+}
+
+/// Ask the app to start or stop. The button is NOT updated here — the app
+/// reports back through nativePlaying once it has actually done it, and that
+/// report is the only thing the symbol follows.
+function nativeSetPlaying(playing) {
+  transport(playing ? "play" : "pause");
+}
+
+/// The app saying what it is really doing. The single source of truth for the
+/// ▶/⏸ symbol, for `isStarted`, and for whether the screen clears itself.
+function nativePlaying(playing) {
+  if (!nativeMode) return;
+  synthControl.isStarted = !!playing;
+  try {
+    if (synthControl.control && synthControl.control.pushPlay) {
+      synthControl.control.pushPlay(!!playing);
+    }
+  } catch (e) {}
+  postPlayState(!!playing);
+  lastPlayingState = !!playing;
+  if (!playing) unhighlight();
+}
+
+/// Every note event, in time order, with the visible element it lights up.
+function buildNativeEvents() {
+  nativeEvents = [];
+  nativeIndex = -1;
+  if (!synthControl || !synthControl.timer) return;
+  var timings = synthControl.timer.noteTimings || [];
+  for (var i = 0; i < timings.length; i++) {
+    var ev = timings[i];
+    if (!ev || typeof ev.milliseconds !== "number" || ev.type === "end") continue;
+    var visible = [];
+    (ev.elements || []).forEach(function (group) {
+      (group || []).forEach(function (hidden) {
+        var el = hiddenToVis.get(hidden);
+        if (el) visible.push(el);
+      });
+    });
+    nativeEvents.push({ ms: ev.milliseconds, els: visible });
+    if (ev.milliseconds > nativeDurationMs) nativeDurationMs = ev.milliseconds;
+  }
+  nativeEvents.sort(function (a, b) { return a.ms - b.ms; });
+  var buf = synthControl.midiBuffer;
+  if (buf && buf.duration) nativeDurationMs = buf.duration * 1000;
+}
+
+/// Called about 25 times a second from the app, with where the audio is.
+function nativePosition(seconds) {
+  if (!nativeMode) return;
+  var ms = seconds * 1000;
+  lastNativeMs = ms;
+
+  if (nativeDurationMs) {
+    var fraction = Math.max(0, Math.min(1, ms / nativeDurationMs));
+    try { synthControl.setProgress(fraction, nativeDurationMs); } catch (e) {}
+  }
+
+  // The last event at or before now. A short walk from where we were, because
+  // the position advances smoothly; a jump (a seek, a loop) falls back to a
+  // binary search.
+  var index = findEventAt(ms);
+  if (index === nativeIndex) return;
+  nativeIndex = index;
+  unhighlight();
+  if (index < 0) return;
+  var els = nativeEvents[index].els;
+  for (var i = 0; i < els.length; i++) {
+    els[i].classList.add("abc-playing");
+    lastEls.push(els[i]);
+  }
+  if (lastEls.length) followHighlight(lastEls[0]);
+  updateDbg();
+}
+
+function findEventAt(ms) {
+  if (!nativeEvents.length) return -1;
+  // Usually the very next one.
+  if (nativeIndex >= 0 && nativeIndex + 1 < nativeEvents.length
+      && nativeEvents[nativeIndex].ms <= ms && nativeEvents[nativeIndex + 1].ms > ms) {
+    return nativeIndex;
+  }
+  var low = 0, high = nativeEvents.length - 1, found = -1;
+  while (low <= high) {
+    var mid = (low + high) >> 1;
+    if (nativeEvents[mid].ms <= ms) { found = mid; low = mid + 1; }
+    else { high = mid - 1; }
+  }
+  return found;
+}
+
+/// The native player has come round the loop. Practice counts these.
+///
+/// It used to count abcjs's own loop-around, in cursorControl.onEvent — but in
+/// native mode that never runs, because the looping happens in the app now.
+/// That is why the ramp played but never sped up.
+function nativeLooped() {
+  nativeLaps++;              // counted separately, so a lap that arrives but
+                             // isn't acted on can be told from one that never
+                             // arrived at all
+  if (!nativeMode) return;
+  nativeIndex = -1;          // the cursor has jumped back
+  pracOnLoopCycle();
+  updateDbg();
+}
+var nativeLaps = 0;
+
+function nativeFinished() {
+  if (!nativeMode) return;
+  // The playing flag and the button are already handled — nativePlaying fires
+  // first, from the same change. Only the cursor is left to tidy.
+  unhighlight();
+  nativeIndex = -1;
+}
+
+/// Tell the app what to loop, in seconds. It closes the loop itself, on the
+/// same clock it plays from, so there is nothing left to drift.
+function sendLoopToApp() {
+  if (!nativeMode) return;
+  if (!barLooping || barSel.start === null || barSel.end === null) {
+    lastLoopSent = "";
+    transport("loop", {});
+    return;
+  }
+  var startMs = barMs(barSel.start);
+  var endMs = barMs(barSel.end) + (msPerMeasureBase() || 0);
+  var afterEnd = Object.prototype.hasOwnProperty.call(barFirstMs, barSel.end + 1)
+    ? barFirstMs[barSel.end + 1] : null;
+  if (afterEnd !== null && afterEnd > startMs) endMs = afterEnd;
+  if (!isFinite(startMs) || !isFinite(endMs) || endMs <= startMs) {
+    lastLoopSent = "";
+    transport("loop", {});
+    return;
+  }
+  transport("loop", { start: startMs / 1000, end: endMs / 1000 });
+
+  // A different passage means starting the ramp again. Carrying the speed
+  // over from the last loop means a new, harder phrase opens at whatever pace
+  // you had worked the previous one up to — the opposite of what practice is
+  // for.
+  var signature = barSel.start + "-" + barSel.end;
+  if (pracEnabled && signature !== lastLoopSent) {
+    pracLoopCount = 0;
+    pracWarp = parseInt(document.getElementById("pracStart").value, 10) || 60;
+    applyWarp();
+  }
+  lastLoopSent = signature;
+}
+/// The loop last handed to the app, so a change of passage can be noticed.
+var lastLoopSent = "";
+
+/// A bar's length at the WRITTEN tempo. The rendered file is always at the
+/// written tempo — speed is applied by the player, not baked in — so the loop
+/// points never move when the speed changes. That single fact retires the
+/// whole two-clocks problem this player has had.
+function msPerMeasureBase() {
+  return baseMsPerMeasure || msPerMeasure || 0;
+}
+
+/// Why the last swap between written and repeat-free failed, for the ? panel.
+var lastSwapError = "";
+/// What abcjs said about the samples: how many notes it loaded, how many it
+/// couldn't, and the first complaint. A buffer of the right length made from
+/// no samples plays perfect silence, so this is the difference between a
+/// diagnosis and a shrug.
+var notesLoaded = 0, notesFailed = 0, firstNoteError = "";
+var fontFallbackTried = false;
+
+/// A tune with nothing to sound needs no samples, so "none loaded" is honest
+/// rather than a failure. Anything with notes on the page should have loaded
+/// something.
+function tuneLooksEmpty() {
+  return document.querySelectorAll("#hidden .abcjs-note").length === 0;
+}
+
+/// Hand the tune to the synth and actually build the audio.
+///
+/// If every note failed and we were reading from the app's own bundle, the
+/// scheme answered the check but isn't delivering; drop to the CDN and try
+/// once more rather than leave the tune silent.
+function primeTune(done) {
+  var settled = false;
+  function finish() {
+    if (settled) return;
+    settled = true;
+    setAudioReady(true);
+    if (done) done();
+    // After the caller has rebuilt its maps: the waveform has changed, so the
+    // app needs the new one. Every path that re-primes — first render, loop
+    // swap, instrument, chords — comes through here, so none can be forgotten.
+    offerAudioToApp();
+  }
+  setTimeout(finish, 8000);
+  try {
+    var promise = synthControl.setTune(visualObj, true, audioParams());
+    if (!promise || !promise.then) { finish(); return; }
+    promise.then(function (result) {
+      var status = result && result.notesStatus;
+      if (status) {
+        notesLoaded = (status.loaded ? status.loaded.length : 0)
+                    + (status.cached ? status.cached.length : 0);
+        notesFailed = status.error ? status.error.length : 0;
+        firstNoteError = notesFailed
+          ? String(status.error[0] && (status.error[0].message || status.error[0])) : "";
+      }
+      // Nothing loaded: the samples aren't reaching the synth. One retry from
+      // the CDN, then give up.
+      //
+      // Note the test is on loaded, NOT on failed. abcjs's batch loader ends
+      // in `.catch(...)` that logs and resolves undefined, so a batch that
+      // failed outright contributes nothing to either list — the report comes
+      // back "loaded 0, failed 0" and looks like there was nothing to do. Add
+      // that to prime() sizing its buffer from the note sequence regardless,
+      // and a tune with no samples at all is a correct-length buffer of pure
+      // silence. Which is exactly what turned up on McMahon's Reel.
+      if (notesLoaded === 0 && _ceolFontOK && !fontFallbackTried
+          && visualObj && !tuneLooksEmpty()) {
+        fontFallbackTried = true;
+        _ceolFontOK = false;
+        settled = true;              // the retry owns finishing from here
+        primeTune(done);
+        return;
+      }
+      finish();
+    }).catch(function (e) {
+      lastSwapError = String((e && (e.message || e)) || "unknown");
+      finish();
+    });
+  } catch (e) {
+    lastSwapError = String((e && (e.message || e)) || "threw");
+    finish();
+  }
+}
+
+function requestSaveTransposed() {
+  // Send the outcome either way. abcjs declines to transpose a few tunes —
+  // highland-pipe keys (K:Hp) among them — and when that happened this posted
+  // an empty string, the app dropped it, and the button appeared to do
+  // nothing at all.
+  var abc = transposedABC();
+  try {
+    window.webkit.messageHandlers.saveTransposed.postMessage({
+      abc: abc || "", steps: currentTranspose
+    });
+  } catch (e) {}
+}
+
+document.getElementById("sizeDown").addEventListener("click", function () {
+  if (sizeStep > 1) { sizeStep--; saveSize(); renderVisible(); }
+});
+document.getElementById("sizeUp").addEventListener("click", function () {
+  if (sizeStep < MAX_SIZE) { sizeStep++; saveSize(); renderVisible(); }
+});
+// The app owns the notation size now, the same way it owns the metronome and
+// the instrument: it says, this draws. Keeping a copy on each side is what let
+// the click button and the app disagree about whether the click was on.
+function ceolSetSize(n) {
+  var next = Math.min(MAX_SIZE, Math.max(1, parseInt(n, 10) || sizeStep));
+  if (next === sizeStep) return;
+  sizeStep = next;
+  saveSize();
+  renderVisible();
+}
+function ceolMaxSize() { return MAX_SIZE; }
+
+function saveSize() {
+  try { localStorage.setItem("ceol.size", String(sizeStep)); } catch (e) {}
+  syncCtlUI();
+}
+
+// Rebuild the synth from scratch.
+//
+// setTune() alone is not enough for an instrument change: the controller has
+// already primed its samples, and re-tuning it keeps playing the old ones — so
+// picking a different instrument did nothing until you left the tune and came
+// back (a fresh web view, a fresh controller). Tearing it down and building a
+// new one is exactly what reopening did, so it is guaranteed to work.
+//
+// `full` is true for an instrument change; a chords on/off toggle only needs
+// the cheaper re-tune.
+function reloadAudio(full) {
+  if (!visualObj) return;
+
+  if (full && synthControl) {
+    try { synthControl.pause(); } catch (e) {}
+    try {
+      if (synthControl.midiBuffer && synthControl.midiBuffer.stop) {
+        synthControl.midiBuffer.stop();
+      }
+    } catch (e) {}
+    try { synthControl.disable(true); } catch (e) {}
+    synthControl = null;
+    document.getElementById("audio").innerHTML = "";
+  }
+
+  if (!synthControl) {
+    synthControl = new ABCJS.synth.SynthController();
+    synthControl.load("#audio", cursorControl, {
+      displayLoop: false,
+      displayRestart: true,
+      displayPlay: true,
+      displayProgress: true,
+      displayWarp: false
+    });
+    ceolGuardTransport(synthControl);
+  }
+
+  setAudioReady(false);
+  // Prime here too. Changing instrument or chords rebuilds the synth, and
+  // leaving the samples to be fetched on the next press of play means the
+  // buffer in hand belongs to the settings you just changed away from.
+  primeTune(function () {
+    applySpeed();
+    // A new controller means new DOM and a new timing source.
+    buildBarTimingMap();
+  });
+}
+
+// ── Bar structures ──────────────────────────────────────────────────────────
+var barMap = [];
+var barFirstMs = {};
+var barSel = { start: null, end: null };
+var barLooping = false;
+var loopSeeking = false;
+
+var pracEnabled = false;
+var pracLoopCount = 0;
+var pracWarp = 60;
+
+function measureNum(el) {
+  if (!el || !el.classList) return null;
+  for (var i = 0; i < el.classList.length; i++) {
+    var m = el.classList[i].match(/^abcjs-m(\d+)$/);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+function findMeasure(el, stopAt) {
+  var t = el;
+  while (t && t !== stopAt) {
+    var m = measureNum(t);
+    if (m !== null) return m;
+    t = t.parentElement;
+  }
+  return null;
+}
+
+/// The bars inside any rendered container, in order.
+function buildBarMapIn(container) {
+  var bars = [];
+  if (!container) return bars;
+  container.querySelectorAll(".abcjs-staff-wrapper").forEach(function (wrapper) {
+    var buckets = {};
+    wrapper.querySelectorAll(".abcjs-note, .abcjs-rest").forEach(function (el) {
+      var m = findMeasure(el, wrapper);
+      if (m === null) return;
+      (buckets[m] = buckets[m] || []).push(el);
+    });
+    Object.keys(buckets).map(Number).sort(function (a, b) { return a - b; })
+      .forEach(function (m) { bars.push({ wrapper: wrapper, m: m, els: buckets[m] }); });
+  });
+  return bars;
+}
+
+function buildBarMap() {
+  barMap = buildBarMapIn(document.getElementById("paper"));
+}
+
+function barIndexFor(wrapper, m) {
+  for (var i = 0; i < barMap.length; i++) {
+    if (barMap[i].wrapper === wrapper && barMap[i].m === m) return i;
+  }
+  return -1;
+}
+
+function barBBox(bar) {
+  var els = bar.wrapper.querySelectorAll(".abcjs-m" + bar.m);
+  var box = null;
+  els.forEach(function (el) {
+    if (el.hasAttribute && el.hasAttribute("data-ceol-tap")) return;
+    var cls = el.getAttribute("class") || "";
+    if (/\babcjs-(bar|ending)\b/.test(cls) || /\babcjs-bar-/.test(cls)) return;
+    if (typeof el.getBBox !== "function") return;
+    var b;
+    try { b = el.getBBox(); } catch (e) { return; }
+    if (!b || !b.width) return;
+    if (!box) box = { x: b.x, y: b.y, x2: b.x + b.width, y2: b.y + b.height };
+    else {
+      box.x = Math.min(box.x, b.x); box.y = Math.min(box.y, b.y);
+      box.x2 = Math.max(box.x2, b.x + b.width); box.y2 = Math.max(box.y2, b.y + b.height);
+    }
+  });
+  return box;
+}
+
+function drawTapTargets() {
+  barMap.forEach(function (bar) {
+    if (bar.wrapper.querySelector('rect[data-ceol-tap="1"][data-bar-m="' + bar.m + '"]')) return;
+    var box = barBBox(bar);
+    if (!box) return;
+    var h = box.y2 - box.y;
+    var pad = h * 0.4;
+    var r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    r.setAttribute("x", box.x - 1);
+    r.setAttribute("y", box.y - pad);
+    r.setAttribute("width", (box.x2 - box.x) + 2);
+    r.setAttribute("height", h + pad * 2);
+    r.setAttribute("fill-opacity", "0");
+    r.setAttribute("stroke-opacity", "0");
+    r.setAttribute("data-ceol-tap", "1");
+    r.setAttribute("data-bar-m", bar.m);
+    r.setAttribute("class", "abcjs-m" + bar.m);
+    bar.wrapper.appendChild(r);
+  });
+}
+
+function updateBarShading() {
+  document.querySelectorAll(".ceol-sel").forEach(function (el) { el.remove(); });
+  if (barSel.start === null) return;
+  var pending = barSel.end === null;
+  var lo = barSel.start;
+  var hi = pending ? barSel.start : barSel.end;
+  for (var i = lo; i <= hi && i < barMap.length; i++) {
+    var bar = barMap[i];
+    var tap = bar.wrapper.querySelector('rect[data-ceol-tap="1"][data-bar-m="' + bar.m + '"]');
+    var x, y, w, h;
+    if (tap) {
+      x = +tap.getAttribute("x"); y = +tap.getAttribute("y");
+      w = +tap.getAttribute("width"); h = +tap.getAttribute("height");
+      var inset = h * 0.18;
+      y += inset; h = Math.max(4, h - inset * 2);
+    } else {
+      var box = barBBox(bar);
+      if (!box) continue;
+      x = box.x - 2; y = box.y - 6;
+      w = (box.x2 - box.x) + 4; h = (box.y2 - box.y) + 12;
+    }
+    var r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    r.setAttribute("x", x); r.setAttribute("y", y);
+    r.setAttribute("width", w); r.setAttribute("height", h);
+    r.setAttribute("rx", "4");
+    r.setAttribute("fill-opacity", pending ? "0.16" : "0.24");
+    r.setAttribute("pointer-events", "none");
+    r.setAttribute("class", "ceol-sel");
+    bar.wrapper.insertBefore(r, bar.wrapper.firstChild);
+  }
+}
+
+function updateSelectionInfo() {
+  var el = document.getElementById("selInfo");
+  var prac = document.getElementById("pracPanel");
+  if (barSel.start === null) {
+    el.classList.remove("visible");
+    prac.classList.remove("visible");
+    sendLoopToApp();      // cleared: the app must stop looping too
+    return;
+  }
+  var pending = barSel.end === null;
+  var lo = barSel.start + 1;
+  var hi = (pending ? barSel.start : barSel.end) + 1;
+  var label = lo === hi ? "Bar " + lo : "Bars " + lo + "–" + hi;
+  el.classList.add("visible");
+  if (pending) {
+    el.innerHTML = "<span>" + label + " — playing from here; tap another bar to set the loop end</span>"
+      + '<button id="selClear" class="danger">✕ Clear</button>';
+    prac.classList.remove("visible");
+  } else {
+    el.innerHTML = "<span>" + label + "</span>"
+      + '<button id="loopToggle" class="' + (barLooping ? "loop-active" : "") + '">'
+      + (barLooping ? "⟳ Looping" : "⟳ Loop off") + "</button>"
+      + '<button id="pracToggle" class="' + (pracEnabled ? "prac-active" : "") + '">🎯 Practice</button>'
+      + '<button id="selClear" class="danger">✕ Clear</button>';
+    document.getElementById("loopToggle").addEventListener("click", function () {
+      barLooping = !barLooping;
+      updateSelectionInfo();
+      syncSynthSource();
+    });
+    document.getElementById("pracToggle").addEventListener("click", function () {
+      setPractice(!pracEnabled);
+    });
+    prac.classList.toggle("visible", pracEnabled);
+  }
+  document.getElementById("selClear").addEventListener("click", clearBarSel);
+  // Every route into a changed selection ends here, so this is the one place
+  // the app needs telling what to loop.
+  sendLoopToApp();
+}
+
+function setPractice(on) {
+  pracEnabled = on;
+  pracLoopCount = 0;
+  if (on) {
+    barLooping = true;
+    syncSynthSource();
+    pracWarp = parseInt(document.getElementById("pracStart").value, 10) || 60;
+    applyWarp();
+  } else if (synthControl) {
+    // Practice mode is done ramping: hand the tempo back to Slow / Fast.
+    document.getElementById("pracNow").textContent = "";
+    applySpeed();
+  }
+  updateSelectionInfo();
+  syncSpeedUI();
+}
+
+function applyWarp() {
+  if (!synthControl) return;
+  document.getElementById("pracNow").textContent = "→ now " + pracWarp + "%";
+  // Natively the ramp is a single property change — no teardown, no stale bar
+  // times, nothing to stall. The loop points are at the written tempo and stay
+  // where they are.
+  if (nativeMode) {
+    transport("speed", { percent: pracWarp });
+    nativeTempoChanged(pracWarp);
+    return;
+  }
+  // setWarp rebuilds the whole synth, so wait for it before touching timing.
+  // Every bar time has just moved, and the loop start we seeked to a moment
+  // ago was on the old clock; put the playhead back at the top of the loop on
+  // the new one.
+  ceolSetWarp(synthControl, pracWarp, function () {
+    refreshTiming(function () {
+      if (pracEnabled && barLooping && barSel.start !== null) seekToBar(barSel.start);
+    });
+  });
+}
+
+/// The speed actually playing, as a percentage of the written tempo.
+function activeWarp() {
+  return pracEnabled ? pracWarp : speedPct;
+}
+
+/// Re-measure everything the loop depends on, at the speed now playing.
+///
+/// setWarp rebuilds the synth's timing, so `barFirstMs` — captured from the
+/// timer's note times — is stale the moment the tempo changes. It has to be
+/// rebuilt, and a bar's length rescaled to match, or the loop compares times
+/// from two different clocks. Deferred slightly because abcjs recalculates its
+/// timings after setWarp returns.
+function refreshTiming(then) {
+  var pct = activeWarp() || 100;
+  if (baseMsPerMeasure) msPerMeasure = baseMsPerMeasure * 100 / pct;
+  postTempo();
+  setTimeout(function () {
+    if (baseMsPerMeasure) msPerMeasure = baseMsPerMeasure * 100 / (activeWarp() || 100);
+    buildBarTimingMap();
+    postTempo();
+    if (then) then();
+  }, 80);
+}
+
+/// Beats in a bar, as a musician counts them: 6/8 is two dotted crotchets,
+/// not six quavers, and a metronome clicking six to a jig bar is useless.
+function beatsPerBarFromMeter() {
+  var m = (currentABC.match(/^M:\s*(\S+)/m) || [])[1] || "4/4";
+  if (m === "C") return 4;
+  if (m === "C|") return 2;
+  var parts = m.split("/");
+  var top = parseInt(parts[0], 10);
+  var bottom = parseInt(parts[1], 10);
+  if (!top || !bottom) return 4;
+  if (bottom === 8 && top % 3 === 0) return top / 3;   // 6/8, 9/8, 12/8
+  return top;
+}
+
+/// Tell the app the tempo actually being played, so the metronome can click
+/// with the tune rather than at some default. Derived from what abcjs uses to
+/// play it, which is the only figure that's right for every tune — barely one
+/// tune in ten carries a written Q:.
+function postTempo() {
+  if (!msPerMeasure || !isFinite(msPerMeasure)) return;
+  var beats = beatsPerBarFromMeter();
+  var bpm = Math.round(beats * 60000 / msPerMeasure);
+  if (!isFinite(bpm) || bpm < 20 || bpm > 400) return;
+  try {
+    window.webkit.messageHandlers.tempo.postMessage({ bpm: bpm, beatsPerBar: beats });
+  } catch (e) {}
+}
+
+function pracOnLoopCycle() {
+  if (!pracEnabled) return;
+  pracLoopCount++;
+  var every = parseInt(document.getElementById("pracLoops").value, 10) || 2;
+  var step = parseInt(document.getElementById("pracStep").value, 10) || 5;
+  if (pracLoopCount % every === 0 && pracWarp < 100) {
+    pracWarp = Math.min(100, pracWarp + step);
+    applyWarp();
+    syncSpeedUI();      // the readout follows the ramp
+  }
+}
+
+function clearBarSel() {
+  barSel = { start: null, end: null };
+  barLooping = false;
+  loopSeeking = false;
+  if (pracEnabled) setPractice(false);
+  updateBarShading();
+  updateSelectionInfo();
+  syncSynthSource();   // back to the tune as written, repeats and all
+}
+
+// Tap a bar: first tap sets the start AND starts playing from there (Pi
+// behaviour); second tap sets the end and turns looping on.
+document.getElementById("paper").addEventListener("click", function (e) {
+  if (!barMap.length) { buildBarMap(); drawTapTargets(); }
+  var paper = document.getElementById("paper");
+  var el = e.target, measure = null;
+  while (el && el !== paper) {
+    var cls = (el.getAttribute && el.getAttribute("class")) || "";
+    if (/\babcjs-bar\b|\babcjs-bar-/.test(cls)) return;
+    measure = measureNum(el);
+    if (measure !== null) break;
+    el = el.parentElement;
+  }
+  if (measure === null) return;
+  var wrapper = el.closest(".abcjs-staff-wrapper");
+  if (!wrapper) return;
+  var idx = barIndexFor(wrapper, measure);
+  if (idx === -1) return;
+
+  var start = barSel.start, end = barSel.end;
+  if (start === null) {
+    barSel = { start: idx, end: null };
+    updateBarShading();
+    updateSelectionInfo();
+    startPlaybackAtBar(idx);
+  } else if (end === null) {
+    barSel = { start: Math.min(start, idx), end: Math.max(start, idx) };
+    barLooping = true;
+    updateBarShading();
+    updateSelectionInfo();
+    // Take the repeats out first — the bar times all move when they go, so
+    // seeking before that lands in the old timing. syncSynthSource seeks and
+    // resumes once the new audio is actually built; if there was nothing to
+    // change, it calls straight back.
+    syncSynthSource(function () { seekToBar(barSel.start); });
+  } else {
+    barSel = { start: idx, end: null };
+    barLooping = false;
+    updateBarShading();
+    updateSelectionInfo();
+    syncSynthSource(function () { startPlaybackAtBar(idx); });
+  }
+});
+
+/// Move the playhead to a bar. Deliberately does NOT start playing.
+///
+/// It used to, which then scrolled the music to follow the notes — and the bar
+/// you were reaching for to close a loop moved out from under your finger.
+/// Choosing a passage and playing it are two different intentions; the play
+/// button is for the second. If it was already playing, it stays playing and
+/// simply jumps there.
+function startPlaybackAtBar(idx) {
+  if (!synthControl) return;
+  whenAudioReady(function () { seekToBar(idx); });
+}
+
+// ── Timing map: hidden note → visible bar ───────────────────────────────────
+function buildBarTimingMap() {
+  barFirstMs = {};
+  if (!synthControl || !synthControl.timer) return;
+  var events = synthControl.timer.noteTimings;
+  if (!events || !events.length) return;
+  if (!barMap.length) buildBarMap();
+  for (var i = 0; i < events.length; i++) {
+    var ev = events[i];
+    if (!ev || !ev.elements) continue;
+    ev.elements.forEach(function (grp) {
+      (grp || []).forEach(function (hiddenEl) {
+        var el = hiddenToVis.get(hiddenEl);
+        if (!el || !el.closest) return;
+        var wrapper = el.closest(".abcjs-staff-wrapper");
+        if (!wrapper) return;
+        var m = findMeasure(el, wrapper);
+        if (m === null) return;
+        var idx = barIndexFor(wrapper, m);
+        if (idx === -1) return;
+        if (!Object.prototype.hasOwnProperty.call(barFirstMs, idx)) {
+          barFirstMs[idx] = ev.milliseconds;
+        }
+      });
+    });
+  }
+}
+
+function barMs(barIndex) {
+  if (Object.prototype.hasOwnProperty.call(barFirstMs, barIndex)) return barFirstMs[barIndex];
+  var keys = Object.keys(barFirstMs).map(Number).sort(function (a, b) { return a - b; });
+  if (keys.length > 1 && msPerMeasure) {
+    var lastKey = keys[keys.length - 1];
+    return barFirstMs[lastKey] + (barIndex - lastKey) * msPerMeasure;
+  }
+  return msPerMeasure ? barIndex * msPerMeasure : 0;
+}
+
+function seekToBar(barIndex, retried) {
+  if (!synthControl) return;
+  // Natively the bar times and the file are on the same clock — the written
+  // tempo — so a seek is just the bar's own time. No fraction, no rescaling,
+  // nothing that can go stale when the speed changes.
+  if (nativeMode) {
+    var ms = barMs(barIndex);
+    if (isFinite(ms)) transport("seek", { seconds: ms / 1000 });
+    return;
+  }
+  var buf = synthControl.midiBuffer;
+  if (!buf || !buf.duration) return;
+  var fraction = barMs(barIndex) / (buf.duration * 1000);
+  // A stale time can land past the end, where seeking finishes the tune
+  // instead of looping it — which read as "it just stopped".
+  //
+  // Refusing was right, but refusing and giving up was not: the times are
+  // stale precisely when the speed has just changed, which is every few
+  // rounds of practice, and a loop that declines to come round again is a
+  // loop that has stopped. Re-measure and try once more on the new clock.
+  if (!isFinite(fraction) || fraction >= 0.999) {
+    if (retried) return;
+    refreshTiming(function () { seekToBar(barIndex, true); });
+    return;
+  }
+  loopSeeking = true;
+  synthControl.seek(Math.max(0, fraction));
+  setTimeout(function () { loopSeeking = false; }, 250);
+}
+
+// ── Cursor + follow scroll ──────────────────────────────────────────────────
+function unhighlight() {
+  lastEls.forEach(function (el) { el.classList.remove("abc-playing"); });
+  lastEls = [];
+}
+
+// Where the lit note actually is, as a reader would say it — see set.html.
+function litWhere() {
+  if (!lastEls.length) return "nothing";
+  var notes = Array.prototype.slice.call(
+    document.querySelectorAll("#paper .abcjs-note"));
+  return "note " + (notes.indexOf(lastEls[0]) + 1) + "/" + notes.length;
+}
+
+var lastFollowAt = 0;
+function followHighlight(el) {
+  // Only chase the music while it is actually sounding. Choosing a loop moves
+  // the playhead to the first bar you picked, which lights a note, which used
+  // to scroll the page — so the second bar you were about to tap slid out from
+  // under your finger. Following is for reading along, not for browsing.
+  if (!(synthControl && synthControl.isStarted)) return;
+  var now = Date.now();
+  if (now - lastFollowAt < 350) return;
+  var scroller = document.getElementById("scroller");
+  var sRect = scroller.getBoundingClientRect();
+  var eRect = el.getBoundingClientRect();
+  // Already comfortably in view? Leave the reader alone.
+  if (eRect.top >= sRect.top + 8 && eRect.bottom <= sRect.bottom - sRect.height * 0.18) return;
+  lastFollowAt = now;
+  var target = scroller.scrollTop + (eRect.top - sRect.top) - sRect.height * 0.35;
+  target = Math.max(0, Math.min(target, scroller.scrollHeight - scroller.clientHeight));
+  if (typeof scroller.scrollTo === "function") {
+    scroller.scrollTo({ top: target, behavior: "smooth" });
+  } else {
+    scroller.scrollTop = target;
+  }
+}
+
+// Diagnostics: tap "?" to show what the cursor/scroll machinery sees.
+var dbgOn = false;
+// The app's own ? button, in the strip under the title. Same thing the button
+// on the music did — it sits up there instead now, so the development panel
+// isn't taking a place in the row of controls you'd actually be using.
+function ceolToggleDiagnostics() {
+  var b = document.getElementById("dbgBtn");
+  if (b) b.click();
+}
+
+document.getElementById("dbgBtn").addEventListener("click", function () {
+  // The audio figures below are read from the player, and the player only
+  // reported them once, when the file landed — before a note had played, so
+  // the latency and the node's clock rate were still zero. Ask again on the
+  // way in, so what you are looking at is what is happening now.
+  try { window.webkit.messageHandlers.transport.postMessage({ action: "environment" }); } catch (e) {}
+  dbgOn = !dbgOn;
+  document.getElementById("dbg").style.display = dbgOn ? "block" : "none";
+  updateDbg();
+});
+function updateDbg() {
+  if (!dbgOn) return;
+  var sc = document.getElementById("scroller");
+  var buf = synthControl && synthControl.midiBuffer;
+  var keys = Object.keys(barFirstMs).map(Number);
+  var latest = keys.length ? Math.max.apply(null, keys.map(function (k) { return barFirstMs[k]; })) : 0;
+  var lines = [
+    "map " + hiddenToVis.size + " | lit " + lastEls.length
+      + " | scroll " + Math.round(sc.scrollTop) + "/" + sc.scrollHeight
+      + " view " + sc.clientHeight,
+    "bars " + barMap.length + " | times " + keys.length
+      + " | latest " + Math.round(latest) + "ms"
+      + " | buffer " + (buf && buf.duration ? Math.round(buf.duration * 1000) + "ms" : "none"),
+    "audio ready " + audioReady + " | started " + !!(synthControl && synthControl.isStarted)
+      + " | context " + (ABCJS.synth.activeAudioContext && ABCJS.synth.activeAudioContext()
+                         ? ABCJS.synth.activeAudioContext().state : "none"),
+    "soundfont " + (_ceolFontChecked ? (_ceolFontOK ? "bundled/cached" : "CDN") : "CHECKING")
+      + " | notes loaded " + notesLoaded + " failed " + notesFailed
+      + (fontFallbackTried ? " (fell back)" : ""),
+    "repeats " + (synthIsLinear ? "stripped for the loop"
+                  : (linearRefused ? "kept — stripping lost bars" : "as written"))
+      + " | sel " + (barSel.start === null ? "-" : barSel.start)
+      + "→" + (barSel.end === null ? "-" : barSel.end)
+      + " | loop " + (barLooping ? "on" : "off"),
+    "audio " + (!nativeAllowed ? "web (switched off in Settings)"
+                : nativeMode ? "NATIVE" : "web (transfer not landed)")
+      + " | events " + nativeEvents.length
+      + " | at " + Math.round(lastNativeMs) + "ms of " + Math.round(nativeDurationMs) + "ms",
+  ];
+  // Tells a wrong clock from a wrong map — see set.html.
+  // The two clocks, to the millisecond — see set.html.
+  var lastEvMs = nativeEvents.length ? nativeEvents[nativeEvents.length - 1].ms : 0;
+  lines.push("cursor clock " + Math.round(lastEvMs) + "ms vs audio "
+    + Math.round(nativeDurationMs) + "ms"
+    + (lastEvMs > 0 && nativeDurationMs > 0
+       ? "  → " + ((nativeDurationMs / lastEvMs - 1) * 100).toFixed(2) + "% apart" : ""));
+  lines.push("lit " + litWhere()
+    + " | event " + nativeIndex + " at "
+    + (nativeIndex >= 0 && nativeEvents[nativeIndex]
+       ? Math.round(nativeEvents[nativeIndex].ms) + "ms" : "none")
+    + " | clock " + Math.round(lastNativeMs) + "ms");
+  lines.push("practice " + (pracEnabled ? "ON" : "off")
+    + " | warp " + (pracEnabled ? pracWarp : speedPct) + "%"
+    + " | laps " + pracLoopCount
+    + " | ramp +" + (document.getElementById("pracStep") || {}).value
+    + "% every " + (document.getElementById("pracLoops") || {}).value
+    + " | loop sent " + (lastLoopSent || "-"));
+  if (nativeEnvironmentText) lines.push(nativeEnvironmentText);
+  if (ceolAudioError) lines.push("audio handover: " + ceolAudioError);
+  if (firstNoteError) lines.push("note error: " + firstNoteError.slice(0, 70));
+  if (lastSwapError) lines.push("swap error: " + lastSwapError);
+  document.getElementById("dbg").textContent = lines.join("\n");
+}
+
+var cursorControl = {
+  beatSubdivisions: 2,
+  onStart: function () {
+    buildBarTimingMap();
+    try { msPerMeasure = visualObj.millisecondsPerMeasure(); } catch (e) {}
+    if (barSel.start !== null) seekToBar(barSel.start);
+    lastFollowAt = 0;
+  },
+  onEvent: function (ev) {
+    if (!ev) return;
+    unhighlight();
+    (ev.elements || []).forEach(function (grp) {
+      (grp || []).forEach(function (hiddenEl) {
+        var vis = hiddenToVis.get(hiddenEl);
+        if (!vis || !vis.classList) return;
+        vis.classList.add("abc-playing");
+        lastEls.push(vis);
+      });
+    });
+    if (lastEls.length) followHighlight(lastEls[0]);
+    updateDbg();
+
+    if (!loopSeeking && barLooping && barSel.start !== null && barSel.end !== null) {
+      var endTimeMs;
+      var nextMs = Object.prototype.hasOwnProperty.call(barFirstMs, barSel.end + 1)
+        ? barFirstMs[barSel.end + 1] : null;
+      var linMs = msPerMeasure ? barMs(barSel.end) + msPerMeasure : null;
+      if (nextMs !== null && linMs !== null && nextMs > linMs + msPerMeasure * 0.5) {
+        endTimeMs = linMs;
+      } else if (nextMs !== null) {
+        endTimeMs = nextMs;
+      } else {
+        endTimeMs = barMs(barSel.end) + (msPerMeasure || 0);
+      }
+      if (ev.milliseconds >= endTimeMs) {
+        loopSeeking = true;
+        var loopStart = barSel.start;
+        setTimeout(function () {
+          if (barLooping && barSel.start !== null) {
+            seekToBar(loopStart);
+            pracOnLoopCycle();
+          }
+          setTimeout(function () { loopSeeking = false; }, 250);
+        }, 30);
+      }
+    }
+  },
+  onFinished: function () {
+    unhighlight();
+    if (barLooping && barSel.start !== null && synthControl && !loopSeeking) {
+      seekToBar(barSel.start);
+      pracOnLoopCycle();
+      try { synthControl.play(); } catch (e) {}
+    }
+  }
+};
+
+// ── Rendering ───────────────────────────────────────────────────────────────
+// staffwidth is in SCALED pixels — it is NOT divided by the scale.
+//
+// It used to be, on the reasoning that a scaled-up render needs a smaller
+// request to come out the right size. That reasoning is wrong, and measurably
+// so: rendering the library at each notation size and reading back the width
+// abcjs actually produced, the engraving covered 75% of the screen at A+ in
+// landscape and 59% at A++. The missing quarter to two-fifths is the white
+// space down both margins. Passing the container width undivided puts every
+// size at 100%.
+function staffWidth() {
+  // On paper, engrave to a page rather than to the phone: a fixed width means
+  // the PDF looks the same whatever notation size happens to be selected.
+  if (printMode) return 680;
+  var el = document.getElementById("paper");
+  var w = (el && el.clientWidth) ? el.clientWidth : 700;
+  // 24 leaves a hair of breathing room at each edge once the 10px paddings
+  // are added back, so notes never touch the side of the screen.
+  return Math.max(180, w - 24);
+}
+
+// abcjs's wrap mode treats staffwidth as a hint, not a target: it settles on
+// its own line width and leaves whatever is left over as white. So don't
+// argue with it — measure it. Render, read the width it chose, and if it
+// missed the container by more than 2%, scale the request by the ratio and
+// render again, keeping whichever attempt landed closer. One render in the
+// common case, three at worst.
+// The tune object from the most recent draw, so the repeat-sign cure below can
+// look at what was actually engraved.
+var ceolLastDrawn = null;
+
+function renderFitted(containerId, abc, opts) {
+  function draw(sw, source, options) {
+    var o = {};
+    var from = options || opts;
+    for (var k in from) o[k] = from[k];
+    o.staffwidth = sw;
+    ceolLastDrawn = (ABCJS.renderAbc(containerId, source || abc, o) || [])[0] || null;
+    var svg = document.querySelector("#" + containerId + " svg");
+    return svg ? (parseFloat(svg.getAttribute("width")) || 0) : 0;
+  }
+  var base = staffWidth();
+  var w = draw(base);
+  if (!printMode && w) {
+    var el = document.getElementById(containerId);
+    var target = el && el.clientWidth ? el.clientWidth : 0;
+    if (target && Math.abs(w - target) / target > 0.02) {
+      var w2 = draw(base * (target / w));
+      if (!w2 || Math.abs(w2 - target) > Math.abs(w - target)) { w = draw(base); }
+      else { base = base * (target / w); w = w2; }
+    }
+  }
+  ceolCureStrandedRepeat(containerId, abc, opts, base, draw, ceolLastDrawn);
+}
+
+// ── Repeat signs stranded at the end of a line ──────────────────────────────
+//
+// abcjs's line wrapping is free to put ANY barline last on a system, including
+// one that OPENS a repeat — a `|:` or a `::`. That is wrong engraving: a
+// repeat that opens a section belongs at the START of the next system, and
+// what you see instead is a set of dots facing right into the margin at the
+// far edge of the page, which reads as a mistake. Addie Harper's Jig and A
+// Tune for Lewis both showed it.
+//
+// It is not rare. Rendering a sample of the library at three widths, 17% of
+// engravings stranded a repeat this way.
+//
+// abcjs gives no way to ask for it directly. Measured, in order of how much
+// they disturb the layout:
+//   • `preferredMeasuresPerLine` — no effect at all, at any value.
+//   • explicit `$` line breaks, or `lineBreaks` as a render option — ignored
+//     while `wrap` is on, and `wrap` is what makes the music responsive.
+//   • a small change of staff width — moves abcjs's breaks, and usually enough.
+//     Cures 85 of the 99 bad engravings in the sample, at a width change of at
+//     most 12%, which is not visible.
+//   • re-laying the tune out with our own line breaks and `wrap` off — cures
+//     the rest. Kept last because abcjs then fills nothing itself, so the
+//     lines are only as even as we make them.
+// Together: 17% → 0%, with the average number of staves per tune going from
+// 4.96 to 4.98. That last number is the point — the cure costs no layout.
+function ceolStrandsRepeat(tune) {
+  var lines = ((tune && tune.lines) || []).filter(function (l) { return l.staff; });
+  return lines.some(function (line) {
+    var bars = (line.staff[0].voices[0] || []).filter(function (e) { return e.el_type === "bar"; });
+    var last = bars[bars.length - 1];
+    return !!last && (last.type === "bar_left_repeat" || last.type === "bar_dbl_repeat");
+  });
+}
+
+function ceolNoteCount(tune) {
+  var n = 0;
+  ((tune && tune.lines) || []).forEach(function (line) {
+    if (!line.staff) return;
+    (line.staff[0].voices[0] || []).forEach(function (e) { if (e.el_type === "note") n++; });
+  });
+  return n;
+}
+
+/// Our own break points: a steady number of bars per line, never ending on a
+/// barline that opens a repeat.
+function ceolEvenBreaks(tune) {
+  var lines = ((tune && tune.lines) || []).filter(function (l) { return l.staff; });
+  var bars = [];
+  lines.forEach(function (line) {
+    (line.staff[0].voices[0] || []).forEach(function (e) {
+      if (e.el_type === "bar" && typeof e.endChar === "number") bars.push(e);
+    });
+  });
+  if (lines.length < 2 || !bars.length) return [];
+  var per = Math.max(1, Math.round(bars.length / lines.length));
+  var points = [], run = 0;
+  for (var i = 0; i < bars.length - 1; i++) {
+    run++;
+    if (run < per) continue;
+    var at = i;
+    if (bars[at].type === "bar_left_repeat" || bars[at].type === "bar_dbl_repeat") {
+      if (at > 0) at--; else { run = 0; continue; }
+    }
+    points.push(bars[at].endChar);
+    run = 0;
+  }
+  return points;
+}
+
+function ceolApplyBreaks(abc, points) {
+  var out = abc;
+  points.slice().sort(function (a, b) { return b - a; }).forEach(function (at) {
+    if (at <= 0 || at >= out.length) return;
+    // A BLANK line ends the tune in ABC. Where there is already a break, leave
+    // it: making a second one silently truncates the music.
+    if (/^[ \t]*\n/.test(out.slice(at))) return;
+    out = out.slice(0, at) + "\n" + out.slice(at).replace(/^[ \t]+/, "");
+  });
+  return out.replace(/\n[ \t]*\n+/g, "\n");
+}
+
+var CEOL_WIDTH_NUDGES = [0.97, 1.03, 0.94, 1.06, 0.91, 1.09, 0.88, 1.12];
+
+function ceolCureStrandedRepeat(containerId, abc, opts, base, draw, tune) {
+  if (printMode || !tune || !ceolStrandsRepeat(tune)) return;
+  var staves = ((tune.lines) || []).filter(function (l) { return l.staff; }).length;
+  var notes = ceolNoteCount(tune);
+
+  for (var i = 0; i < CEOL_WIDTH_NUDGES.length; i++) {
+    draw(Math.round(base * CEOL_WIDTH_NUDGES[i]));
+    var t = ceolLastDrawn;
+    if (t && !ceolStrandsRepeat(t)
+        && ((t.lines || []).filter(function (l) { return l.staff; }).length <= staves + 1)) {
+      return;
+    }
+  }
+  // Last resort: our own line breaks, with abcjs's wrapping switched off.
+  var points = ceolEvenBreaks(tune);
+  if (points.length) {
+    var relaid = {};
+    for (var k in opts) relaid[k] = opts[k];
+    delete relaid.wrap;
+    draw(base, ceolApplyBreaks(abc, points), relaid);
+    var r = ceolLastDrawn;
+    if (r && !ceolStrandsRepeat(r) && ceolNoteCount(r) === notes) return;
+  }
+  draw(base);   // nothing worked — put the original engraving back
+}
+
+// Visible render only (used on size change and resize). Rebuilds the
+// hidden→visible note map so the cursor keeps working.
+// Width the engraving was last laid out for (see the resize handler).
+var lastRenderWidth = 0;
+
+// Print/PDF mode. On screen the title is stripped — the app shows it in the
+// navigation bar and at large sizes it ate a third of the display. On paper
+// there is no navigation bar, so a sheet of anonymous notes is no use: put the
+// title, composer and rhythm back, and engrave at a fixed size rather than
+// whatever the phone was set to.
+var printMode = false;
+
+function renderForPrint(on) {
+  printMode = !!on;
+  renderVisible();
+}
+
+function renderVisible() {
+  if (!currentABC) return;
+  var _paper = document.getElementById("paper");
+  if (_paper && _paper.clientWidth) lastRenderWidth = _paper.clientWidth;
+  // Strip the title, rhythm and other header lines from what's DRAWN. The app
+  // already shows the tune's name in the navigation bar, and at the larger
+  // notation sizes abcjs was giving a third of the screen to a title you can
+  // read at the top anyway. The hidden render keeps them, so the audio and the
+  // note ordering are untouched.
+  renderFitted("paper", printMode ? currentABC : stripDisplayHeaders(currentABC), {
+    scale: printMode ? 1.0 : sizeScale(),
+    wrap: wrapOptions(currentABC),
+    add_classes: true,
+    selectTypes: false,
+    visualTranspose: currentTranspose,
+    // Fill the last line rather than leaving it hanging.
+    stretchlast: true,
+    format: spacingFormat(),
+    paddingtop: 4, paddingbottom: 8, paddingleft: 10, paddingright: 10
+  });
+  patchSvgViewBox("paper");
+  rebuildMaps();
+}
+
+// Port of the Pi's _patchSvgViewBox, extended to include content that abcjs
+// draws OUTSIDE the declared width/height (long titles and composer lines can
+// start left of x=0, which clips them). Setting the viewBox to the real
+// content bounds and width to 100% guarantees everything stays visible at
+// every size.
+function patchSvgViewBox(containerId) {
+  document.querySelectorAll("#" + containerId + " svg").forEach(function (svg) {
+    var w = parseFloat(svg.getAttribute("width"));
+    var h = parseFloat(svg.getAttribute("height"));
+    if (!w || !h) return;
+    var x = 0, y = 0, vw = w, vh = h;
+    try {
+      var bb = svg.getBBox();
+      if (bb && bb.width) {
+        // Grow the box by the SAME amount on both sides. Expanding only to the
+        // left (a long title can start at a negative x) shifted the staff off
+        // to the right inside the viewBox, which read as the music sitting
+        // off-centre with a gap down one side. A symmetric pad keeps the staff
+        // — which abcjs centres within 0..w — centred in the finished SVG.
+        var padLeft = Math.max(0, -(bb.x - 2));
+        var padRight = Math.max(0, (bb.x + bb.width + 2) - w);
+        var pad = Math.max(padLeft, padRight);
+        x = -pad;
+        vw = w + pad * 2;
+        y = Math.min(0, bb.y - 2);
+        vh = Math.max(h, bb.y + bb.height + 2) - y;
+      }
+    } catch (e) {}
+    svg.setAttribute("viewBox", x + " " + y + " " + vw + " " + vh);
+    svg.setAttribute("preserveAspectRatio", "xMidYMin meet");
+    // Keep the engraving at its NATURAL (scaled) width and centre it. Forcing
+    // width to 100% would stretch every size step to fill the screen, undoing
+    // the A-/A+ scaling; capping at the container keeps it from clipping.
+    var container = svg.parentElement;
+    var maxW = container && container.clientWidth ? container.clientWidth : vw;
+    svg.setAttribute("width", Math.min(vw, maxW));
+    svg.removeAttribute("height");
+    svg.style.display = "block";
+    svg.style.margin = "0 auto";
+    svg.style.maxWidth = "100%";
+  });
+}
+
+function rebuildMaps() {
+  // Pi approach: match hidden and visible notes by sequential position.
+  var hiddenNotes = Array.prototype.slice.call(
+    document.querySelectorAll("#hidden .abcjs-note"));
+  var visibleNotes = Array.prototype.slice.call(
+    document.querySelectorAll("#paper .abcjs-note"));
+  hiddenToVis = new Map();
+  for (var i = 0; i < Math.min(hiddenNotes.length, visibleNotes.length); i++) {
+    hiddenToVis.set(hiddenNotes[i], visibleNotes[i]);
+  }
+  buildBarMap();
+  drawTapTargets();
+  updateBarShading();
+  buildBarTimingMap();
+  // The note events point at the visible elements they light, and re-engraving
+  // replaces every one of them — so they have to be renewed here too, or the
+  // cursor stops after a rotation or a change of notation size.
+  if (nativeMode) buildNativeEvents();
+}
+
+var resizeTimer = null;
+window.addEventListener("resize", function () {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function () {
+    // Only a WIDTH change needs a re-engraving. The height changes whenever
+    // the app hides its header, and re-rendering for that rebuilds the bar
+    // map under the tap handlers for no reason.
+    var el = document.getElementById("paper");
+    var w = el ? el.clientWidth : 0;
+    if (!w || w === lastRenderWidth) return;
+    renderVisible();
+  }, 250);
+});
+
+
+// Tell the app when playback starts/stops so it can clear the screen for
+// reading (the transport's own pause button doesn't fire a callback, so poll
+// the controller — cheap, and covers every way playback can stop).
+var lastPlayingState = false;
+function postPlayState(playing) {
+  try { window.webkit.messageHandlers.playState.postMessage({ playing: playing }); } catch (e) {}
+}
+setInterval(function () {
+  var playing = !!(synthControl && synthControl.isStarted);
+  if (playing !== lastPlayingState) {
+    lastPlayingState = playing;
+    postPlayState(playing);
+  }
+  // A backstop for the symbol. The app reports every change through
+  // nativePlaying, which is what actually keeps it right; this only catches a
+  // report that went astray. abcjs redraws the symbol solely when it starts or
+  // stops something itself, and natively it does neither.
+  if (nativeMode && synthControl && synthControl.control
+      && synthControl.control.pushPlay) {
+    try { synthControl.control.pushPlay(playing); } catch (e) {}
+  }
+}, 400);
+
+// Tell the app when the music has been scrolled off the top, so the branded
+// header above the web view can get out of the way. Only the crossing of the
+// threshold is posted, not every pixel — this fires on a scroll gesture.
+var lastScrolledState = false;
+(function () {
+  var scroller = document.getElementById("scroller");
+  if (!scroller) return;
+  scroller.addEventListener("scroll", function () {
+    // Only the READER's scrolling may move the header.
+    //
+    // Follow-the-music scrolls this element itself, several times a tune. If
+    // those scrolls reached the app, the header would show and hide while you
+    // played, resizing the web view each time — which rebuilds the bar map
+    // from under the tap handlers (loops stop being selectable) and, when the
+    // panel height changes, can tear down the player mid-note. Both were real
+    // bugs. Ignore programmatic scrolls, and don't touch the header at all
+    // while the synth is running.
+    if (Date.now() - lastFollowAt < 1200) return;
+    if (synthControl && synthControl.isStarted) return;
+    var scrolled = scroller.scrollTop > 24;
+    if (scrolled !== lastScrolledState) {
+      lastScrolledState = scrolled;
+      try {
+        window.webkit.messageHandlers.scrolled.postMessage({ scrolled: scrolled });
+      } catch (e) {}
+    }
+  }, { passive: true });
+})();
+
+function renderABC(opts) {
+  // Tidy ":| |:" into the single "::" barline before anything renders,
+  // so the hidden and visible engravings agree. Display only — the
+  // stored tune is untouched. See ceolTidyRepeats in abctools.js.
+  currentABC = ceolTidyRepeats(opts.abc || "");
+  currentTranspose = opts.transpose || 0;
+  syncTransposeUI();
+  playbackEnabled = !!opts.playback;
+  clearBarSel();
+  unhighlight();
+  setAudioReady(false);
+  if (synthControl) { try { synthControl.pause(); } catch (e) {} }
+  syncCtlUI();
+
+  // 1. Hidden plain render → visualObj for the synth (stable element identity)
+  renderHidden();
+
+  // 2. Visible render for display
+  renderVisible();
+
+  var audioDiv = document.getElementById("audio");
+  if (playbackEnabled && visualObj && ABCJS.synth.supportsAudio()) {
+    audioDiv.style.display = "";
+    document.getElementById("ctlRow").classList.add("visible");
+    document.getElementById("speedRow").classList.add("visible");
+    if (!synthControl) {
+      synthControl = new ABCJS.synth.SynthController();
+      synthControl.load("#audio", cursorControl, {
+        displayLoop: false,
+        displayRestart: true,
+        displayPlay: true,
+        displayProgress: true,
+        // Our own Slow / Fast row replaces abcjs's numeric warp box.
+        displayWarp: false
+      });
+      ceolGuardTransport(synthControl);
+    }
+    // Wait for the soundfont check before priming — see voices.js. Priming
+    // against an unverified URL is how a tune ends up playing silently.
+    // The second argument is true, so the samples are fetched and mixed now
+    // rather than on the first press of play. Play responds immediately as a
+    // result — but the real reason is that this is the only place abcjs says
+    // which notes it managed to load. Without it, a tune whose samples all
+    // failed still produces a buffer of the right length, and the only symptom
+    // is silence with nothing to look at.
+    ceolWhenFontReady(function () {
+      primeTune(function () {
+        applySpeed();
+        try { baseMsPerMeasure = visualObj.millisecondsPerMeasure(); } catch (e) {}
+        refreshTiming();
+        buildBarTimingMap();
+        flushPendingPlay();
+      });
+    });
+  } else {
+    audioDiv.style.display = "none";
+    document.getElementById("ctlRow").classList.remove("visible");
+    document.getElementById("speedRow").classList.remove("visible");
+  }
+}
+
+// Diagnostics are for development only. The app calls setDebug(true) in DEBUG
+// builds; in a release build the "?" never appears. Keeping the panel (rather
+// than deleting it) has already paid for itself three times over — the set
+// playback, the cross-tune loop and the timeline bugs were all found with it.
+function setDebug(on) {
+  // Kept hidden either way: the app's ? in the strip under the title drives it
+  // through ceolToggleDiagnostics(), so the panel can be reached in
+  // development without a control row that looks nothing like the shipped one.
+  var b = document.getElementById("dbgBtn");
+  if (b) b.style.display = "none";
+  if (!on) {
+    var d = document.getElementById("dbg");
+    if (d) d.style.display = "none";
+  }
+}
+
+// ── Metronome ───────────────────────────────────────────────────────────────
+// One button, in the row that stays on screen while you play.
+//
+// It began life as a panel behind a button in the page header — which is the
+// header that steps aside the moment playback starts, so the click became
+// unreachable at exactly the moment it was wanted. A panel was the wrong shape
+// anyway: this is an on/off you reach for mid-tune, not a form to fill in.
+//
+// Tapping cycles off → on → half → double → off. The tempo still comes from
+// the music, so there is nothing else to set.
+var clickState = 0;   // 0 off, 1 half, 2 normal, 3 double
+// Half time first, because that is where it now starts — see Metronome.swift.
+// A metronome, drawn rather than named. "Click" said what it did but took the
+// width of a word to do it; the shape says the same thing and leaves room for
+// the beat beside it, which is the part you actually need to see at a glance.
+var METRONOME_SVG =
+  '<svg viewBox="0 0 16 16" width="13" height="13" style="vertical-align:-2px" aria-hidden="true">'
+  + '<path d="M5.7 1.6h4.6l3.1 12.8H2.6z" fill="none" stroke="currentColor"'
+  + ' stroke-width="1.4" stroke-linejoin="round"/>'
+  + '<path d="M8 13 10.7 4.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>'
+  + '</svg>';
+var CLICK_LABELS = ["", "½", "1×", "2×"];
+var CLICK_RATES = [0.5, 0.5, 1, 2];
+
+function syncClickButton() {
+  var b = document.getElementById("clickBtn");
+  if (!b) return;
+  var rate = CLICK_LABELS[clickState];
+  b.innerHTML = METRONOME_SVG + (rate ? ' <span style="font-size:12px">' + rate + '</span>' : '');
+  b.classList.toggle("on", clickState > 0);
+}
+
+// The app telling the page what the metronome is really doing.
+//
+// The button and the app each kept their own idea of whether the click was on,
+// so turning it on in the panel left the button still reading "Click". The
+// same two-copies pattern that made the play/pause symbol lie. The app owns
+// the metronome, so the app says; this only draws what it is told and never
+// posts back, which is what stops the two of them talking in circles.
+function ceolSetClick(on, rate) {
+  var state = 0;
+  if (on) state = (rate < 0.75) ? 1 : (rate > 1.5 ? 3 : 2);
+  if (state === clickState) return;
+  clickState = state;
+  syncClickButton();
+}
+
+function postMetronome() {
+  try {
+    window.webkit.messageHandlers.metronome.postMessage({
+      on: clickState > 0, rate: CLICK_RATES[clickState]
+    });
+  } catch (e) {}
+}
+
+(function () {
+  var b = document.getElementById("clickBtn");
+  if (!b) return;
+  b.addEventListener("click", function () {
+    clickState = (clickState + 1) % 4;
+    syncClickButton();
+    postMetronome();
+    try { window.webkit.messageHandlers.haptic.postMessage({}); } catch (e) {}
+  });
+  syncClickButton();
+})();
+
+</script>
+</body>
+</html>

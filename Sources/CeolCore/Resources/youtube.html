@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
+  #player { width: 100%; height: 100%; }
+  #msg {
+    color: #999; font: 13px -apple-system, sans-serif;
+    padding: 12px; text-align: center;
+  }
+</style>
+</head>
+<body>
+<div id="player"></div>
+<div id="msg" style="display:none">Couldn't load the video.</div>
+<script>
+// YouTube's IFrame API, purely so the app can drive the playback rate from its
+// own control. The player's built-in speed menu works too, but it's buried
+// behind the gear icon and doesn't match the rest of the app — and the whole
+// point of a slow-down is reaching it quickly while you're learning a tune.
+var player = null;
+var pendingRate = null;
+var videoId = "";
+
+function loadVideo(id) {
+  videoId = id || "";
+  if (!videoId) { document.getElementById("msg").style.display = "block"; return; }
+  if (player && player.loadVideoById) { player.loadVideoById(videoId); return; }
+  // The API script has to come from YouTube itself.
+  var tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
+}
+
+// Called by the API once it's ready.
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player("player", {
+    videoId: videoId,
+    playerVars: {
+      playsinline: 1,     // stay in the card rather than going full screen
+      modestbranding: 1,
+      rel: 0
+    },
+    events: {
+      onReady: function () {
+        if (pendingRate !== null) { setRate(pendingRate); pendingRate = null; }
+        postRates();
+      },
+      // Plenty of videos — music ones especially — are marked "no embedding"
+      // by whoever uploaded them, and arrive here as 101 or 150. Nothing can
+      // be done about that in an iframe, so tell the app and let it offer to
+      // open the video properly instead of sitting on a black rectangle.
+      onError: function (e) {
+        document.getElementById("msg").style.display = "block";
+        document.getElementById("player").style.display = "none";
+        try {
+          window.webkit.messageHandlers.youtube.postMessage({
+            error: (e && typeof e.data === "number") ? e.data : 0
+          });
+        } catch (err) {}
+      }
+    }
+  });
+}
+
+/// Ask for a rate. YouTube only honours the rates it lists for the video, so
+/// snap to the nearest one it will actually accept rather than silently doing
+/// nothing.
+function setRate(rate) {
+  if (!player || !player.setPlaybackRate) { pendingRate = rate; return; }
+  var available = [];
+  try { available = player.getAvailablePlaybackRates() || []; } catch (e) {}
+  var target = rate;
+  if (available.length) {
+    target = available.reduce(function (best, r) {
+      return Math.abs(r - rate) < Math.abs(best - rate) ? r : best;
+    }, available[0]);
+  }
+  try { player.setPlaybackRate(target); } catch (e) {}
+  postCurrent(target);
+}
+
+function pause() { try { player && player.pauseVideo(); } catch (e) {} }
+
+/// Tell the app which rates this video allows, so its control can offer only
+/// those. YouTube's usual set is 0.25 to 2.
+function postRates() {
+  var rates = [];
+  try { rates = player.getAvailablePlaybackRates() || []; } catch (e) {}
+  try {
+    window.webkit.messageHandlers.youtube.postMessage({ rates: rates });
+  } catch (e) {}
+}
+
+function postCurrent(rate) {
+  try {
+    window.webkit.messageHandlers.youtube.postMessage({ rate: rate });
+  } catch (e) {}
+}
+</script>
+</body>
+</html>

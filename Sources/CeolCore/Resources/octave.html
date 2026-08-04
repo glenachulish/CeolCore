@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script src="abcjs-basic-min.js"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: transparent; -webkit-text-size-adjust: 100%; }
+  #bar {
+    display: flex; gap: 8px; align-items: center; padding: 8px 12px 2px;
+    font: 13px -apple-system, sans-serif; color: #666;
+  }
+  #tools {
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+    padding: 4px 12px 8px;
+    font: 13px -apple-system, sans-serif; color: #666;
+    border-bottom: 1px solid #e2e2e7;
+  }
+  #bar button, #tools button {
+    font: 600 14px -apple-system, sans-serif; border: none; border-radius: 6px;
+    padding: 6px 12px; background: #e8e8ed; color: #333;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #tools button.small { padding: 6px 10px; }
+  #bar button:disabled, #tools button:disabled { opacity: 0.4; }
+  #tools button.on { background: #2f6f4f; color: #fff; }
+  #count { margin-left: auto; white-space: nowrap; font-size: 12px; }
+  /* A tall enough tap target matters more than tidy spacing on a phone — and
+     the side margin has to be wide enough that the first and last note of a
+     line aren't under the edge of the screen, where a thumb can't land on one
+     without also grabbing the page. Fine for reading, wrong for editing. */
+  #render { padding: 6px 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #render svg { max-width: none; height: auto; }
+  @media (prefers-color-scheme: dark) {
+    #render svg { filter: invert(0.88) hue-rotate(180deg); }
+    #bar, #tools { color: #aaa; }
+    #tools { border-bottom-color: #3a3a3f; }
+    #bar button, #tools button { background: #3a3a3f; color: #eee; }
+    #tools button.on { background: #2f6f4f; color: #fff; }
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span id="hint" style="flex:1">Tap a note to move it up an octave. Tap again for two, once more to put it back.</span>
+  <button id="undo" disabled>&#8617; Undo</button>
+  <button id="reset" disabled>Reset</button>
+</div>
+<div id="tools">
+  <button id="allUp" class="small">&#9650; All</button>
+  <button id="allDown" class="small">&#9660; All</button>
+  <button id="clear" class="small">Clear</button>
+  <button id="compare" class="small">Original</button>
+  <button id="sizeDown" class="small" title="Smaller notation">A&#8722;</button>
+  <button id="sizeUp" class="small" title="Larger notation">A&#43;</button>
+  <span id="count"></span>
+</div>
+<div id="render"></div>
+<script>
+// Notes are SELECTED rather than rewritten in place: `shifts` holds a whole
+// number of octaves per note of the ORIGINAL tune, and the ABC shown is built
+// from the original each time. That is what lets a note be deselected — the
+// old editor could only undo, because it had already thrown the original slice
+// away.
+var original = "";
+var origNotes = [];     // [{s, e}] character ranges, in playing order
+var shifts = [];        // octaves per note, same indexes as origNotes
+var undoStack = [];
+var showOriginal = false;
+var zoom = 1;
+var workRanges = [];    // note ranges in the ABC currently rendered
+
+/// Which note was tapped.
+///
+/// This was a plain lookup keyed on each note's exact startChar, and that is
+/// what made the odd note untappable: abcjs reports the start of the whole
+/// group for a note carrying grace notes or a decoration, which is a character
+/// or two before the note itself, so the lookup missed and the tap was thrown
+/// away. Falling back to the range that CONTAINS the character catches those.
+function indexForChar(ch) {
+  for (var i = 0; i < workRanges.length; i++) {
+    if (workRanges[i].s === ch) return i;
+  }
+  for (var j = 0; j < workRanges.length; j++) {
+    if (ch >= workRanges[j].s && ch < workRanges[j].e) return j;
+  }
+  var best = -1;
+  for (var k = 0; k < workRanges.length; k++) {
+    if (workRanges[k].s <= ch) best = k; else break;
+  }
+  return best >= 0 ? best : undefined;
+}
+
+/// Move every pitch in an ABC slice by a whole number of octaves, leaving
+/// quoted chord symbols, decorations (!trill!) and grace notes ({...}) alone.
+function octaveShiftSlice(slice, steps) {
+  if (!steps) return slice;
+  return slice.split(/("[^"]*"|![^!]*!|\{[^}]*\})/).map(function (part) {
+    if (!part || part[0] === '"' || part[0] === "!" || part[0] === "{") return part;
+    return part.replace(/([_^=]{0,2})([A-Ga-g])([,']*)/g, function (m, acc, letter, marks) {
+      var commas = (marks.match(/,/g) || []).length;
+      var apos = (marks.match(/'/g) || []).length;
+      // ABC octave index: C=0, c=1; each , is -1, each ' is +1.
+      var oct = (letter === letter.toLowerCase() ? 1 : 0) - commas + apos + steps;
+      return acc + (oct <= 0
+        ? letter.toUpperCase() + Array(-oct + 1).join(",")
+        : letter.toLowerCase() + Array(oct).join("'"));
+    });
+  }).join("");
+}
+
+/// Character ranges of every sounding note, in order. The order is the same in
+/// the original and in any octave-shifted build of it, so a tap on the stave
+/// maps straight back to a note in the untouched source text.
+function noteRanges(visualObjs) {
+  var out = [], seen = {};
+  (visualObjs || []).forEach(function (vo) {
+    ((vo && vo.lines) || []).forEach(function (line) {
+      ((line && line.staff) || []).forEach(function (staff) {
+        ((staff && staff.voices) || []).forEach(function (voice) {
+          (voice || []).forEach(function (el) {
+            if (!el || el.el_type !== "note" || el.rest) return;
+            var s = el.startChar, e = el.endChar;
+            if (typeof s !== "number" || typeof e !== "number" || e <= s) return;
+            var k = s + ":" + e;
+            if (seen[k]) return;
+            seen[k] = 1;
+            out.push({ s: s, e: e });
+          });
+        });
+      });
+    });
+  });
+  out.sort(function (a, b) { return a.s - b.s; });
+  return out;
+}
+
+function buildWorking() {
+  var out = original;
+  for (var i = origNotes.length - 1; i >= 0; i--) {
+    var st = shifts[i] | 0;
+    if (!st) continue;
+    var r = origNotes[i];
+    out = out.slice(0, r.s) + octaveShiftSlice(out.slice(r.s, r.e), st) + out.slice(r.e);
+  }
+  return out;
+}
+
+function changedCount() {
+  var n = 0;
+  for (var i = 0; i < shifts.length; i++) if (shifts[i]) n++;
+  return n;
+}
+
+function notifyDirty() {
+  try {
+    window.webkit.messageHandlers.octave.postMessage({ dirty: changedCount() > 0 });
+  } catch (e) {}
+}
+
+function syncButtons() {
+  var n = changedCount();
+  document.getElementById("undo").disabled = undoStack.length === 0;
+  document.getElementById("reset").disabled = n === 0;
+  document.getElementById("clear").disabled = n === 0;
+  document.getElementById("count").textContent =
+    n === 0 ? (origNotes.length ? "" : "no notes read") : n + (n === 1 ? " note moved" : " notes moved");
+  var cmp = document.getElementById("compare");
+  cmp.className = "small" + (showOriginal ? " on" : "");
+  document.getElementById("hint").textContent = showOriginal
+    ? "This is the tune as it was. Tap Original again to see your changes."
+    : "Tap a note to move it up an octave. Tap again for two, once more to put it back.";
+  notifyDirty();
+}
+
+function pushUndo() {
+  undoStack.push(shifts.slice());
+  if (undoStack.length > 200) undoStack.shift();
+}
+
+function render() {
+  var host = document.getElementById("render");
+  var src = showOriginal ? original : buildWorking();
+  // Clearing first is the fix for the music shrinking on every tap: abcjs's
+  // `responsive: "resize"` measured a container that still held the previous
+  // SVG, so each redraw scaled the notation down again.
+  host.innerHTML = "";
+  var avail = Math.max(260, host.clientWidth - 8);
+  var perLine = Math.max(1, Math.round((window.innerWidth > 700 ? 4 : 3) / zoom));
+  var visual = null;
+  try {
+    visual = ABCJS.renderAbc("render", src, {
+      add_classes: true,
+      staffwidth: Math.round(avail / zoom),
+      scale: zoom,
+      wrap: { preferredMeasuresPerLine: perLine },
+      paddingtop: 8, paddingbottom: 8, paddingleft: 12, paddingright: 12,
+      clickListener: function (abcElem) {
+        if (showOriginal) return;
+        if (!abcElem || abcElem.el_type !== "note" || abcElem.rest) return;
+        var i = indexForChar(abcElem.startChar);
+        if (i === undefined || i < 0) return;
+        pushUndo();
+        shifts[i] = ((shifts[i] | 0) + 1) % 3;   // 0 -> +1 -> +2 -> 0
+        render();
+        syncButtons();
+      }
+    });
+  } catch (e) {}
+  workRanges = noteRanges(visual);
+}
+
+document.getElementById("undo").addEventListener("click", function () {
+  if (!undoStack.length) return;
+  shifts = undoStack.pop();
+  render();
+  syncButtons();
+});
+
+document.getElementById("reset").addEventListener("click", function () {
+  if (!changedCount()) return;
+  pushUndo();
+  shifts = shifts.map(function () { return 0; });
+  render();
+  syncButtons();
+});
+
+document.getElementById("clear").addEventListener("click", function () {
+  if (!changedCount()) return;
+  pushUndo();
+  shifts = shifts.map(function () { return 0; });
+  render();
+  syncButtons();
+});
+
+document.getElementById("allUp").addEventListener("click", function () {
+  if (!origNotes.length) return;
+  pushUndo();
+  shifts = shifts.map(function (v) { return Math.min(2, (v | 0) + 1); });
+  render();
+  syncButtons();
+});
+
+document.getElementById("allDown").addEventListener("click", function () {
+  if (!origNotes.length) return;
+  pushUndo();
+  shifts = shifts.map(function (v) { return Math.max(-2, (v | 0) - 1); });
+  render();
+  syncButtons();
+});
+
+document.getElementById("compare").addEventListener("click", function () {
+  showOriginal = !showOriginal;
+  render();
+  syncButtons();
+});
+
+document.getElementById("sizeUp").addEventListener("click", function () {
+  zoom = Math.min(2.5, Math.round((zoom + 0.15) * 100) / 100);
+  render();
+});
+
+document.getElementById("sizeDown").addEventListener("click", function () {
+  zoom = Math.max(0.7, Math.round((zoom - 0.15) * 100) / 100);
+  render();
+});
+
+function loadABC(abc) {
+  original = abc;
+  undoStack = [];
+  showOriginal = false;
+  // Parse the untouched tune once, off-screen, for a stable note ordering.
+  var probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;left:-10000px;top:0;width:800px;height:0;overflow:hidden";
+  document.body.appendChild(probe);
+  try {
+    origNotes = noteRanges(ABCJS.renderAbc(probe, original, { staffwidth: 700 }));
+  } catch (e) {
+    origNotes = [];
+  }
+  probe.parentNode.removeChild(probe);
+  shifts = [];
+  for (var i = 0; i < origNotes.length; i++) shifts.push(0);
+  render();
+  syncButtons();
+}
+
+window.addEventListener("resize", function () { render(); });
+
+function getWorkingABC() { return buildWorking(); }
+function isDirty() { return changedCount() > 0; }
+</script>
+</body>
+</html>
