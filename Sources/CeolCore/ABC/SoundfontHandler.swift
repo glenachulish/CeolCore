@@ -27,7 +27,14 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
 
     /// Where abcjs would have gone. Matches the default it uses today, so
     /// anything not bundled sounds exactly as it does now.
-    private static let cdn = "https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/"
+    /// `nonisolated` so the download task can read it off the main actor.
+    ///
+    /// Without it the compiler infers main-actor isolation and warns that this
+    /// is an error in Swift 6 — which it is, but the warning is noise: a
+    /// constant String is safe to read from anywhere, and the alternative it
+    /// suggests is awaiting the main actor for a fixed piece of text. Said
+    /// explicitly here rather than left to be re-diagnosed later.
+    private nonisolated static let cdn = "https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/"
 
     /// abcjs derives the folder name from the MIDI program, so two instruments
     /// that share a program share a name. Concert Flute and Irish Flute are
