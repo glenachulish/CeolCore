@@ -72,6 +72,49 @@ public enum ABCTools {
         return abc
     }
 
+    /// Which instrument backs the tune, written into the notation as
+    /// `%%MIDI chordprog`.
+    ///
+    /// abcjs takes the melody instrument as a synth parameter but has no such
+    /// parameter for the chords — this build has no `chordsProgram` in it at
+    /// all. What it does honour is the ABC MIDI directives, so the instrument
+    /// is said in the ABC itself.
+    ///
+    /// Placed immediately after `K:`, which is where the header ends and the
+    /// music begins. Measured through the jsdom harness before being relied on:
+    /// a tune with these two lines renders identically to one without — same
+    /// staves, same notes, same bars — so this is inaudible to the engraver and
+    /// only reaches the synth. `bassprog` goes with it because abcjs plays a
+    /// bass note under each chord and leaving it on the default gives you a
+    /// guitar chord over a piano bass.
+    ///
+    /// Note that `SetABCBuilder.cleanABC` strips `%%MIDI` lines when it joins
+    /// several tunes into one, so a set needs this applied per tune rather than
+    /// to the combined ABC.
+    ///
+    /// Pass nil to take it out again and let abcjs use its own default.
+    public static func setAccompaniment(_ program: Int?, in abc: String) -> String {
+        var lines = abc.components(separatedBy: "\n")
+            .filter { line in
+                let t = line.trimmingCharacters(in: .whitespaces).lowercased()
+                return !t.hasPrefix("%%midi chordprog") && !t.hasPrefix("%%midi bassprog")
+            }
+
+        guard let program else { return lines.joined(separator: "\n") }
+
+        guard let keyIndex = lines.firstIndex(where: {
+            $0.trimmingCharacters(in: .whitespaces).hasPrefix("K:")
+        }) else {
+            // No key line means no header to sit after, and a directive before
+            // the music with nothing to anchor it is worse than none.
+            return lines.joined(separator: "\n")
+        }
+        lines.insert(contentsOf: ["%%MIDI chordprog \(program)",
+                                  "%%MIDI bassprog \(program)"],
+                     at: keyIndex + 1)
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: -
 
     private static func isHeaderLine(_ trimmed: String) -> Bool {
