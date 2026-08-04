@@ -24,6 +24,20 @@ public final class Tune {
     public var onHitlist: Bool = false
     public var isFavourite: Bool = false
     public var transpose: Int = 0
+    /// The speed you practise this tune at, in quarter-note beats per minute.
+    ///
+    /// Deliberately not the same thing as the tune's own tempo. That one is
+    /// `Q:` in the notation: it belongs to the music, drives playback, and
+    /// travels with an export to anyone else. This is yours — the rate you
+    /// tapped out because it is what you can currently play the tune at — and
+    /// writing it into the notation would slow the tune down for good and for
+    /// everybody.
+    ///
+    /// Sits alongside `rating`, `onHitlist` and `transpose`, which are the
+    /// same sort of thing: how you are getting on with a tune rather than what
+    /// the tune is. Optional with a default, so an existing library migrates
+    /// unasked and CloudKit can carry it.
+    public var practiceBPM: Int? = nil
     public var sourceURL: String = ""
     public var theSessionID: Int? = nil       // thesession.org tune id
     public var theSessionSettingID: String = ""

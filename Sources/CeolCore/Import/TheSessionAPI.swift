@@ -27,6 +27,17 @@ public enum TheSessionAPI {
         public let name: String
         public let type: String
         public let tunebooks: Int
+
+        /// Spelled out because the memberwise initialiser a struct gets for
+        /// free is internal, and TheSessionBrowserView builds one of these
+        /// from a tune id alone when you tap Add tune on a page you are
+        /// browsing.
+        public init(id: Int, name: String, type: String, tunebooks: Int) {
+            self.id = id
+            self.name = name
+            self.type = type
+            self.tunebooks = tunebooks
+        }
     }
 
     public struct Setting: Identifiable, Hashable {
