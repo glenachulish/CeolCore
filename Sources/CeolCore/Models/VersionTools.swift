@@ -48,6 +48,92 @@ public enum VersionTools {
         return copy
     }
 
+    // MARK: - Saving an edit
+
+    /// What came of saving an edit as a new version, for the app to report.
+    ///
+    /// `setsRepointed` is counted *before* the new version becomes the default,
+    /// because after that the entries have already moved and there is nothing
+    /// left to count. It is the number the user most wants: an edit that
+    /// quietly changed what four of their sets play should say so.
+    public struct EditOutcome {
+        public let version: Tune
+        public let name: String
+        public let setsRepointed: Int
+    }
+
+    /// Replace a tune's notation with an edited version of it.
+    ///
+    /// The plain case, and the right one when what you were fixing was a
+    /// mistake: there is no value in keeping the wrong notes beside the right
+    /// ones.
+    public static func saveEditInPlace(_ tune: Tune, abc: String,
+                                       in context: ModelContext) {
+        tune.abc = abc
+        tune.updatedAt = Date()
+        try? context.save()
+    }
+
+    /// Save edited notation as a new version, and make it the one sets play.
+    ///
+    /// The other right answer, and right for the other reason: a setting you
+    /// play your own way is not a correction, and the version you were sent is
+    /// worth keeping beside it.
+    ///
+    /// **Why this makes the edit the default when `saveTransposed` does not.**
+    /// The two look alike and mean opposite things. Transposing is something
+    /// you did to *read* the tune — you wanted it in another key for one
+    /// session — so the original stays the one your sets play. Editing the
+    /// notes is a statement that this is how the tune goes, and a version you
+    /// believe in that your sets ignore is a version you will edit twice.
+    ///
+    /// Lives here rather than in either app because it is the rule that decides
+    /// what a set plays, and a rule like that written down twice is a rule that
+    /// will eventually be two rules.
+    @discardableResult
+    public static func saveEdited(_ source: Tune, abc: String, named name: String,
+                                  in context: ModelContext) -> EditOutcome {
+        let label = name.trimmingCharacters(in: .whitespaces)
+        let title = label.isEmpty ? "\(TitleDisplay.plain(source.title)) (edited)" : label
+
+        let edited = Tune(title: title, type: source.type,
+                          key: source.key, mode: source.mode, abc: abc)
+        edited.composer = source.composer
+        edited.transcribedBy = source.transcribedBy
+        edited.aliases = source.aliases
+        // Carried, where the phone's own copy of this did not carry it. A note
+        // saying where a setting came from or how it is played belongs to the
+        // tune, not to one rendering of its notes, and `saveTransposed` two
+        // functions up has always copied it.
+        edited.notes = source.notes
+        edited.sourceURL = source.sourceURL
+        edited.theSessionID = source.theSessionID
+        edited.rating = source.rating
+        edited.isFavourite = source.isFavourite
+        edited.onHitlist = source.onHitlist
+        edited.versionLabel = title
+        edited.transpose = 0
+
+        // Join the source's group, or start one holding both, so the two sit
+        // together as versions of one tune rather than as two unrelated tunes
+        // with similar names.
+        let groupID = source.groupID ?? UUID()
+        source.groupID = groupID
+        edited.groupID = groupID
+        context.insert(edited)
+        try? context.save()
+
+        // Count what is about to move, before makeDefault repoints it.
+        let group = versions(of: edited, in: context)
+        let repointed = group
+            .filter { $0 !== edited }
+            .reduce(0) { $0 + ($1.setEntries ?? []).count }
+
+        makeDefault(edited, in: context)
+
+        return EditOutcome(version: edited, name: title, setsRepointed: repointed)
+    }
+
     /// Root note of `tune.key` moved by `steps`, or "" if the key isn't a
     /// plain root we can shift (the library has its share of odd ones).
     public static func soundingKey(of tune: Tune, shiftedBy steps: Int) -> String {
