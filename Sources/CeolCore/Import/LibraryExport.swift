@@ -123,7 +123,7 @@ public enum LibraryExport {
             "ceol": 1,
             "type": "library",
             "exported_at": ISO8601DateFormatter().string(from: .now).prefix(10).description,
-            "exported_by": "Ceòl for iOS",
+            "exported_by": "Fonn for iOS",
             "tunes": tuneDicts,
             "sets": setDicts,
             "collections": collectionDicts,

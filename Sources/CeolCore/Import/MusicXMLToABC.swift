@@ -36,7 +36,7 @@ public enum MusicXMLToABC {
 
         public var errorDescription: String? {
             switch self {
-            case .notMusicXML(let why): return "Not MusicXML Ceòl can read — \(why)."
+            case .notMusicXML(let why): return "Not MusicXML Fonn can read — \(why)."
             case .noPart: return "No music found in that file."
             case .noNotes: return "That file has no notes in it."
             }
@@ -53,7 +53,7 @@ public enum MusicXMLToABC {
         guard root.name == "score-partwise" else {
             throw Failure.notMusicXML(
                 root.name == "score-timewise"
-                ? "it's timewise MusicXML, which almost nothing writes and Ceòl doesn't read"
+                ? "it's timewise MusicXML, which almost nothing writes and Fonn doesn't read"
                 : "the root element is <\(root.name)>")
         }
         return try build(from: root, index: index)

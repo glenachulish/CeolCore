@@ -4,7 +4,7 @@ import SwiftData
 /// Works out what you picked, so you don't have to.
 ///
 /// The Add Tunes screen used to offer ten buttons organised by file format —
-/// ABC file, folder of ABC files, Ceòl file, Ceòl folder, Recordings, PDFs,
+/// ABC file, folder of ABC files, Fonn file, Fonn folder, Recordings, PDFs,
 /// Photos, a whole folder. To choose correctly you had to know what a
 /// `.ceol.json` was and which of four folder options applied to yours; pick
 /// wrong and the app refused, which reads as a dead button.
@@ -22,7 +22,7 @@ import SwiftData
 public enum ImportRouter {
 
     public enum Outcome {
-        /// A whole Ceòl library, exported from the web app or another phone.
+        /// A whole Fonn library, exported from the web app or another phone.
         case ceolLibrary(URL, hasMedia: Bool)
         /// Notation, to go through the review screen.
         case notation([ABCImportPlan.Source])
@@ -87,7 +87,7 @@ public enum ImportRouter {
                     .isDirectory ?? false
                 let files = isFolder ? Self.contents(of: url) : [url]
 
-                // A Ceòl export outranks everything: it IS the library, and
+                // A Fonn export outranks everything: it IS the library, and
                 // FileImports will bring its media across itself. Spotted
                 // before anything else is read, otherwise every recording in
                 // the folder gets copied into the store twice — once here and
@@ -280,9 +280,9 @@ public enum ImportRouter {
         }
         if !scan.unusable.isEmpty {
             return """
-                Nothing in there that Ceòl can use.
+                Nothing in there that Fonn can use.
 
-                It takes ABC notation (.abc), MusicXML (.xml, .musicxml, .mxl), recordings, photos, PDFs, video, and Ceòl exports (.ceol.json).
+                It takes ABC notation (.abc), MusicXML (.xml, .musicxml, .mxl), recordings, photos, PDFs, video, and Fonn exports (.ceol.json).
                 """
         }
         return "That folder is empty."

@@ -1,7 +1,7 @@
 import Foundation
 
 /// Client for thesession.org's public JSON API.
-/// Mirrors the import pipeline of the Ceòl web app (v3 backend):
+/// Mirrors the import pipeline of the Fonn web app (v3 backend):
 /// type-based meter/note-length, AABB repeat reconstruction, key
 /// normalisation, aliases, votes and member credits.
 public enum TheSessionAPI {

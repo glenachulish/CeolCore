@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// File-based importers, ported from the Ceòl web app (v3 backend).
+/// File-based importers, ported from the Fonn web app (v3 backend).
 public enum FileImports {
 
     public struct Summary {
@@ -34,7 +34,7 @@ public enum FileImports {
         public var errorDescription: String? {
             switch self {
             case .unreadable: return "Couldn't read the file."
-            case .notCeolFile: return "Not a valid Ceòl export file (.ceol.json)."
+            case .notCeolFile: return "Not a valid Fonn export file (.ceol.json)."
             case .noLibraryInFolder:
                 return """
                     No library.ceol.json in there.
@@ -76,7 +76,7 @@ public enum FileImports {
 
     // MARK: - .ceol.json (export from the web/Pi app)
 
-    /// Import a .ceol.json exported from any Ceòl library. Merges tunes,
+    /// Import a .ceol.json exported from any Fonn library. Merges tunes,
     /// recreates set/collection structure, skips duplicates — same rules
     /// as v3's import_ceol_json.
     public static func importCeolJSON(url: URL, context: ModelContext) throws -> Summary {

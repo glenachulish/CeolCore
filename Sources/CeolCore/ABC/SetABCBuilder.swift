@@ -1,6 +1,6 @@
 import Foundation
 
-/// Set-related ABC construction, ported from the Ceòl web app (v3 app.js):
+/// Set-related ABC construction, ported from the Fonn web app (v3 app.js):
 /// cleaning (expandAbcRepeats), bar extraction, transition snippets, and the
 /// single-tune combined playback ABC with per-tune repeats.
 public enum SetABCBuilder {

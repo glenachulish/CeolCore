@@ -856,7 +856,7 @@ function nativeAudioReady(ok, reason) {
   }
   buildNativeEvents();
   takeOverTransport();
-  transport("title", { title: currentTitle(), subtitle: "Ceòl" });
+  transport("title", { title: currentTitle(), subtitle: "Fonn" });
   transport("speed", { percent: activeWarp() });
   sendLoopToApp();
 
@@ -868,7 +868,7 @@ function nativeAudioReady(ok, reason) {
 
 function currentTitle() {
   var match = (currentABC || "").match(/^T:\s*(.+)$/m);
-  return match ? match[1].trim() : "Ceòl";
+  return match ? match[1].trim() : "Fonn";
 }
 
 /// abcjs's own transport row stays — it is the familiar one, and it already

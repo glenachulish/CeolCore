@@ -2,7 +2,7 @@ import Foundation
 
 /// The circle of fifths, and which tunes sit next to which.
 ///
-/// Ported from the Ceòl web app's `_COF_KEY_SIGS` / `_COF_TEMPLATES` and the
+/// Ported from the Fonn web app's `_COF_KEY_SIGS` / `_COF_TEMPLATES` and the
 /// Pi's compatible-keys endpoint. It lived inside `SetBuilderView` on iOS,
 /// which was fine while one app used it and is not now that two do — the
 /// key-signature table and the way a stored key is read are exactly the parts
