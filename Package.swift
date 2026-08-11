@@ -42,9 +42,26 @@ let package = Package(
                 // page loads, the scripts do not, abcjs is undefined, and you
                 // get an empty sheet of music with nothing in the console.
                 //
-                // It also keeps Resources/soundfont/ as a directory, which is
-                // what CeolResources.soundfont(folder:note:) looks in.
-                .copy("Resources"),
+                // It also keeps Web/soundfont/ as a directory, which is what
+                // CeolResources.soundfont(folder:note:) looks in.
+                //
+                // The folder is called Web and NOT Resources, which matters and
+                // is not obvious. .copy puts the directory at the top level of
+                // the built resource bundle, beside Info.plist. On macOS that
+                // is harmless — a macOS bundle is a deep one and everything
+                // lands inside Contents/. An iOS bundle is shallow, and a
+                // top-level directory named Resources is exactly how codesign
+                // recognises an old-style deep bundle. It therefore reads the
+                // bundle as a malformed one and refuses to sign it:
+                //
+                //     CeolCore_CeolCore.bundle: bundle format unrecognized,
+                //     invalid, or unsuitable
+                //
+                // which stops the iOS build dead, long after every line of
+                // Swift has compiled. The Mac build never sees it. Any name
+                // that is not one of the bundle-reserved ones — Resources,
+                // Contents, Frameworks, PlugIns, Versions — will do.
+                .copy("Web"),
             ]
         ),
         .testTarget(

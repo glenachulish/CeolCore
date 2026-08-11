@@ -27,7 +27,7 @@ const { JSDOM } = require("jsdom");
 function findABCJS() {
   const candidates = [
     process.env.CEOL_ABCJS,
-    path.resolve(__dirname, "../../Sources/CeolCore/Resources/abcjs-basic-min.js"),
+    path.resolve(__dirname, "../../Sources/CeolCore/Web/abcjs-basic-min.js"),
     path.resolve(__dirname, "../../../ios/Ceol/Resources/abcjs-basic-min.js"),
   ].filter(Boolean);
   const found = candidates.find((p) => fs.existsSync(p));

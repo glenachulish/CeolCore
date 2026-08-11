@@ -36,7 +36,7 @@ reports "nothing — the render is identical" did not do what you thought.
 ## Which abcjs
 
 The app's copy, never one from npm — the point is to test what ships. It looks
-for `abcjs-basic-min.js` in `Sources/CeolCore/Resources/` first, then in the iOS
+for `abcjs-basic-min.js` in `Sources/CeolCore/Web/` first, then in the iOS
 app's `Resources/`, which is where it lives until the resources move. Override
 with `CEOL_ABCJS`.
 

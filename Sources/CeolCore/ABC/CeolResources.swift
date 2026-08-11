@@ -8,8 +8,16 @@ import Foundation
 /// of that would diverge, and the divergence would surface as a rendering bug
 /// months later with nothing to point at.
 ///
+/// **The folder is called `Web`, not `Resources`.** `.copy` places it at the
+/// top level of the built bundle, beside `Info.plist`, and on iOS — where a
+/// bundle is shallow — a top-level directory named `Resources` is how
+/// `codesign` recognises an old-style deep bundle. It reads the bundle as
+/// malformed and refuses to sign it, which fails the build after every line of
+/// Swift has compiled and says nothing about the real cause. macOS bundles are
+/// deep, so the Mac app never hits it. `Package.swift` carries the longer note.
+///
 /// **The package must copy this folder, not process it.** `Package.swift` says
-/// `.copy("Resources")` deliberately. The pages load their scripts with
+/// `.copy("Web")` deliberately. The pages load their scripts with
 /// relative tags —
 ///
 /// ```html
@@ -34,7 +42,7 @@ public enum CeolResources {
     /// its scripts, and abcjs is then simply undefined.
     public static func page(_ name: String) -> URL? {
         Bundle.module.url(forResource: name, withExtension: "html",
-                          subdirectory: "Resources")
+                          subdirectory: "Web")
     }
 
     /// A bundled instrument sample, e.g. folder "flute", note "A4".
@@ -42,11 +50,11 @@ public enum CeolResources {
     /// Four instruments are carried so the app plays at a session with no
     /// reception; everything else is fetched once and cached. Note the
     /// subdirectory: under `.copy` the folder structure is preserved, so these
-    /// are at `Resources/soundfont/`, where `Bundle.main.url(forResource:)`
-    /// used to find them flattened into the app bundle's root.
+    /// are at `Web/soundfont/`, where `Bundle.main.url(forResource:)` used to
+    /// find them flattened into the app bundle's root.
     public static func soundfont(folder: String, note: String) -> URL? {
         Bundle.module.url(forResource: "\(folder)-\(note)", withExtension: "mp3",
-                          subdirectory: "Resources/soundfont")
+                          subdirectory: "Web/soundfont")
     }
 
     /// Everything the pages need, in one directory — for the web view's
