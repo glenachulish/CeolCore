@@ -1572,14 +1572,20 @@ document.getElementById("paper").addEventListener("click", function (e) {
   var idx = barIndexFor(wrapper, measure);
   if (idx === -1) return;
 
+  // ONE TAP IS A LOOP. See the same change in set.html for the reasoning:
+  // the two-tap version left a state that looked like a selection but wasn't
+  // one, and pressing play there ran off to the repeat at the end of the
+  // section instead of honouring what you had chosen.
+  //
+  //   tap a bar        → loop that bar
+  //   tap further on   → extend the loop to there
+  //   tap before it    → extend it backwards
+  //   tap inside it    → shrink to that bar
+  //   tap the one bar  → loop off
   var start = barSel.start, end = barSel.end;
-  if (start === null) {
-    barSel = { start: idx, end: null };
-    updateBarShading();
-    updateSelectionInfo();
-    startPlaybackAtBar(idx);
-  } else if (end === null) {
-    barSel = { start: Math.min(start, idx), end: Math.max(start, idx) };
+
+  if (start === null || end === null) {
+    barSel = { start: idx, end: idx };
     barLooping = true;
     updateBarShading();
     updateSelectionInfo();
@@ -1588,12 +1594,21 @@ document.getElementById("paper").addEventListener("click", function (e) {
     // resumes once the new audio is actually built; if there was nothing to
     // change, it calls straight back.
     syncSynthSource(function () { seekToBar(barSel.start); });
-  } else {
-    barSel = { start: idx, end: null };
+  } else if (start === end && idx === start) {
+    // Tapping the single bar you are looping turns it off.
+    barSel = { start: null, end: null };
     barLooping = false;
     updateBarShading();
     updateSelectionInfo();
-    syncSynthSource(function () { startPlaybackAtBar(idx); });
+    syncSynthSource();
+  } else {
+    if (idx < start) barSel = { start: idx, end: end };
+    else if (idx > end) barSel = { start: start, end: idx };
+    else barSel = { start: idx, end: idx };   // inside: start again from there
+    // Already linear, so nothing to rebuild — just move the playhead.
+    updateBarShading();
+    updateSelectionInfo();
+    seekToBar(barSel.start);
   }
 });
 

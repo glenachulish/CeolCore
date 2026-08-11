@@ -1376,7 +1376,11 @@ function loopLabel() {
     var title = setData.tunes[sel.t] ? setData.tunes[sel.t].title : "";
     return title + " bar " + (sel.j + 1);
   }
-  if (!selB) return name(selA) + " — tap another bar (any tune) to set the end";
+  if (!selB) return name(selA);
+  if (globalIdx(selA) === globalIdx(selB)) {
+    // Say what the next tap will do, since one bar is rarely where you stop.
+    return name(selA) + " — tap another bar to stretch it";
+  }
   var cross = selA.t !== selB.t;
   return name(selA) + " → " + name(selB) + (cross ? "  (transition)" : "");
 }
@@ -1386,12 +1390,14 @@ function updateLoopRow() {
   if (!selA) { row.classList.remove("visible"); return; }
   row.classList.add("visible");
   document.getElementById("loopText").textContent = loopLabel();
+  // Always available now — there is no half-made selection for them to be
+  // waiting on.
   var toggle = document.getElementById("loopToggle");
-  toggle.style.display = selB ? "" : "none";
+  toggle.style.display = "";
   toggle.textContent = barLooping ? "⟳ Looping" : "⟳ Loop off";
   toggle.classList.toggle("loop-active", barLooping);
   var prac = document.getElementById("pracToggle");
-  prac.style.display = selB ? "" : "none";
+  prac.style.display = "";
   prac.classList.toggle("prac-active", pracEnabled);
   document.getElementById("pracPanel").classList.toggle("visible", pracEnabled);
 }
@@ -1902,33 +1908,54 @@ document.getElementById("sections").addEventListener("click", function (e) {
 
   var tapped = { t: t, j: j };
   holdScroll(function () {
-  if (selA && selB) clearLoop();
-  if (!selA) {
-    selA = tapped;
-    // Move the playhead there, but don't start.
-    //
-    // It used to start playing on the first tap, which then scrolled the music
-    // to follow the notes — and the bar you were reaching for to close the
-    // loop moved out from under your finger. Choosing the passage and playing
-    // it are two different intentions; the play button is for the second.
-    // Read the bar's time INSIDE the callback. Tapping a third bar clears the
-    // old loop first, which puts the repeats back and moves every bar time —
-    // so a millisecond worked out before that finished pointed at the wrong
-    // music, and the page scrolled to it.
-    var startIdx = hiddenIdx(t, j, 0);
-    whenAudioReady(function () {
-      var ms = hiddenMs(startIdx);
-      if (ms !== null && durationMs) seekMs(ms);
-    });
-  } else {
-    selB = tapped;
-    if (globalIdx(selB) < globalIdx(selA)) { var tmp = selA; selA = selB; selB = tmp; }
+  // ONE TAP IS A LOOP.
+  //
+  // This used to need two: the first tap set a start and did nothing else, the
+  // second set the end and turned looping on. In between there was a state
+  // that looked like a selection but wasn't one — press play there and the
+  // music ignored it and ran off to the repeat at the end of the section,
+  // which reads as the app throwing your choice away. And because looping only
+  // began on the second tap, that tap was also when the audio was rebuilt
+  // without repeats, so every bar time moved and playback lurched.
+  //
+  // Now the first tap makes a complete one-bar loop. There is no half-made
+  // state to be caught in, play always does what the shading shows, and the
+  // rebuild happens once, at the moment you first ask for a loop — extending
+  // it afterwards only recomputes times.
+  //
+  //   tap a bar        → loop that bar
+  //   tap further on   → extend the loop to there
+  //   tap before it    → extend it backwards
+  //   tap inside it    → shrink to that bar
+  //   tap the one bar  → loop off
+  var g = globalIdx(tapped);
+
+  if (!selA || !selB) {
+    // First tap of a new selection.
+    selA = selB = tapped;
     barLooping = true;
-    // Re-prime without the repeats first — the bar times all move when they go.
+    // Re-prime without the repeats — the bar times all move when they go, so
+    // the loop times can only be worked out once that has finished.
     syncLoopSource(function () {
       computeLoopTimes();
       if (loopStartMsCache !== null && audioReady) seekMs(loopStartMsCache);
     });
+  } else {
+    var lo = globalIdx(selA), hi = globalIdx(selB);
+    if (lo === hi && g === lo) {
+      // Tapping the single bar you are looping turns it off. Somewhere to put
+      // a loop back that doesn't mean finding the Clear button.
+      clearLoop();
+      updateLoopShading();
+      updateLoopRow();
+      return;
+    }
+    if (g < lo) selA = tapped;
+    else if (g > hi) selB = tapped;
+    else selA = selB = tapped;    // inside: start again from there
+    // Already linear, so nothing to rebuild — just the times.
+    computeLoopTimes();
+    if (loopStartMsCache !== null && audioReady) seekMs(loopStartMsCache);
   }
   updateLoopShading();
   updateLoopRow();
