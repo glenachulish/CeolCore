@@ -63,6 +63,19 @@ extension MediaItem {
         return MediaLinks.youTubeID(of: url)
     }
 
+    /// A web address you listen to, rather than a file this app holds.
+    ///
+    /// Distinct from `.audio` alone, which is mostly the 307 recordings kept
+    /// on disk. This is the handful that live somewhere else — a Bandcamp
+    /// page, an mp3 on flutefling.scot — and are therefore only there when you
+    /// have a signal.
+    public var isAudioLink: Bool {
+        guard filename.isEmpty, let url = webURL, !MediaLinks.isLocalOnly(url) else {
+            return false
+        }
+        return kind == .audio || MediaLinks.isAudio(url)
+    }
+
     /// Where to play from: the local file if there is one, otherwise a direct
     /// media URL. Nil means it isn't playable in the app.
     public var playbackURL: URL? {
@@ -79,8 +92,38 @@ extension MediaItem {
 /// player serve both.
 public enum MediaLinks {
 
-    /// The YouTube video id, for the three link shapes that turn up:
-    /// `youtu.be/ID`, `youtube.com/watch?v=ID`, `youtube.com/shorts/ID`.
+    /// Somewhere you listen rather than watch.
+    ///
+    /// Two shapes: a direct audio file on the web, and the streaming services
+    /// a tune gets linked to. Both are "an audio link" as far as anyone
+    /// looking for one is concerned.
+    public static func isAudio(_ url: URL) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        if ["mp3", "m4a", "wav", "aac", "flac", "aiff", "aif", "ogg"].contains(ext) {
+            return true
+        }
+        let host = (url.host ?? "").lowercased()
+        return host.contains("bandcamp.com")
+            || host.contains("soundcloud.com")
+            || host.contains("music.apple.com")
+            || host.contains("open.spotify.com")
+    }
+
+    /// An address that only ever worked on the machine it was written on.
+    ///
+    /// The web app wrote its own address into a tune's notes: 11 of this
+    /// library's audio links point at `localhost:8001` or the Pi over
+    /// Tailscale. They look like recordings you can play and are dead
+    /// everywhere else, so nothing should offer them.
+    public static func isLocalOnly(_ url: URL) -> Bool {
+        let host = (url.host ?? "").lowercased()
+        return host == "localhost"
+            || host == "127.0.0.1"
+            || host.hasSuffix(".local")
+            || host.hasSuffix(".ts.net")
+            || host.contains("icloud-content.com")
+    }
+
     /// The same address over https.
     ///
     /// The Pi's notes carry `http://www.youtube.com/watch?v=…` — plain http,
