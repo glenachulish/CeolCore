@@ -10,7 +10,7 @@ public struct TuneFilter: Equatable, Sendable {
 
     /// What the tune has attached, or doesn't.
     public enum Content: String, CaseIterable, Identifiable, Sendable {
-        case any, notation, noNotation, anyMedia, audio, video, images, links, videoLinks, audioLinks
+        case any, notation, noNotation, anyMedia, audio, video, images, links, videoLinks
 
         public var id: String { rawValue }
 
@@ -22,7 +22,16 @@ public struct TuneFilter: Equatable, Sendable {
             case .notation:   return "Has sheet music"
             case .noNotation: return "No sheet music"
             case .anyMedia:   return "Has media"
-            case .audio:      return "Has recordings"
+            // One audio filter, not two.
+            //
+            // There was also "Has an audio link", meaning a recording held on
+            // the web rather than on this Mac. That distinction is the app's,
+            // not yours: the Pi writes every recording into the notes as
+            // `audio: /api/uploads/…`, so they all read as links. Worse, it
+            // split 187 tunes into 187 and 15, and eleven of the fifteen were
+            // dead addresses on localhost. A tune either has something you can
+            // listen to or it does not.
+            case .audio:      return "Has a recording"
             case .video:      return "Has video"
             case .images:     return "Has photos or PDFs"
             // Links are worth their own answer. 55 tunes carry a web address —
@@ -30,8 +39,6 @@ public struct TuneFilter: Equatable, Sendable {
             // now the only way to find them was to remember which.
             case .links:      return "Has a link"
             case .videoLinks: return "Has a video link"
-            // A recording you stream, as against the 307 kept on disk.
-            case .audioLinks: return "Has an audio link"
             }
         }
 
@@ -41,6 +48,8 @@ public struct TuneFilter: Equatable, Sendable {
             case .notation:   return tune.hasNotation
             case .noNotation: return !tune.hasNotation
             case .anyMedia:   return !(tune.media ?? []).isEmpty
+            // Both a file here and a recording on the web: kind is .audio
+            // either way, which is what makes one filter enough.
             case .audio:      return tune.hasMedia([.audio])
             case .video:      return tune.hasMedia([.video])
             case .images:     return tune.hasMedia([.photo, .pdf])
@@ -49,7 +58,6 @@ public struct TuneFilter: Equatable, Sendable {
             case .videoLinks: return (tune.media ?? []).contains {
                                   $0.kind == .link && $0.youTubeID != nil
                               }
-            case .audioLinks: return (tune.media ?? []).contains(where: \.isAudioLink)
             }
         }
     }

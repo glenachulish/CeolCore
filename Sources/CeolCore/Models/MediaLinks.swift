@@ -63,12 +63,12 @@ extension MediaItem {
         return MediaLinks.youTubeID(of: url)
     }
 
-    /// A web address you listen to, rather than a file this app holds.
+    /// A recording that lives on the web rather than on this device — so it
+    /// needs a signal, and a dead host means it never plays.
     ///
-    /// Distinct from `.audio` alone, which is mostly the 307 recordings kept
-    /// on disk. This is the handful that live somewhere else — a Bandcamp
-    /// page, an mp3 on flutefling.scot — and are therefore only there when you
-    /// have a signal.
+    /// No filter uses this: splitting "has a recording" by where the file sits
+    /// is the app's concern, not yours. Kept because the media list can
+    /// reasonably say "this one needs the internet".
     public var isAudioLink: Bool {
         guard filename.isEmpty, let url = webURL, !MediaLinks.isLocalOnly(url) else {
             return false
