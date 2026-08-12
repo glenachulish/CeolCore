@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import CryptoKit
 
 /// Files for attached media live in a Media folder. The Pi keeps uploads in
 /// its `uploads/` folder and stores a URL; the app equivalent is a file on
@@ -45,6 +46,68 @@ public final class MediaStore {
 
     public func url(for filename: String) -> URL {
         folder.appendingPathComponent(filename)
+    }
+
+    public func exists(_ filename: String) -> Bool {
+        !filename.isEmpty && FileManager.default.fileExists(atPath: url(for: filename).path)
+    }
+
+    /// Write data under a name of your choosing rather than a fresh UUID.
+    ///
+    /// Every other entry point here mints a new UUID, which is right when the
+    /// file arrives from a file picker and has no identity of its own. It is
+    /// wrong for a file fetched from the Pi: that file *has* a name, the notes
+    /// refer to it by that name, and inventing a second one means the next run
+    /// cannot tell it has already been fetched. Naming it what the Pi calls it
+    /// makes the fetch repeatable — and, when the media folder eventually lives
+    /// in iCloud, makes the Mac and the phone agree about which file is which.
+    @discardableResult
+    public func save(_ data: Data, as name: String) throws -> String {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let safe = URL(fileURLWithPath: name).lastPathComponent
+        try data.write(to: url(for: safe), options: .atomic)
+        return safe
+    }
+
+    /// What a file *is*, regardless of what it is called.
+    ///
+    /// The same recording is on this Mac under a UUID and on the Pi under its
+    /// own name, and nothing recorded the connection between them: the folder
+    /// import copied each file in under a fresh UUID and threw the original
+    /// name away. Comparing names therefore proves nothing, and comparing
+    /// nothing would mean fetching all 674 files again every run and attaching
+    /// a second copy of each.
+    ///
+    /// Read in 1 MB chunks rather than `Data(contentsOf:)` — some of these are
+    /// half-hour recordings and there is no reason to hold one in memory.
+    public func fingerprint(_ filename: String) -> String? {
+        guard exists(filename),
+              let handle = try? FileHandle(forReadingFrom: url(for: filename)) else { return nil }
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while let chunk = try? handle.read(upToCount: 1 << 20), !chunk.isEmpty {
+            hasher.update(data: chunk)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
+    public static func fingerprint(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Move a stored file to a different name, leaving the bytes alone.
+    /// Used once per file to bring UUID-named imports onto their Pi names.
+    @discardableResult
+    public func rename(_ old: String, to new: String) -> Bool {
+        guard !old.isEmpty, !new.isEmpty, old != new, exists(old) else { return false }
+        let target = url(for: new)
+        if FileManager.default.fileExists(atPath: target.path) { return false }
+        do {
+            try FileManager.default.moveItem(at: url(for: old), to: target)
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Copy data in under a fresh name, returning the stored filename.
