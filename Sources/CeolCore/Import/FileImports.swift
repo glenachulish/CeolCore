@@ -473,11 +473,10 @@ public enum FileImports {
         return folder.appendingPathComponent("media", isDirectory: true)
     }
 
-    /// Create MediaItems for every attachment the export listed, copying files
-    /// out of the bundle into the app's own store. Idempotent: re-importing
-    /// the same folder won't duplicate anything.
-    @MainActor
     /// What happened to each file, not just how many landed.
+    ///
+    /// Deliberately outside any actor: it is six integers and gets returned
+    /// across an `await`.
     public struct MediaOutcome {
         public var attached = 0
         public var alreadyThere = 0
@@ -485,8 +484,22 @@ public enum FileImports {
         public var fileMissing = 0
         public var copyFailed = 0
         public var expected = 0
+
+        public init(attached: Int = 0, alreadyThere: Int = 0, noTune: Int = 0,
+                    fileMissing: Int = 0, copyFailed: Int = 0, expected: Int = 0) {
+            self.attached = attached
+            self.alreadyThere = alreadyThere
+            self.noTune = noTune
+            self.fileMissing = fileMissing
+            self.copyFailed = copyFailed
+            self.expected = expected
+        }
     }
 
+    /// Create MediaItems for every attachment the export listed, copying files
+    /// out of the bundle into the app's own store. Idempotent: re-importing
+    /// the same folder won't duplicate anything.
+    @MainActor
     private static func attachMedia(from json: [String: Any],
                                     mediaFolder: URL,
                                     context: ModelContext,
