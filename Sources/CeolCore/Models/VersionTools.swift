@@ -157,6 +157,34 @@ public enum VersionTools {
         }
     }
 
+    /// Everything attached anywhere in a tune's version group.
+    ///
+    /// A recording of you playing Calliope House is a recording of *the tune*,
+    /// not of one setting of it — but attachments hang off a single `Tune`
+    /// record, and an import matches on title *and notation*, so a file lands
+    /// on whichever setting its notes happen to match. In this library that put
+    /// Calliope House's recording on "Version in D major" while the row you
+    /// open by default is a different record, and the tune looked as though it
+    /// had nothing attached.
+    ///
+    /// Rather than move the data — which would be guessing at which version a
+    /// recording is really of — the whole group is shown, and anything from a
+    /// sibling is labelled with the version it belongs to.
+    ///
+    /// Returns `(item, owner)` pairs, the tune's own first.
+    public static func mediaAcrossGroup(of tune: Tune,
+                                        in context: ModelContext) -> [(item: MediaItem, owner: Tune)] {
+        let group = versions(of: tune, in: context)
+        var out: [(item: MediaItem, owner: Tune)] = []
+        // The tune you are looking at first, so its own attachments stay where
+        // you expect them.
+        for item in (tune.media ?? []) { out.append((item, tune)) }
+        for other in group where other !== tune {
+            for item in (other.media ?? []) { out.append((item, other)) }
+        }
+        return out
+    }
+
     /// Make `newDefault` the group's default and repoint every set entry that
     /// used any version of this tune, so sets always play the default.
     public static func makeDefault(_ newDefault: Tune, in context: ModelContext) {
