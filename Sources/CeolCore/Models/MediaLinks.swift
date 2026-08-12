@@ -95,18 +95,41 @@ public enum MediaLinks {
         return parts.url ?? url
     }
 
-    /// The page that plays a video on its own, for loading straight into a web
-    /// view.
+    /// How to put a link on screen.
+    public enum Embed {
+        /// Load this address as a page.
+        case page(URL)
+        /// Load this markup, telling the web view it came from `base`.
+        case markup(String, base: URL)
+    }
+
+    /// What to hand a web view for a link.
     ///
-    /// Returning a URL rather than an iframe is the point. The embed used to be
-    /// written as an HTML string with `baseURL:` set to youtube.com, which asks
-    /// WKWebView to treat local markup as though it came from a remote origin —
-    /// and it does not reliably grant that markup the network access to match,
-    /// so the iframe stayed blank. Loading the embed address itself has no
-    /// origin to fake.
-    public static func embedURL(for url: URL) -> URL? {
-        guard let id = youTubeID(of: url) else { return nil }
-        return URL(string: "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0")
+    /// YouTube's player refuses to run without a valid origin — it answers
+    /// **Error 153, "Video player configuration error"**. A WKWebView loading
+    /// `youtube-nocookie.com/embed/…` as a top-level page sends no Referer and
+    /// presents no origin, so it is refused every time.
+    ///
+    /// The iframe wrapped in `loadHTMLString(_:baseURL:)` is not a workaround
+    /// for a file:// problem that could be skipped: giving the markup a real
+    /// base URL *is* how the origin gets supplied. I removed it on the theory
+    /// that loading the page directly was cleaner, and earned Error 153 on
+    /// every video. It is back, and this comment is here so it does not get
+    /// removed again.
+    ///
+    /// The https upgrade stays, because that part was a real fault: the notes
+    /// are full of `http://` addresses and App Transport Security refuses them
+    /// silently.
+    public static func embed(for url: URL) -> Embed {
+        guard let id = youTubeID(of: url) else { return .page(secured(url)) }
+        let html = """
+            <html><body style="margin:0;background:#000">
+            <iframe width="100%" height="100%" style="border:0"
+              src="https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0"
+              allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            </body></html>
+            """
+        return .markup(html, base: URL(string: "https://www.youtube.com")!)
     }
 
     public static func youTubeID(of url: URL) -> String? {
