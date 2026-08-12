@@ -41,6 +41,22 @@ strict concurrency; both apps are still Swift 5, and several things here —
 `MediaStore.shared`, `ImportRouter.Scan` crossing threads — are rejected on
 sight. Migrating is its own job.
 
+**Member Import Visibility catches *members*, not types.** Both apps build with
+`SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES`, and the rule is
+narrower than it first looks: a top-level declaration — `ObservableObject`,
+`@Published`, `@StateObject` — is found through any transitive import and needs
+nothing spelled out. A *member* is not. These have each cost a build:
+
+| what was used | why it failed | the import needed |
+|---|---|---|
+| `tune.persistentModelID` | property on `PersistentModel` | `SwiftData` |
+| `@StateObject var x = …` | its `init(wrappedValue:)` | `Combine` |
+| `UTType.json` | static member | `UniformTypeIdentifiers` |
+
+So the check worth running on a new file is not "does it mention `@Published`"
+— that is a false positive, as several dozen iOS files prove by compiling. It
+is "does it call a *member* of a type whose module is not imported here".
+
 **A blank line ends a tune in ABC.** Inserting a line break where one already
 exists silently truncates the music. See `ceolApplyBreaks` in `abc.html`.
 
