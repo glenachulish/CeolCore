@@ -81,6 +81,34 @@ public enum MediaLinks {
 
     /// The YouTube video id, for the three link shapes that turn up:
     /// `youtu.be/ID`, `youtube.com/watch?v=ID`, `youtube.com/shorts/ID`.
+    /// The same address over https.
+    ///
+    /// The Pi's notes carry `http://www.youtube.com/watch?v=…` — plain http,
+    /// because that is what was pasted in years ago. App Transport Security
+    /// refuses an insecure load outright, so a web view handed that URL shows
+    /// nothing and reports nothing. Every host worth reaching serves https.
+    public static func secured(_ url: URL) -> URL {
+        guard url.scheme?.lowercased() == "http",
+              var parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return url }
+        parts.scheme = "https"
+        return parts.url ?? url
+    }
+
+    /// The page that plays a video on its own, for loading straight into a web
+    /// view.
+    ///
+    /// Returning a URL rather than an iframe is the point. The embed used to be
+    /// written as an HTML string with `baseURL:` set to youtube.com, which asks
+    /// WKWebView to treat local markup as though it came from a remote origin —
+    /// and it does not reliably grant that markup the network access to match,
+    /// so the iframe stayed blank. Loading the embed address itself has no
+    /// origin to fake.
+    public static func embedURL(for url: URL) -> URL? {
+        guard let id = youTubeID(of: url) else { return nil }
+        return URL(string: "https://www.youtube-nocookie.com/embed/\(id)?playsinline=1&rel=0")
+    }
+
     public static func youTubeID(of url: URL) -> String? {
         guard let host = url.host?.lowercased() else { return nil }
         if host.contains("youtu.be") {
