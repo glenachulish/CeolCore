@@ -422,6 +422,17 @@ public enum FileImports {
               json["ceol"] as? Int == 1 else { throw ImportError.notCeolFile }
 
         var summary = try importLibrary(json: json, context: context)
+
+        // Save before matching the recordings to tunes.
+        //
+        // `attachMedia` finds its tunes with `context.fetch`, and a fetch does
+        // not reliably return inserts that have not been saved. So every tune
+        // this import had just created was invisible to it, and every file
+        // belonging to one counted as "no matching tune" — an import that
+        // reported tunes going in and recordings not, with nothing to say why.
+        // It only shows up when the tunes and their media arrive together,
+        // which is exactly what a folder import is.
+        try? context.save()
         // "media" is what export-ceol-json.py writes, but a folder dragged out
         // of the phone through Finder is called "Media" — that is what
         // MediaStore names it in the app's Documents. Both are accepted, and
