@@ -58,6 +58,33 @@ public enum LinkedText {
         return out
     }
 
+    /// Files the Pi recorded in a tune's notes rather than as attachments.
+    ///
+    /// The web app wrote lines like `audio: /api/uploads/262ef2ff-….m4a` into
+    /// the notes field. 369 tunes in this library carry them — 630 files,
+    /// against 307 in the export's own `media` array — so the notes are not a
+    /// footnote to the attachments, they are the larger half of them. An
+    /// importer that reads only `media` leaves most of a library's recordings
+    /// on the floor and says nothing.
+    ///
+    /// Returns bare filenames, which is what the media folder is keyed by.
+    public static func uploadedFilenames(in notes: String) -> [String] {
+        guard !notes.isEmpty else { return [] }
+        // `/api/uploads/NAME` — the Pi's own URL shape. The name runs to the
+        // first character that cannot be in a filename.
+        let pattern = #"/api/uploads/([A-Za-z0-9._-]+)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let range = NSRange(notes.startIndex..<notes.endIndex, in: notes)
+        var out: [String] = []
+        for match in regex.matches(in: notes, range: range) {
+            guard match.numberOfRanges > 1,
+                  let r = Range(match.range(at: 1), in: notes) else { continue }
+            let name = String(notes[r])
+            if !out.contains(name) { out.append(name) }
+        }
+        return out
+    }
+
     /// Whether a link is one the app can play in a web view rather than
     /// handing to a browser.
     public static func isVideo(_ url: URL) -> Bool {

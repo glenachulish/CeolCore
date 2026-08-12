@@ -505,8 +505,17 @@ public enum FileImports {
                                     context: ModelContext,
                                     progress: @escaping (Int, Int) -> Void) async -> MediaOutcome {
         let tuneDicts = (json["tunes"] as? [[String: Any]]) ?? []
-        guard tuneDicts.contains(where: { !(($0["media"] as? [[String: Any]]) ?? []).isEmpty })
-        else { return MediaOutcome() }
+        // Either channel counts as having something to do: the export's own
+        // `media` array, or files named in a tune's notes as
+        // `/api/uploads/NAME`. Testing only the first meant an export whose
+        // recordings were all recorded the second way returned immediately and
+        // reported nothing.
+        func namedInNotes(_ dict: [String: Any]) -> [String] {
+            LinkedText.uploadedFilenames(in: (dict["notes"] as? String) ?? "")
+        }
+        guard tuneDicts.contains(where: {
+            !(($0["media"] as? [[String: Any]]) ?? []).isEmpty || !namedInNotes($0).isEmpty
+        }) else { return MediaOutcome() }
 
         // Everything here stays on the main actor because SwiftData models do,
         // but we yield between files so SwiftUI can redraw. Without that the
@@ -515,6 +524,7 @@ public enum FileImports {
         let totalFiles = tuneDicts.reduce(0) { sum, dict in
             sum + (((dict["media"] as? [[String: Any]]) ?? [])
                 .filter { !(($0["filename"] as? String) ?? "").isEmpty }.count)
+                + namedInNotes(dict).count
         }
         var filesDone = 0
         progress(0, totalFiles)
@@ -529,7 +539,11 @@ public enum FileImports {
         var attached = 0, alreadyThere = 0, noTune = 0, fileMissing = 0, copyFailed = 0
         for dict in tuneDicts {
             let items = (dict["media"] as? [[String: Any]]) ?? []
-            guard !items.isEmpty else { continue }
+            let fromNotes = namedInNotes(dict)
+            // Not `items.isEmpty`: 369 tunes name files only in their notes and
+            // carry no `media` array at all, and skipping those was what made
+            // the notes pass unreachable for precisely the tunes it was for.
+            guard !items.isEmpty || !fromNotes.isEmpty else { continue }
             let title = (dict["title"] as? String ?? "").trimmingCharacters(in: .whitespaces)
             let abc = dict["abc"] as? String ?? ""
             guard let tune = byKey[title.lowercased() + "|#|" + abc] else {
@@ -537,10 +551,20 @@ public enum FileImports {
                 // cause is an edit since the export, or a title that differs by
                 // punctuation — "Bog-an-Lochan" against "Bog An Lochan".
                 noTune += items.filter { !(($0["filename"] as? String) ?? "").isEmpty }.count
+                    + fromNotes.count
                 continue
             }
 
             let existing = tune.media ?? []
+            // What this run has already attached to this tune.
+            //
+            // `existing` is a snapshot taken before the loop, and the two
+            // passes below name the same file 252 times over in a real export
+            // — once in the `media` array and once in the notes. Re-reading
+            // `tune.media` between them is not reliable before a save, so the
+            // origins are tracked here. Without it every one of those 252
+            // would attach twice.
+            var addedThisRun = Set<String>()
             for item in items {
                 let kind = MediaKind(rawValue: item["kind"] as? String ?? "") ?? .audio
                 let filename = item["filename"] as? String ?? ""
@@ -571,10 +595,12 @@ public enum FileImports {
                 // hex blobs, so they're no use as a display title — the tune's
                 // name reads better.
                 let origin = "pi:" + filename
-                guard !existing.contains(where: { $0.notes == origin }) else {
+                guard !existing.contains(where: { $0.notes == origin }),
+                      !addedThisRun.contains(origin) else {
                     alreadyThere += 1
                     continue
                 }
+                addedThisRun.insert(origin)
                 guard let stored = MediaStore.shared.copyIn(from: source) else {
                     copyFailed += 1
                     continue
@@ -583,6 +609,41 @@ public enum FileImports {
                 media.notes = origin
                 media.tune = tune
                 context.insert(media)
+                attached += 1
+            }
+
+            // The other half of the library's recordings.
+            //
+            // The Pi also wrote `audio: /api/uploads/NAME` lines into the notes
+            // field, and for many tunes that is the only record of a file: 369
+            // tunes name 630 files that way, against 307 in the export's own
+            // `media` array. Reading only `media` left most of them behind
+            // without a word.
+            for name in fromNotes {
+                filesDone += 1
+                progress(filesDone, totalFiles)
+                await Task.yield()
+                let source = mediaFolder.appendingPathComponent(name)
+                guard FileManager.default.fileExists(atPath: source.path) else {
+                    fileMissing += 1
+                    continue
+                }
+                let origin = "pi:" + name
+                guard !existing.contains(where: { $0.notes == origin }),
+                      !addedThisRun.contains(origin) else {
+                    alreadyThere += 1
+                    continue
+                }
+                addedThisRun.insert(origin)
+                guard let stored = MediaStore.shared.copyIn(from: source) else {
+                    copyFailed += 1
+                    continue
+                }
+                let item = MediaItem(kind: MediaStore.kind(forExtension: source.pathExtension),
+                                     title: title, filename: stored)
+                item.notes = origin
+                item.tune = tune
+                context.insert(item)
                 attached += 1
             }
         }
