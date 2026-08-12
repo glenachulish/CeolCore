@@ -10,7 +10,7 @@ public struct TuneFilter: Equatable, Sendable {
 
     /// What the tune has attached, or doesn't.
     public enum Content: String, CaseIterable, Identifiable, Sendable {
-        case any, notation, noNotation, anyMedia, audio, video, images
+        case any, notation, noNotation, anyMedia, audio, video, images, links, videoLinks
 
         public var id: String { rawValue }
 
@@ -25,6 +25,11 @@ public struct TuneFilter: Equatable, Sendable {
             case .audio:      return "Has recordings"
             case .video:      return "Has video"
             case .images:     return "Has photos or PDFs"
+            // Links are worth their own answer. 55 tunes carry a web address —
+            // a YouTube recording of the tune, a page it came from — and until
+            // now the only way to find them was to remember which.
+            case .links:      return "Has a link"
+            case .videoLinks: return "Has a video link"
             }
         }
 
@@ -37,6 +42,11 @@ public struct TuneFilter: Equatable, Sendable {
             case .audio:      return tune.hasMedia([.audio])
             case .video:      return tune.hasMedia([.video])
             case .images:     return tune.hasMedia([.photo, .pdf])
+            case .links:      return tune.hasMedia([.link])
+            // A link that is a video to watch, rather than a page to read.
+            case .videoLinks: return (tune.media ?? []).contains {
+                                  $0.kind == .link && $0.youTubeID != nil
+                              }
             }
         }
     }
