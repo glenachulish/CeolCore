@@ -49,7 +49,7 @@ public struct TuneFilter: Equatable, Sendable {
             case .videoLinks: return (tune.media ?? []).contains {
                                   $0.kind == .link && $0.youTubeID != nil
                               }
-            case .audioLinks: return (tune.media ?? []).contains(\.isAudioLink)
+            case .audioLinks: return (tune.media ?? []).contains(where: \.isAudioLink)
             }
         }
     }
