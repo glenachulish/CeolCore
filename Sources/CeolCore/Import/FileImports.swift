@@ -15,12 +15,36 @@ public enum FileImports {
         public var collectionsCreated = 0
         public var versionGroups = 0
         public var mediaAttached = 0
+        /// Why the rest did not attach.
+        ///
+        /// `attachMedia` had five silent `continue`s and returned a bare count,
+        /// so a run that attached nothing said nothing — and the summary only
+        /// mentioned media at all when the count was above zero. Importing 307
+        /// recordings and being told "skipped 221 duplicates" is a report that
+        /// omits the one thing you were watching.
+        public var mediaAlreadyThere = 0
+        public var mediaNoTune = 0
+        public var mediaFileMissing = 0
+        public var mediaCopyFailed = 0
+        /// Set when the import had a media folder at all, so zero can be
+        /// reported as zero rather than as silence.
+        public var mediaExpected = 0
 
         public var message: String {
             var parts = ["Imported \(tunesImported) tune\(tunesImported == 1 ? "" : "s")"]
             if tunesSkipped > 0 { parts.append("skipped \(tunesSkipped) duplicate\(tunesSkipped == 1 ? "" : "s")") }
             if versionGroups > 0 { parts.append("\(versionGroups) version group\(versionGroups == 1 ? "" : "s")") }
-            if mediaAttached > 0 { parts.append("\(mediaAttached) recording\(mediaAttached == 1 ? "" : "s")") }
+            // Media is reported whenever there was any, including none
+            // attached — that is exactly the case worth hearing about.
+            if mediaExpected > 0 {
+                parts.append("\(mediaAttached) of \(mediaExpected) recording\(mediaExpected == 1 ? "" : "s") attached")
+                var why: [String] = []
+                if mediaAlreadyThere > 0 { why.append("\(mediaAlreadyThere) already here") }
+                if mediaNoTune > 0 { why.append("\(mediaNoTune) had no matching tune") }
+                if mediaFileMissing > 0 { why.append("\(mediaFileMissing) not in the folder") }
+                if mediaCopyFailed > 0 { why.append("\(mediaCopyFailed) couldn't be copied") }
+                if !why.isEmpty { parts.append("(" + why.joined(separator: ", ") + ")") }
+            }
             if setsCreated > 0 { parts.append("\(setsCreated) set\(setsCreated == 1 ? "" : "s")") }
             if collectionsCreated > 0 { parts.append("\(collectionsCreated) collection\(collectionsCreated == 1 ? "" : "s")") }
             return parts.joined(separator: ", ")
@@ -404,11 +428,17 @@ public enum FileImports {
         // any other single folder alongside the JSON is taken as the media
         // folder rather than refused: there is only ever one.
         let mediaFolder = Self.mediaFolder(beside: bundleFolder)
-        summary.mediaAttached = await attachMedia(
+        let media = await attachMedia(
             from: json,
             mediaFolder: mediaFolder,
             context: context,
             progress: progress)
+        summary.mediaAttached = media.attached
+        summary.mediaAlreadyThere = media.alreadyThere
+        summary.mediaNoTune = media.noTune
+        summary.mediaFileMissing = media.fileMissing
+        summary.mediaCopyFailed = media.copyFailed
+        summary.mediaExpected = media.expected
         try? context.save()
         return summary
     }
@@ -447,13 +477,23 @@ public enum FileImports {
     /// out of the bundle into the app's own store. Idempotent: re-importing
     /// the same folder won't duplicate anything.
     @MainActor
+    /// What happened to each file, not just how many landed.
+    public struct MediaOutcome {
+        public var attached = 0
+        public var alreadyThere = 0
+        public var noTune = 0
+        public var fileMissing = 0
+        public var copyFailed = 0
+        public var expected = 0
+    }
+
     private static func attachMedia(from json: [String: Any],
                                     mediaFolder: URL,
                                     context: ModelContext,
-                                    progress: @escaping (Int, Int) -> Void) async -> Int {
+                                    progress: @escaping (Int, Int) -> Void) async -> MediaOutcome {
         let tuneDicts = (json["tunes"] as? [[String: Any]]) ?? []
         guard tuneDicts.contains(where: { !(($0["media"] as? [[String: Any]]) ?? []).isEmpty })
-        else { return 0 }
+        else { return MediaOutcome() }
 
         // Everything here stays on the main actor because SwiftData models do,
         // but we yield between files so SwiftUI can redraw. Without that the
@@ -473,13 +513,19 @@ public enum FileImports {
             byKey[tune.title.lowercased() + "|#|" + tune.abc] = tune
         }
 
-        var attached = 0
+        var attached = 0, alreadyThere = 0, noTune = 0, fileMissing = 0, copyFailed = 0
         for dict in tuneDicts {
             let items = (dict["media"] as? [[String: Any]]) ?? []
             guard !items.isEmpty else { continue }
             let title = (dict["title"] as? String ?? "").trimmingCharacters(in: .whitespaces)
             let abc = dict["abc"] as? String ?? ""
-            guard let tune = byKey[title.lowercased() + "|#|" + abc] else { continue }
+            guard let tune = byKey[title.lowercased() + "|#|" + abc] else {
+                // No tune with this title AND this notation. The commonest
+                // cause is an edit since the export, or a title that differs by
+                // punctuation — "Bog-an-Lochan" against "Bog An Lochan".
+                noTune += items.filter { !(($0["filename"] as? String) ?? "").isEmpty }.count
+                continue
+            }
 
             let existing = tune.media ?? []
             for item in items {
@@ -503,14 +549,23 @@ public enum FileImports {
                 // progress readable and the app alive to the watchdog.
                 await Task.yield()
                 let source = mediaFolder.appendingPathComponent(filename)
-                guard FileManager.default.fileExists(atPath: source.path) else { continue }
+                guard FileManager.default.fileExists(atPath: source.path) else {
+                    fileMissing += 1
+                    continue
+                }
                 // Remember where it came from, so importing the folder twice
                 // doesn't attach everything twice. The Pi's own file names are
                 // hex blobs, so they're no use as a display title — the tune's
                 // name reads better.
                 let origin = "pi:" + filename
-                guard !existing.contains(where: { $0.notes == origin }) else { continue }
-                guard let stored = MediaStore.shared.copyIn(from: source) else { continue }
+                guard !existing.contains(where: { $0.notes == origin }) else {
+                    alreadyThere += 1
+                    continue
+                }
+                guard let stored = MediaStore.shared.copyIn(from: source) else {
+                    copyFailed += 1
+                    continue
+                }
                 let media = MediaItem(kind: kind, title: title, filename: stored)
                 media.notes = origin
                 media.tune = tune
@@ -518,7 +573,9 @@ public enum FileImports {
                 attached += 1
             }
         }
-        return attached
+        return MediaOutcome(attached: attached, alreadyThere: alreadyThere,
+                            noTune: noTune, fileMissing: fileMissing,
+                            copyFailed: copyFailed, expected: totalFiles)
     }
 
     /// Turn the Pi's `parent_id` / `is_default` into the iOS model's shared

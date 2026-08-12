@@ -59,7 +59,30 @@ extension MediaItem {
     /// The YouTube video id, for the three link shapes that turn up:
     /// `youtu.be/ID`, `youtube.com/watch?v=ID`, `youtube.com/shorts/ID`.
     public var youTubeID: String? {
-        guard let url = webURL, let host = url.host?.lowercased() else { return nil }
+        guard let url = webURL else { return nil }
+        return MediaLinks.youTubeID(of: url)
+    }
+
+    /// Where to play from: the local file if there is one, otherwise a direct
+    /// media URL. Nil means it isn't playable in the app.
+    public var playbackURL: URL? {
+        if let fileURL { return fileURL }
+        return isDirectMedia ? webURL : nil
+    }
+}
+
+/// Link facts that do not need a `MediaItem` behind them.
+///
+/// A URL sitting in a tune's notes is not an attachment yet, but it is still a
+/// YouTube link and should still play in the app rather than being thrown at a
+/// browser. Pulling this out of the `MediaItem` extension is what lets the same
+/// player serve both.
+public enum MediaLinks {
+
+    /// The YouTube video id, for the three link shapes that turn up:
+    /// `youtu.be/ID`, `youtube.com/watch?v=ID`, `youtube.com/shorts/ID`.
+    public static func youTubeID(of url: URL) -> String? {
+        guard let host = url.host?.lowercased() else { return nil }
         if host.contains("youtu.be") {
             let id = url.lastPathComponent
             return id.isEmpty ? nil : id
@@ -71,12 +94,5 @@ extension MediaItem {
         }
         return URLComponents(url: url, resolvingAgainstBaseURL: false)?
             .queryItems?.first(where: { $0.name == "v" })?.value
-    }
-
-    /// Where to play from: the local file if there is one, otherwise a direct
-    /// media URL. Nil means it isn't playable in the app.
-    public var playbackURL: URL? {
-        if let fileURL { return fileURL }
-        return isDirectMedia ? webURL : nil
     }
 }
