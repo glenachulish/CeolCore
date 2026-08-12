@@ -71,7 +71,20 @@ public final class LocalOrigin: @unchecked Sendable {
                 self?.receive(on: connection)
             }
             listener.stateUpdateHandler = { [weak self] state in
-                if case .ready = state { self?.port = listener.port?.rawValue }
+                switch state {
+                case .ready:
+                    self?.port = listener.port?.rawValue
+                // iOS tears the socket down when the app is suspended, and a
+                // dead listener that is still non-nil would mean every video
+                // after the first backgrounding falls back to the broken route
+                // — with nothing on screen to say why. Forgetting it here means
+                // the next `start()` simply builds a new one.
+                case .failed, .cancelled:
+                    self?.listener = nil
+                    self?.port = nil
+                default:
+                    break
+                }
             }
             listener.start(queue: queue)
             self.listener = listener
