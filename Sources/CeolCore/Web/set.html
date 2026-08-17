@@ -1679,7 +1679,7 @@ function renderAtMs(ms) {
     try { synthControl.setProgress(fraction, nativeDurationMs); } catch (e) {}
     document.getElementById("progress").style.width = (fraction * 100) + "%";
     var byTime = tuneIdxForMs(ms);
-    if (byTime >= 0) setActiveTune(byTime);
+    if (byTime >= 0) setActiveTune(byTime, true);
   }
 
   var index = findEventAt(ms);
@@ -2341,7 +2341,9 @@ function tuneIdxForMs(ms) {
   return bounds.length - 2;
 }
 
-function setActiveTune(idx) {
+function setActiveTune(idx, fromCursor) {
+  // A jump you just made outranks the cursor for a moment — see `seekedAt`.
+  if (fromCursor && Date.now() - seekedAt < SEEK_GRACE_MS) return;
   if (idx === activeTune || idx < 0) return;
   activeTune = idx;
   postTempoForTune(idx);
@@ -2410,7 +2412,22 @@ function scrollToTuneSection(idx) {
 
 // Tap a timeline segment: jump playback to that tune, show it, and start
 // playing if we're stopped — so the notes light up in time from there.
+/// When a segment was last clicked.
+///
+/// The cursor calls `setActiveTune` on every note event, so a click that moved
+/// the highlight was undone a few milliseconds later by the next note of the
+/// tune still sounding — the seek had not taken effect yet, the cursor was
+/// still where it was, and it put the colour back. From the outside the click
+/// did nothing at all.
+///
+/// So a manual jump holds the floor briefly. Long enough for the audio to
+/// arrive at the new position, short enough that a wrong guess corrects itself
+/// while you are still looking at it.
+var seekedAt = 0;
+var SEEK_GRACE_MS = 900;
+
 function seekToTune(idx) {
+  seekedAt = Date.now();
   // Jump to the same place the coloured block starts. Reading the boundary
   // from the measured durations rather than from the note map means tapping a
   // segment lands where the eye says it should, and works before anything has
@@ -2520,9 +2537,9 @@ var cursorControl = {
     // does this fall back to the character position.
     if (durationMs && typeof ev.milliseconds === "number") {
       var byTime = tuneIdxForMs(ev.milliseconds);
-      if (byTime >= 0) setActiveTune(byTime);
+      if (byTime >= 0) setActiveTune(byTime, true);
     } else if (typeof ev.startChar === "number") {
-      setActiveTune(tuneIdxForChar(ev.startChar));
+      setActiveTune(tuneIdxForChar(ev.startChar), true);
     }
     if (durationMs && typeof ev.milliseconds === "number") {
       document.getElementById("progress").style.width =
