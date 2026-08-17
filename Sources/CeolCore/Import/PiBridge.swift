@@ -9,13 +9,18 @@ import SwiftData
 /// for something the app can do itself, and it has to be repeated in full every
 /// time one recording is added.
 ///
-/// The Pi makes this easy without knowing it. `GET /api/uploads/{filename}` has
-/// no authentication on it (`main.py`, line 6605: sanitise the name, return the
-/// file), so anything that can reach the Pi can read a file by name. And the
-/// names are already here: the web app wrote every attachment into the tune's
-/// notes as `audio: /api/uploads/NAME`, which is what `LinkedText` reads. So
-/// the app already knows exactly which files it is missing and exactly what to
-/// ask for.
+/// The names are already here: the web app wrote every attachment into the
+/// tune's notes as `audio: /api/uploads/NAME`, which is what `LinkedText`
+/// reads. So the app already knows exactly which files it is missing and
+/// exactly what to ask for.
+///
+/// **It has to sign in first, and I missed that.** `GET /api/uploads/{filename}`
+/// carries no dependency — `main.py` line 6605 is three lines that sanitise the
+/// name and return the file — so I read it as public and said so. The check is
+/// not on the route. It is a global HTTP middleware at line 1264 that demands a
+/// `__Host-ceol_session` cookie for every path not on a short open list, and
+/// `/api/uploads/` is not on that list. The first real run answered 401 to all
+/// 630 files. Reading the endpoint was not reading the server.
 ///
 /// What it does *not* know is whether it already has one. The folder import
 /// copied each file in under a fresh UUID and discarded the original name, so
@@ -29,6 +34,10 @@ public enum PiBridge {
     public static let defaultAddress = "https://ceol-pi.tail01672f.ts.net:8443"
 
     public static let addressKey = "ceol.pi.address"
+    /// The username is remembered; the password never is. Nothing here writes
+    /// to the Keychain, and a password in `UserDefaults` would be worse than
+    /// typing it again on the handful of occasions this gets used.
+    public static let userKey = "ceol.pi.username"
 
     /// Tolerate what someone would actually type: no scheme, a trailing slash.
     public static func base(from text: String) -> URL? {
@@ -46,19 +55,70 @@ public enum PiBridge {
             .appendingPathComponent(name)
     }
 
-    /// Is anything listening? Returns nil when it is, or something to show you
-    /// when it isn't.
+    // MARK: - Getting in
+
+    public enum Reachability: Sendable, Equatable {
+        /// Answering, and this session is signed in.
+        case ready
+        /// Answering, but the session cookie is missing or expired.
+        case needsSignIn
+        /// Nothing there. Usually Tailscale being off.
+        case unreachable(String)
+    }
+
+    /// Ask for a file that cannot exist, on the exact path the fetch will use.
     ///
-    /// Any HTTP status counts as reachable, including 404: the question is
-    /// whether the Pi is answering, not whether this particular path exists.
-    /// The usual failure is Tailscale being down, and the system's own error
-    /// text says so better than anything invented here.
-    public static func check(_ base: URL) async -> String? {
-        var request = URLRequest(url: base)
-        request.timeoutInterval = 10
+    /// **404 is the good answer.** It means the request got past the login
+    /// middleware and reached `serve_upload`, which looked for the name and did
+    /// not find it — so a real name would be served. 401 means it never got
+    /// that far.
+    ///
+    /// Probing the front page instead proves nothing: the middleware answers an
+    /// unauthenticated browser with a redirect to `/login`, which `URLSession`
+    /// follows, which returns 200. That is precisely how a session that could
+    /// not read a single file looked like a healthy one, and why the first run
+    /// reported everything fine and then failed 630 times.
+    public static func check(_ base: URL) async -> Reachability {
+        var request = URLRequest(url: fileURL("__fonn_probe__", at: base))
+        request.timeoutInterval = 15
         do {
             let (_, response) = try await URLSession.shared.data(for: request)
-            return response is HTTPURLResponse ? nil : "That address answered, but not as a web server."
+            guard let http = response as? HTTPURLResponse else {
+                return .unreachable("That address answered, but not as a web server.")
+            }
+            return (http.statusCode == 401 || http.statusCode == 403) ? .needsSignIn : .ready
+        } catch {
+            return .unreachable(error.localizedDescription)
+        }
+    }
+
+    /// Sign in, so `URLSession` picks up the session cookie for later requests.
+    ///
+    /// Nothing is stored here. The Pi sets `__Host-ceol_session`, which
+    /// `HTTPCookieStorage` keeps for as long as the app is running, and every
+    /// later request to the same host carries it without being asked.
+    /// Returns nil on success, or something to show you.
+    public static func signIn(user: String, password: String, at base: URL) async -> String? {
+        var request = URLRequest(url: base.appendingPathComponent("api/auth/login"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 20
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(
+            withJSONObject: ["username": user, "password": password])
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return "The Pi gave no answer." }
+            if http.statusCode == 200 { return nil }
+            // The Pi rate-limits by IP and says how long for; passing its own
+            // message through is better than inventing one that omits that.
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = json["error"] as? String ?? json["detail"] as? String {
+                return message
+            }
+            return http.statusCode == 401
+                ? "That username or password wasn't accepted."
+                : "The Pi answered \(http.statusCode)."
         } catch {
             return error.localizedDescription
         }
@@ -121,10 +181,15 @@ public enum PiBridge {
         /// Network trouble, or the file would not save.
         public var failed = 0
         public var failures: [String] = []
+        /// The session went. Stop rather than reporting the same 401 six
+        /// hundred times, which is what the first run did — a wall of
+        /// identical failures that said nothing except, once, why.
+        public var signedOut = false
 
         public var total: Int { added + matched + notOnPi + failed }
 
         public var summary: String {
+            if signedOut { return "Signed out of the Pi before it could finish. Sign in and try again." }
             var parts: [String] = []
             if added > 0 { parts.append("\(added) new recording\(added == 1 ? "" : "s")") }
             if matched > 0 { parts.append("\(matched) already here") }
@@ -150,7 +215,10 @@ public enum PiBridge {
         progress(0, wants.count)
 
         for want in wants {
-            if isCancelled() { break }
+            // Stopping is checked here rather than where it is discovered: the
+            // 401 below sits inside a `do` block, and an unlabelled `break`
+            // there is a puzzle for whoever reads it next.
+            if isCancelled() || report.signedOut { break }
             defer { done += 1; progress(done, wants.count) }
 
             guard let tune = context.model(for: want.tune) as? Tune else {
@@ -165,12 +233,17 @@ public enum PiBridge {
             do {
                 let (body, response) = try await URLSession.shared.data(for: request)
                 if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                    if http.statusCode == 404 {
+                    switch http.statusCode {
+                    case 404:
                         report.notOnPi += 1
-                    } else {
+                    case 401, 403:
+                        // No point asking 629 more times.
+                        report.signedOut = true
+                    default:
                         report.failed += 1
                         report.failures.append("\(want.filename) — the Pi answered \(http.statusCode)")
                     }
+                    // The loop's own guard stops the next iteration.
                     continue
                 }
                 data = body
