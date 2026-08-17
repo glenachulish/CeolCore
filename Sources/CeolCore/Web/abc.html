@@ -1874,6 +1874,12 @@ function updateDbg() {
                 : nativeMode ? "NATIVE" : "web (transfer not landed)")
       + " | events " + nativeEvents.length
       + " | at " + Math.round(lastNativeMs) + "ms of " + Math.round(nativeDurationMs) + "ms",
+    // Which path the cursor is actually on, and whether the offset is doing
+    // anything. The first version of this fix worked only in native mode and
+    // there was nothing on screen to say so.
+    "cursor " + (nativeMode && cursorRunning ? "interpolated @rAF" : "abcjs onEvent")
+      + " | offset " + (cursorOffsetMs > 0 ? "+" : "") + Math.round(cursorOffsetMs) + "ms"
+      + " | rate " + (Math.round(syncRate * 100) / 100),
   ];
   // Tells a wrong clock from a wrong map — see set.html.
   // The two clocks, to the millisecond — see set.html.
@@ -1911,14 +1917,40 @@ var cursorControl = {
   onEvent: function (ev) {
     if (!ev) return;
     unhighlight();
-    (ev.elements || []).forEach(function (grp) {
-      (grp || []).forEach(function (hiddenEl) {
-        var vis = hiddenToVis.get(hiddenEl);
-        if (!vis || !vis.classList) return;
-        vis.classList.add("abc-playing");
-        lastEls.push(vis);
+    // The offset has to work here too.
+    //
+    // I fixed the lit-note timing for the native player and stopped, which
+    // left the fix applying to exactly half the app: with "Play through the
+    // system" switched off — or on, but with the audio transfer not landed —
+    // the cursor comes from abcjs's own callback and none of it ran. The
+    // slider in Settings appeared to do nothing, which is worse than not
+    // having it.
+    //
+    // abcjs fires this per note, so it cannot be delayed by waiting: a
+    // negative offset has to look *backwards*. Treating `ev.milliseconds` as
+    // the clock and asking the event table what is sounding at
+    // `now + offset` handles both directions with the machinery that is
+    // already here.
+    var shifted = null;
+    if (cursorOffsetMs !== 0 && nativeEvents.length) {
+      var index = findEventAt(ev.milliseconds + cursorOffsetMs);
+      if (index >= 0) shifted = nativeEvents[index].els;
+    }
+    if (shifted) {
+      for (var i = 0; i < shifted.length; i++) {
+        shifted[i].classList.add("abc-playing");
+        lastEls.push(shifted[i]);
+      }
+    } else {
+      (ev.elements || []).forEach(function (grp) {
+        (grp || []).forEach(function (hiddenEl) {
+          var vis = hiddenToVis.get(hiddenEl);
+          if (!vis || !vis.classList) return;
+          vis.classList.add("abc-playing");
+          lastEls.push(vis);
+        });
       });
-    });
+    }
     if (lastEls.length) followHighlight(lastEls[0]);
     updateDbg();
 
@@ -2222,7 +2254,9 @@ function rebuildMaps() {
   // The note events point at the visible elements they light, and re-engraving
   // replaces every one of them — so they have to be renewed here too, or the
   // cursor stops after a rotation or a change of notation size.
-  if (nativeMode) buildNativeEvents();
+  // Built in both modes, not just native. The web cursor needs the same table
+  // to apply an offset, and building it costs one walk over noteTimings.
+  buildNativeEvents();
 }
 
 var resizeTimer = null;

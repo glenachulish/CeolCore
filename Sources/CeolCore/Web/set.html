@@ -958,7 +958,10 @@ function buildTimingAndMaps() {
   // rotation, A−/A+, the header stepping aside. Left alone they point at
   // detached elements and nothing lights up at all. This is the one place
   // every rebuild passes through, so it is the place to renew them.
-  if (nativeMode && !buildingNativeEvents) {
+  // Built in both modes, not just native: the web cursor needs the same table
+  // to apply the highlight offset. The re-entrancy flag stays — that guards a
+  // rebuild triggered from inside a rebuild, which is a different worry.
+  if (!buildingNativeEvents) {
     buildingNativeEvents = true;
     buildNativeEvents();
     buildingNativeEvents = false;
@@ -2488,14 +2491,29 @@ var cursorControl = {
     evCount++;
     if (typeof ev.milliseconds === "number") lastEvMs = ev.milliseconds;
     unhighlight();
-    (ev.elements || []).forEach(function (grp) {
-      (grp || []).forEach(function (hiddenEl) {
-        var vis = hiddenToVis.get(hiddenEl);
-        if (!vis || !vis.classList) return;
-        vis.classList.add("abc-playing");
-        lastEls.push(vis);
+    // The offset applies here too — see `abc.html` for why looking backwards
+    // through the event table is the only way to honour a negative one.
+    var shifted = null;
+    if (cursorOffsetMs !== 0 && nativeEvents.length
+        && typeof ev.milliseconds === "number") {
+      var at = findEventAt(ev.milliseconds + cursorOffsetMs);
+      if (at >= 0) shifted = nativeEvents[at].els;
+    }
+    if (shifted) {
+      for (var s = 0; s < shifted.length; s++) {
+        shifted[s].classList.add("abc-playing");
+        lastEls.push(shifted[s]);
+      }
+    } else {
+      (ev.elements || []).forEach(function (grp) {
+        (grp || []).forEach(function (hiddenEl) {
+          var vis = hiddenToVis.get(hiddenEl);
+          if (!vis || !vis.classList) return;
+          vis.classList.add("abc-playing");
+          lastEls.push(vis);
+        });
       });
-    });
+    }
     if (lastEls.length) followNote(lastEls[0]);
     // Highlight from the same number that moves the marker, so the lit block
     // and the marker cannot part company. Only when there's no clock to read
