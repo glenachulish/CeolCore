@@ -18,12 +18,16 @@ import Foundation
 public struct MediaIndex: Sendable {
 
     /// groupID → every kind of attachment anywhere in that group.
-    private let byGroup: [String: Set<MediaKind>]
+    ///
+    /// A `UUID`, not a String — `Tune.groupID` is `UUID?`, and writing this
+    /// against the wrong type is the kind of thing a compiler catches and a
+    /// careful reading of one's own code does not.
+    private let byGroup: [UUID: Set<MediaKind>]
     /// Tunes with no groupID are their own group of one, keyed by identity.
     private let ungrouped: [ObjectIdentifier: Set<MediaKind>]
 
     public init(_ tunes: [Tune]) {
-        var byGroup: [String: Set<MediaKind>] = [:]
+        var byGroup: [UUID: Set<MediaKind>] = [:]
         var ungrouped: [ObjectIdentifier: Set<MediaKind>] = [:]
         for tune in tunes {
             let kinds = Set((tune.media ?? []).map(\.kind))
