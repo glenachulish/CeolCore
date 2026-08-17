@@ -42,19 +42,30 @@ public struct TuneFilter: Equatable, Sendable {
             }
         }
 
-        public func matches(_ tune: Tune) -> Bool {
+        /// `media` answers for the whole version group; nil answers for this
+        /// record alone.
+        ///
+        /// Pass one. A library list shows only default versions, so a
+        /// recording that landed on a sibling setting is not on the record
+        /// being tested — which is why a tune with seven recordings could fail
+        /// "Has a recording". Nil is kept for callers with no group
+        /// information to hand, not as a reasonable default.
+        public func matches(_ tune: Tune, media: MediaIndex? = nil) -> Bool {
             switch self {
             case .any:        return true
             case .notation:   return tune.hasNotation
             case .noNotation: return !tune.hasNotation
-            case .anyMedia:   return !(tune.media ?? []).isEmpty
+            case .anyMedia:   return media?.hasAnything(tune) ?? !(tune.media ?? []).isEmpty
             // Both a file here and a recording on the web: kind is .audio
             // either way, which is what makes one filter enough.
-            case .audio:      return tune.hasMedia([.audio])
-            case .video:      return tune.hasMedia([.video])
-            case .images:     return tune.hasMedia([.photo, .pdf])
-            case .links:      return tune.hasMedia([.link])
+            case .audio:      return media?.has([.audio], tune) ?? tune.hasMedia([.audio])
+            case .video:      return media?.has([.video], tune) ?? tune.hasMedia([.video])
+            case .images:     return media?.has([.photo, .pdf], tune) ?? tune.hasMedia([.photo, .pdf])
+            case .links:      return media?.has([.link], tune) ?? tune.hasMedia([.link])
             // A link that is a video to watch, rather than a page to read.
+            // The index records kinds, not which links are YouTube, so this
+            // one still needs the items themselves — it is rare enough that a
+            // group walk is not worth building an index for.
             case .videoLinks: return (tune.media ?? []).contains {
                                   $0.kind == .link && $0.youTubeID != nil
                               }
@@ -102,15 +113,25 @@ public struct TuneFilter: Equatable, Sendable {
     }
 
     /// Cheap tests first: this runs across the whole library on every keystroke.
-    public func matches(_ tune: Tune) -> Bool {
+    ///
+    /// Build `media` once per pass with `MediaIndex(tunes)` and hand it in —
+    /// without it, media questions are answered for one record rather than the
+    /// version group, and tunes with attachments on a sibling setting go
+    /// missing from the results.
+    public func matches(_ tune: Tune, media: MediaIndex? = nil) -> Bool {
         if favourites && !tune.isFavourite { return false }
         if hitlist && !tune.onHitlist { return false }
         if minRating > 0 && tune.rating < minRating { return false }
         if !type.isEmpty && tune.type.caseInsensitiveCompare(type) != .orderedSame { return false }
         if !key.isEmpty && tune.displayKey != key { return false }
-        if !content.matches(tune) { return false }
+        if !content.matches(tune, media: media) { return false }
         if !inSet.matches(tune) { return false }
         return true
+    }
+
+    /// The index this filter wants, or nil when nothing asks about media.
+    public func mediaIndex(for tunes: [Tune]) -> MediaIndex? {
+        content == .any ? nil : MediaIndex(tunes)
     }
 
     // MARK: - What is currently on

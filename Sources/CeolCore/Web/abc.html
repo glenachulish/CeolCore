@@ -971,7 +971,7 @@ function nativePlaying(playing) {
   } catch (e) {}
   postPlayState(!!playing);
   lastPlayingState = !!playing;
-  if (!playing) unhighlight();
+  if (!playing) { stopCursorClock(); unhighlight(); }
 }
 
 /// Every note event, in time order, with the visible element it lights up.
@@ -998,12 +998,102 @@ function buildNativeEvents() {
   if (buf && buf.duration) nativeDurationMs = buf.duration * 1000;
 }
 
+// ── Keeping the cursor with the ear ─────────────────────────────────────────
+//
+// The app sends where the audio is 25 times a second, and this used to light
+// the note straight from that message. Three delays stack up on that path and
+// none of them is visible from inside the app:
+//
+//   * 40ms of quantising, because a message every 40ms cannot say anything
+//     about the 39ms in between;
+//   * the hop into the web view, which is a separate process;
+//   * whatever `Timer` lost while follow-the-music was scrolling the page —
+//     it runs on the main run loop and yields to exactly the work that
+//     happens most during playback.
+//
+// Individually small. Together, enough to see. And crucially never the same
+// twice, which is why it reads as sloppy rather than merely late.
+//
+// So the message is now a *correction* rather than the position. A local clock
+// carries on between messages and the cursor is redrawn on
+// requestAnimationFrame — at the screen's refresh rate, in the same process as
+// the notes being lit.
+//
+// The rate is measured rather than assumed. Speed is applied natively by
+// AVAudioUnitTimePitch, so file time and wall time diverge whenever you are
+// not at 100%, and reading the percentage from here would mean two places
+// having to agree about it. Watching how fast the reported position actually
+// moves needs no agreement with anything.
+var syncMs = 0;             // last position the app reported
+var syncAt = 0;             // performance.now() when it arrived
+var syncRate = 1;           // file-ms per wall-ms, smoothed
+var cursorRunning = false;
+var cursorRAF = null;
+
+/// Fine adjustment, in milliseconds, from the app's settings.
+///
+/// This exists because output latency cannot be computed for every route.
+/// `AVAudioSession.outputLatency` is honest about the phone's own speaker and
+/// wired headphones; over Bluetooth the true delay is between 150 and 300ms
+/// depending on the codec, and nothing in the API reports it reliably. That
+/// range is far larger than everything above put together, so on AirPods it
+/// *is* the problem — and it needs an ear, not a formula.
+var cursorOffsetMs = 0;
+function setCursorOffset(ms) {
+  cursorOffsetMs = (typeof ms === "number" && isFinite(ms)) ? ms : 0;
+}
+
 /// Called about 25 times a second from the app, with where the audio is.
 function nativePosition(seconds) {
   if (!nativeMode) return;
   var ms = seconds * 1000;
+  var now = (window.performance && performance.now) ? performance.now() : Date.now();
+
+  // A seek, a loop, or the first message: start the clock afresh rather than
+  // letting the rate estimate chase a discontinuity.
+  var predicted = syncMs + (now - syncAt) * syncRate;
+  if (!cursorRunning || Math.abs(ms - predicted) > 250) {
+    syncRate = 1;
+  } else {
+    var wall = now - syncAt;
+    if (wall > 5) {
+      var observed = (ms - syncMs) / wall;
+      // Heavily smoothed and clamped. One late message would otherwise be
+      // read as the music having slowed down, and the cursor would crawl.
+      if (observed > 0.1 && observed < 4) {
+        syncRate = syncRate * 0.9 + observed * 0.1;
+      }
+    }
+  }
+  syncMs = ms;
+  syncAt = now;
   lastNativeMs = ms;
 
+  if (!cursorRunning) {
+    cursorRunning = true;
+    tickCursor();
+  }
+}
+
+/// Redraw at the screen's rate from the local clock.
+function tickCursor() {
+  cursorRAF = null;
+  if (!nativeMode || !cursorRunning) return;
+  var now = (window.performance && performance.now) ? performance.now() : Date.now();
+  // Capped: if the app stops sending — playback ended, the tab was hidden —
+  // the estimate must not run away on its own.
+  var elapsed = Math.min(now - syncAt, 500);
+  renderAtMs(syncMs + elapsed * syncRate + cursorOffsetMs);
+  cursorRAF = requestAnimationFrame(tickCursor);
+}
+
+function stopCursorClock() {
+  cursorRunning = false;
+  if (cursorRAF) { cancelAnimationFrame(cursorRAF); cursorRAF = null; }
+}
+
+/// Light whatever is sounding at `ms`.
+function renderAtMs(ms) {
   if (nativeDurationMs) {
     var fraction = Math.max(0, Math.min(1, ms / nativeDurationMs));
     try { synthControl.setProgress(fraction, nativeDurationMs); } catch (e) {}
@@ -1053,6 +1143,11 @@ function nativeLooped() {
                              // arrived at all
   if (!nativeMode) return;
   nativeIndex = -1;          // the cursor has jumped back
+  // The local clock is now describing somewhere the music has left. The next
+  // message will be far from what it predicts, which resets the rate estimate
+  // — but the frames between now and then would be drawn at the old position,
+  // so silence it until the truth arrives.
+  syncAt = (window.performance && performance.now) ? performance.now() : Date.now();
   pracOnLoopCycle();
   updateDbg();
 }
@@ -1062,6 +1157,7 @@ function nativeFinished() {
   if (!nativeMode) return;
   // The playing flag and the button are already handled — nativePlaying fires
   // first, from the same change. Only the cursor is left to tidy.
+  stopCursorClock();
   unhighlight();
   nativeIndex = -1;
 }

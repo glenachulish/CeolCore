@@ -1598,12 +1598,32 @@ function nativePlaying(playing) {
   } catch (e) {}
   postPlayState(!!playing);
   lastPlayingState = !!playing;
-  if (!playing) { unhighlight(); return; }
+  if (!playing) { stopCursorClock(); unhighlight(); return; }
   // What abcjs's own onStart used to do, and no longer can: let the music
   // scroll immediately rather than waiting out a throttle left over from
   // whatever you last scrolled by hand.
   lastScrollAt = 0;
   resizeTimeline();
+}
+
+// ── Keeping the cursor with the ear ─────────────────────────────────────────
+//
+// Same arrangement as `abc.html`, and the long explanation lives there. In
+// short: a message every 40ms cannot describe the 39ms in between, the hop
+// into the web view costs more, and `Timer` slips exactly when follow-the-
+// music is scrolling. So the message corrects a local clock, and the drawing
+// happens on requestAnimationFrame.
+//
+// A set feels this more than a single tune does. It runs for minutes, so a
+// fixed offset has that much longer to look wrong, and the marker and the
+// tune-block move off the same number as the lit note — three things visibly
+// disagreeing with the ear instead of one.
+var syncMs = 0, syncAt = 0, syncRate = 1;
+var cursorRunning = false, cursorRAF = null;
+var cursorOffsetMs = 0;
+
+function setCursorOffset(ms) {
+  cursorOffsetMs = (typeof ms === "number" && isFinite(ms)) ? ms : 0;
 }
 
 /// Where the audio is, about 25 times a second. Everything the set shows —
@@ -1612,8 +1632,45 @@ function nativePlaying(playing) {
 function nativePosition(seconds) {
   if (!nativeMode) return;
   var ms = seconds * 1000;
+  var now = (window.performance && performance.now) ? performance.now() : Date.now();
+
+  var predicted = syncMs + (now - syncAt) * syncRate;
+  if (!cursorRunning || Math.abs(ms - predicted) > 250) {
+    syncRate = 1;
+  } else {
+    var wall = now - syncAt;
+    if (wall > 5) {
+      var observed = (ms - syncMs) / wall;
+      if (observed > 0.1 && observed < 4) {
+        syncRate = syncRate * 0.9 + observed * 0.1;
+      }
+    }
+  }
+  syncMs = ms;
+  syncAt = now;
   lastNativeMs = ms;
 
+  if (!cursorRunning) {
+    cursorRunning = true;
+    tickCursor();
+  }
+}
+
+function tickCursor() {
+  cursorRAF = null;
+  if (!nativeMode || !cursorRunning) return;
+  var now = (window.performance && performance.now) ? performance.now() : Date.now();
+  var elapsed = Math.min(now - syncAt, 500);
+  renderAtMs(syncMs + elapsed * syncRate + cursorOffsetMs);
+  cursorRAF = requestAnimationFrame(tickCursor);
+}
+
+function stopCursorClock() {
+  cursorRunning = false;
+  if (cursorRAF) { cancelAnimationFrame(cursorRAF); cursorRAF = null; }
+}
+
+function renderAtMs(ms) {
   if (nativeDurationMs) {
     var fraction = Math.max(0, Math.min(1, ms / nativeDurationMs));
     try { synthControl.setProgress(fraction, nativeDurationMs); } catch (e) {}
@@ -1652,6 +1709,7 @@ function findEventAt(ms) {
 
 function nativeFinished() {
   if (!nativeMode) return;
+  stopCursorClock();
   unhighlight();
   nativeIndex = -1;
   setActiveTune(-1);
@@ -1664,6 +1722,9 @@ function nativeLooped() {
   nativeLaps++;
   if (!nativeMode) return;
   nativeIndex = -1;
+  // Stop the local clock describing where the music no longer is, until the
+  // next message says where it went.
+  syncAt = (window.performance && performance.now) ? performance.now() : Date.now();
   pracOnLoopCycle();
   updateDbg();
 }
