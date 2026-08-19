@@ -38,6 +38,25 @@ var melodyVoice = "flute";
 var melodyProgram = 73;
 var chordsOn = true;
 
+// -- The accompaniment ---------------------------------- CEOL_ACCOMP_MARKER_18AUG2026 --
+//
+// abcjs plays the chord symbols written in the ABC. Left alone it plays them on
+// its own default instrument, which is why every tune in this app has been
+// backed by the same guitar since the day chords started sounding: nobody had
+// ever said otherwise.
+//
+// These two say otherwise. They are synth options, not notation: abcjs takes
+// chordprog / bassprog / chordvol / bassvol in the object handed to setTune and
+// uses them as the defaults for any tune that does not carry its own MIDI
+// directive. That order matters -- a tune whose ABC specifies its own
+// accompaniment keeps it, and this is only the answer for the ones that do not.
+//
+// Nothing here is written into the ABC, so nothing here travels into an export.
+// Which instrument backs you while you practise is a listening choice, not a
+// fact about the tune.
+var accompVoice = "";     // "" = abcjs's own default
+var accompVol = 85;       // MIDI velocity, 0-127
+
 (function restore() {
   try {
     // The app is the authority now — it pushes the chosen instrument in via
@@ -60,6 +79,10 @@ var chordsOn = true;
     }
     if (saved && ceolVoice(saved)) melodyVoice = saved;
     chordsOn = localStorage.getItem("ceol.chords") !== "off";
+    var acc = localStorage.getItem("ceol.accomp");
+    if (acc && ceolVoice(acc)) accompVoice = acc;
+    var vol = parseInt(localStorage.getItem("ceol.accompVol"), 10);
+    if (vol >= 0 && vol <= 127) accompVol = vol;
   } catch (e) {}
   melodyProgram = ceolVoice(melodyVoice).program;
 })();
@@ -69,6 +92,18 @@ function ceolVoice(id) {
     if (CEOL_VOICES[i].id === id) return CEOL_VOICES[i];
   }
   return null;
+}
+
+function ceolSetAccomp(id) {
+  accompVoice = (id && ceolVoice(id)) ? id : "";
+  try { localStorage.setItem("ceol.accomp", accompVoice); } catch (e) {}
+}
+
+function ceolSetAccompVol(v) {
+  v = parseInt(v, 10);
+  if (isNaN(v)) return;
+  accompVol = Math.max(0, Math.min(127, v));
+  try { localStorage.setItem("ceol.accompVol", String(accompVol)); } catch (e) {}
 }
 
 function ceolSetVoice(id) {
@@ -144,10 +179,21 @@ function _ceolFontSettled(ok) {
 })();
 
 function audioParams() {
-  return {
+  var params = {
     program: melodyProgram,
     chordsOff: !chordsOn,
     soundFontUrl: ceolFontBase(),
     soundFontVolumeMultiplier: CEOL_FONT_GAIN,
+    chordvol: accompVol,
+    bassvol: accompVol,
   };
+  // Only when an instrument has actually been chosen. Handing abcjs its own
+  // default back would be harmless, but it would also take away the one case
+  // we want left exactly as it was.
+  var backing = ceolVoice(accompVoice);
+  if (backing) {
+    params.chordprog = backing.program;
+    params.bassprog = backing.program;
+  }
+  return params;
 }

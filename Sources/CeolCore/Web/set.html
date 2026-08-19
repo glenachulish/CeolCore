@@ -1043,14 +1043,24 @@ function applySoundChange(full) {
 // The instrument and the chords now live in the app's ⋯ menu. They are set
 // once and left alone, and on a phone every control kept on the music costs
 // a line of sheet music you could have been reading. The app calls in here.
-function ceolApplySound(voiceId, chords) {
+function ceolApplySound(voiceId, chords, accompId, accompLevel) {
   var voiceChanged = voiceId && voiceId !== melodyVoice;
   var chordsChanged = (typeof chords === "boolean") && chords !== chordsOn;
-  if (!voiceChanged && !chordsChanged) return;
+  // A string, because "" is a real value here -- it means abcjs's own default.
+  // Undefined means "not mentioned", which is how the Mac goes on calling this
+  // with two arguments and changing nothing it does not know about.
+  var accompChanged = (typeof accompId === "string") && accompId !== accompVoice;
+  var levelChanged = (typeof accompLevel === "number") && accompLevel !== accompVol;
+  if (!voiceChanged && !chordsChanged && !accompChanged && !levelChanged) return;
   if (voiceChanged) ceolSetVoice(voiceId);
+  if (accompChanged) ceolSetAccomp(accompId);
+  if (levelChanged) ceolSetAccompVol(accompLevel);
   if (chordsChanged) chordsOn = chords;
-  // A new instrument needs the synth built again; chords only need re-priming.
-  applySoundChange(voiceChanged);
+  // A new instrument needs the synth built again -- the primed synth keeps
+  // playing the samples it already has however many times you re-tune it, and
+  // that is as true of the instrument playing the chords as of the melody.
+  // Chords on/off and the level only need re-priming.
+  applySoundChange(voiceChanged || accompChanged);
 }
 
 // ── ABC helpers (ports of v3 cleaning/body/field/count) ─────────────────────
