@@ -258,12 +258,12 @@ public enum MusicXMLToABC {
     /// A set exported as one file is one `<part>` with no marker saying "new
     /// tune" — MusicXML has no such thing. Two things stand in for it:
     ///   • a rehearsal mark, which is what MuseScore puts at the head of each
-    ///     tune in a set;
-    ///   • a change of metre or of key signature. A jig into a reel is a new
-    ///     tune, not a new part, and a tune does not change its key signature
-    ///     half way through. Key is compared on the signature rather than the
-    ///     mode, so D major into B minor is not read as two tunes: they share
-    ///     the two sharps.
+    ///     tune in a set. Taken at its word.
+    ///   • a change of metre or of key signature **that lands on a structural
+    ///     break**. A jig into a reel is a new tune; so is a change of key
+    ///     signature — but only where the writing agrees that something ended
+    ///     there. See `startsAfresh`: on its own, this scanner's idea of the
+    ///     key signature is not to be trusted.
     ///
     /// **A double or heavy barline used to count too, and it was wrong.**
     /// That is how the end of a *part* is written — a trad tune is two or more
@@ -287,18 +287,35 @@ public enum MusicXMLToABC {
         var boundaries: [Int] = [0]
 
         for index in 1..<max(1, measures.count) {
-            let marked = sectionTitle(measures[index]) != nil
+            // A rehearsal mark is a person writing "new tune here", so it needs
+            // no second opinion.
+            if sectionTitle(measures[index]) != nil {
+                boundaries.append(index)
+                continue
+            }
             let meterChanged = contexts[index].beats != contexts[index - 1].beats
                 || contexts[index].beatType != contexts[index - 1].beatType
-            // A change of key signature. In a set this is all but decisive —
-            // it is what shows up as an inline [K:D] when the same file goes
-            // through other converters, and a tune does not change its key
-            // signature half way through. Compared on the signature itself
-            // rather than the mode, so D major into B minor is not read as two
-            // tunes: they share the two sharps.
+            // Compared on the signature itself rather than the mode, so D major
+            // into B minor is not read as two tunes: they share the two sharps.
             let keyChanged = contexts[index].fifths != contexts[index - 1].fifths
+            guard meterChanged || keyChanged else { continue }
 
-            if marked || meterChanged || keyChanged { boundaries.append(index) }
+            // ...and it has to land somewhere a tune could actually begin.
+            //
+            // This scanner re-reads the key signature on every system, and gets
+            // it wrong. Humours of Lissadell is in B minor from end to end, and
+            // came out as two half-tunes because bar 6 — the middle of the A
+            // part, no barline on either side — was read as one sharp becoming
+            // two. Bars 1 to 5 contain no C of any kind, so from the notes
+            // alone the two signatures are indistinguishable there; the printed
+            // one is two sharps throughout, and C sharp duly appears at bar 15.
+            //
+            // A tune in a set never begins mid-phrase. So an attribute change
+            // is only a join where the writing agrees: a double, heavy or final
+            // barline, or a repeat closing behind it, or one opening in front.
+            if startsAfresh(before: measures[index - 1], at: measures[index]) {
+                boundaries.append(index)
+            }
         }
 
         // A segment with no notes in it is a stray double barline, not a tune.
@@ -323,6 +340,28 @@ public enum MusicXMLToABC {
             }
         }
         return merged
+    }
+
+    /// Whether the writing marks a place a new tune could begin.
+    ///
+    /// Barlines are useless *on their own* for finding tunes — they mark the
+    /// end of every eight-bar part, so splitting on them cuts each tune into
+    /// its strains. They are good for the opposite job: confirming that a
+    /// change of key or metre landed somewhere a tune could start, rather than
+    /// in the middle of a phrase where only a misread could have put it.
+    private static func startsAfresh(before previous: XMLTree, at current: XMLTree) -> Bool {
+        for barline in previous.all("barline") {
+            guard (barline.attributes["location"] ?? "right") == "right" else { continue }
+            if barline.child("repeat")?.attributes["direction"] == "backward" { return true }
+            let style = barline.string("bar-style") ?? ""
+            if style == "light-heavy" || style == "final" || style == "light-light" { return true }
+        }
+        for barline in current.all("barline") {
+            guard (barline.attributes["location"] ?? "right") == "left" else { continue }
+            if barline.child("repeat")?.attributes["direction"] == "forward" { return true }
+            if (barline.string("bar-style") ?? "") == "heavy-light" { return true }
+        }
+        return false
     }
 
     /// The name written over a tune in a set — a rehearsal mark, or a line of
