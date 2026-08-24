@@ -109,6 +109,29 @@ public enum MediaLinks {
             || host.contains("open.spotify.com")
     }
 
+    /// The readable name in an iCloud Drive share link, or nil if it isn't one.
+    ///
+    /// They look like
+    /// `https://www.icloud.com/iclouddrive/006__x…#Above-and-Beyond-Fly-and-Dodger`.
+    /// The path is an opaque token that only Apple's own JavaScript can
+    /// resolve, so there is nothing at that address to hand to a player — which
+    /// is why one of these opens the browser where a YouTube link gets an
+    /// embedded view. The fragment is the file's name with spaces turned into
+    /// hyphens, and it is the only human-readable thing in there.
+    ///
+    /// Here rather than on the Mac because the phone will want it the day it
+    /// grows a links bar of its own; today only `TuneLinksBar` calls it.
+    public static func iCloudDriveName(of url: URL) -> String? {
+        let host = (url.host ?? "").lowercased()
+        guard host == "icloud.com" || host == "www.icloud.com",
+              url.path.lowercased().hasPrefix("/iclouddrive") else { return nil }
+        let raw = url.fragment ?? ""
+        let name = (raw.removingPercentEncoding ?? raw)
+            .replacingOccurrences(of: "-", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? "a file" : name
+    }
+
     /// An address that only ever worked on the machine it was written on.
     ///
     /// The web app wrote its own address into a tune's notes: 11 of this

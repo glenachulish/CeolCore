@@ -470,6 +470,15 @@ document.getElementById("speedKeep").addEventListener("click", function () {
   var quarterBpm = Math.round(written * (beatLength / 0.25) * speedPct / 100);
   if (!isFinite(quarterBpm) || quarterBpm < 20 || quarterBpm > 400) return;
   post("saveTempo", { bpm: quarterBpm, percent: speedPct });
+  // Back to the written tempo, which is now the speed you were playing at.
+  //
+  // This is what the button has always claimed to do, and it was never done:
+  // the app rewrote Q: and re-rendered, but speedPct stayed where it was, so
+  // the warp was applied a second time on top of the tempo it had just been
+  // baked into. Keep at 70% left you playing at 49%, and pressing it twice
+  // compounded. Resetting here also puts the Keep button away, which is the
+  // honest state — you are no longer away from the written tempo.
+  setSpeed(100);
 });
 
 function saveSpeed() {
@@ -2079,12 +2088,48 @@ function renderFitted(containerId, abc, opts) {
 //     lines are only as even as we make them.
 // Together: 17% → 0%, with the average number of staves per tune going from
 // 4.96 to 4.98. That last number is the point — the cure costs no layout.
+function ceolOpensRepeat(e) {
+  return !!e && e.el_type === "bar"
+      && (e.type === "bar_left_repeat" || e.type === "bar_dbl_repeat");
+}
+
+/// One bar's worth of music, in whole notes — the yardstick for "is what
+/// follows this repeat a real bar, or only a pickup?"
+function ceolMeasureLength(tune) {
+  try {
+    var m = tune.getMeterFraction();
+    if (m && m.num && m.den) return m.num / m.den;
+  } catch (e) {}
+  return 1;   // 4/4, the safe guess
+}
+
 function ceolStrandsRepeat(tune) {
   var lines = ((tune && tune.lines) || []).filter(function (l) { return l.staff; });
-  return lines.some(function (line) {
-    var bars = (line.staff[0].voices[0] || []).filter(function (e) { return e.el_type === "bar"; });
-    var last = bars[bars.length - 1];
-    return !!last && (last.type === "bar_left_repeat" || last.type === "bar_dbl_repeat");
+  var measure = ceolMeasureLength(tune);
+  return lines.some(function (line, i) {
+    // Nothing follows the last system, so nothing can be stranded on it.
+    if (i === lines.length - 1) return false;
+    var v = line.staff[0].voices[0] || [];
+    var at = -1;
+    for (var j = 0; j < v.length; j++) if (ceolOpensRepeat(v[j])) at = j;
+    if (at < 0) return false;
+    // How much of the new part came with the repeat.
+    //
+    // The original test asked only whether the repeat was the LAST barline on
+    // the system. That misses the commoner and uglier case: `:: e/ |`, where
+    // abcjs takes the repeat AND the next part's pickup AND the barline after
+    // it, and crams the lot into the right-hand margin. Zeeto the Bubbleman
+    // does it at nearly every width — a new part beginning at the extreme
+    // right of the screen, which is what it looks like too.
+    //
+    // So measure instead: a repeat that opens a part is only tolerable at the
+    // end of a system if a whole bar of that part came with it. Anything less
+    // is a fragment in the margin. Zero — the old test — is the limiting case.
+    var after = 0;
+    for (var k = at + 1; k < v.length; k++) {
+      if (v[k].el_type === "note" && !v[k].rest) after += (v[k].duration || 0);
+    }
+    return after < measure - 1e-6;
   });
 }
 
@@ -2109,15 +2154,19 @@ function ceolEvenBreaks(tune) {
   });
   if (lines.length < 2 || !bars.length) return [];
   var per = Math.max(1, Math.round(bars.length / lines.length));
-  var points = [], run = 0;
+  var points = [], run = 0, last = -1;
   for (var i = 0; i < bars.length - 1; i++) {
     run++;
     if (run < per) continue;
+    // Walk back off a bad break rather than stepping back once and hoping.
+    // Breaking ON an opening repeat leaves the dots in the margin; breaking
+    // one bar AFTER one leaves the repeat and the new part's pickup there
+    // together, which is the same fault with more of it showing.
     var at = i;
-    if (bars[at].type === "bar_left_repeat" || bars[at].type === "bar_dbl_repeat") {
-      if (at > 0) at--; else { run = 0; continue; }
-    }
+    while (at > 0 && (ceolOpensRepeat(bars[at]) || ceolOpensRepeat(bars[at - 1]))) at--;
+    if (at <= 0 || at <= last || ceolOpensRepeat(bars[at])) { run = 0; continue; }
     points.push(bars[at].endChar);
+    last = at;
     run = 0;
   }
   return points;
@@ -2142,13 +2191,24 @@ function ceolCureStrandedRepeat(containerId, abc, opts, base, draw, tune) {
   var staves = ((tune.lines) || []).filter(function (l) { return l.staff; }).length;
   var notes = ceolNoteCount(tune);
 
+  // Prefer a cure that costs no stave at all. Taking the first nudge that
+  // merely clears the repeat can buy the fix with an extra system, and where
+  // the tune carries %%stretchlast that extra system is three notes pulled
+  // across the whole width — which looks worse than the fault being cured.
+  // So: remember the first cure that needs a stave and keep looking; only fall
+  // back to it once every nudge has been tried. One extra draw, not eight.
+  var spare = 0;
   for (var i = 0; i < CEOL_WIDTH_NUDGES.length; i++) {
     draw(Math.round(base * CEOL_WIDTH_NUDGES[i]));
     var t = ceolLastDrawn;
-    if (t && !ceolStrandsRepeat(t)
-        && ((t.lines || []).filter(function (l) { return l.staff; }).length <= staves + 1)) {
-      return;
-    }
+    if (!t || ceolStrandsRepeat(t)) continue;
+    var got = (t.lines || []).filter(function (l) { return l.staff; }).length;
+    if (got <= staves) return;
+    if (got <= staves + 1 && !spare) spare = CEOL_WIDTH_NUDGES[i];
+  }
+  if (spare) {
+    draw(Math.round(base * spare));
+    if (ceolLastDrawn && !ceolStrandsRepeat(ceolLastDrawn)) return;
   }
   // Last resort: our own line breaks, with abcjs's wrapping switched off.
   var points = ceolEvenBreaks(tune);
