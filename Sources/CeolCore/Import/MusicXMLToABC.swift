@@ -256,35 +256,37 @@ public enum MusicXMLToABC {
     /// Where one tune in a set ends and the next begins.
     ///
     /// A set exported as one file is one `<part>` with no marker saying "new
-    /// tune" — MusicXML has no such thing. Three things stand in for it, and
-    /// all three are how a set is actually written out:
-    ///   • a double or final barline that isn't a repeat. A repeat's barline is
-    ///     also `light-heavy`, so the `<repeat>` has to be excluded or every
-    ///     part of every tune becomes its own tune.
+    /// tune" — MusicXML has no such thing. Two things stand in for it:
     ///   • a rehearsal mark, which is what MuseScore puts at the head of each
-    ///     tune in a set.
-    ///   • a change of metre — a jig into a reel is a new tune, not a new part.
+    ///     tune in a set;
+    ///   • a change of metre or of key signature. A jig into a reel is a new
+    ///     tune, not a new part, and a tune does not change its key signature
+    ///     half way through. Key is compared on the signature rather than the
+    ///     mode, so D major into B minor is not read as two tunes: they share
+    ///     the two sharps.
     ///
-    /// Where none of them appear, this returns one segment and behaves exactly
-    /// as it did before.
+    /// **A double or heavy barline used to count too, and it was wrong.**
+    /// That is how the end of a *part* is written — a trad tune is two or more
+    /// eight-bar strains and the scanner marks each one — so the rule cut every
+    /// tune into its own strains. Measured over six real scans: Jug of Brown
+    /// Ale, McKenna's No.1, Lads of Laoise and Chatterin' Magpie each came in
+    /// as two half-tunes, and Humours of Ballyconnel as **four** quarter-tunes.
+    /// It never once found a real join. Even in Archie's set — a genuine set of
+    /// three — the key changes found all three boundaries and the barlines only
+    /// added false ones.
+    ///
+    /// The trade this makes on purpose: a set in one key and one metre, with no
+    /// rehearsal marks, now arrives as a single long tune. That is a fault you
+    /// can *see* and split by hand. A wrong split is a half-tune that looks
+    /// complete, and you only find it when you go to play the part that isn't
+    /// there.
+    ///
+    /// Where none of the signals appear, this returns one segment.
     private static func segments(_ measures: [XMLTree],
                                  contexts: [Context]) -> [Range<Int>] {
         var boundaries: [Int] = [0]
 
         for index in 1..<max(1, measures.count) {
-            let previous = measures[index - 1]
-            let closedOut = previous.all("barline").contains { barline in
-                guard (barline.attributes["location"] ?? "right") == "right" else { return false }
-                guard barline.child("repeat") == nil else { return false }
-                // A double bar that closes a first- or second-time ending is
-                // the end of a *part*, not of a tune. Archie's set is written
-                // that way throughout, and reading those as tune breaks cut a
-                // three-tune set into five — two of them four and nine bars
-                // long, which is not a tune anyone would recognise.
-                guard barline.child("ending") == nil else { return false }
-                let style = barline.string("bar-style") ?? ""
-                return style == "light-heavy" || style == "final" || style == "light-light"
-            }
             let marked = sectionTitle(measures[index]) != nil
             let meterChanged = contexts[index].beats != contexts[index - 1].beats
                 || contexts[index].beatType != contexts[index - 1].beatType
@@ -296,7 +298,7 @@ public enum MusicXMLToABC {
             // tunes: they share the two sharps.
             let keyChanged = contexts[index].fifths != contexts[index - 1].fifths
 
-            if closedOut || marked || meterChanged || keyChanged { boundaries.append(index) }
+            if marked || meterChanged || keyChanged { boundaries.append(index) }
         }
 
         // A segment with no notes in it is a stray double barline, not a tune.
