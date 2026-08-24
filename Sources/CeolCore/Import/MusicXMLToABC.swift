@@ -123,22 +123,109 @@ public enum MusicXMLToABC {
         }
     }
 
+    /// Whether a measure has any real notes in it.
+    private static func sounds(_ measure: XMLTree) -> Bool {
+        measure.all("note").contains { $0.child("rest") == nil && $0.child("grace") == nil }
+    }
+
+    private static func noteCount(_ measure: XMLTree) -> Int {
+        measure.all("note").filter { $0.child("rest") == nil && $0.child("grace") == nil }.count
+    }
+
+    /// The tune, which is not always on the same staff from beginning to end.
+    ///
+    /// Taking the first `<part>` and nothing else is right for a file written
+    /// by a person, and wrong for one written by Sheet Music Scanner. The
+    /// scanner assigns parts by staff *position within a system*, so on a page
+    /// where the tune is harmonised in three staves and the next page carries
+    /// the melody alone, the melody moves from P1 to whichever part the scanner
+    /// was up to. Archie's set does exactly that: P1 is silent for 25 of its 67
+    /// bars — over a third of the set — and those bars came in empty.
+    ///
+    /// So: the first part is still the tune. But across any *run* of bars where
+    /// it has nothing at all, the notes are taken from whichever other staff
+    /// carries the most of them. A run rather than a bar at a time, because
+    /// deciding per bar makes the line hop between staves wherever the harmony
+    /// happens to be busier, which is worse than the fault being cured.
+    ///
+    /// Parts of a different length are ignored rather than indexed into.
+    private static func melodyLine(primary: [XMLTree], others: [[XMLTree]]) -> ([XMLTree], [Int]) {
+        var chosen = primary
+        // Which part each bar came from, so the right divisions can be used.
+        var source = [Int](repeating: 0, count: primary.count)
+        let usable = others.enumerated().filter { $0.element.count == primary.count }
+        guard !usable.isEmpty else { return (chosen, source) }
+
+        var index = 0
+        while index < primary.count {
+            guard !sounds(primary[index]) else { index += 1; continue }
+            var end = index
+            while end < primary.count, !sounds(primary[end]) { end += 1 }
+            var best = -1, bestCount = 0
+            for (offset, measures) in usable {
+                let count = (index..<end).reduce(0) { $0 + noteCount(measures[$1]) }
+                if count > bestCount { bestCount = count; best = offset }
+            }
+            if best >= 0 {
+                for i in index..<end {
+                    chosen[i] = others[best][i]
+                    source[i] = best + 1
+                }
+            }
+            index = end
+        }
+        return (chosen, source)
+    }
+
     private static func build(from root: XMLTree, index: Int) throws -> String {
-        guard let part = root.all("part").first else { throw Failure.noPart }
-        let measures = part.all("measure")
-        guard !measures.isEmpty else { throw Failure.noNotes }
+        let parts = root.all("part")
+        guard let part = parts.first else { throw Failure.noPart }
+        let primary = part.all("measure")
+        guard !primary.isEmpty else { throw Failure.noNotes }
+
+        let allParts = parts.map { $0.all("measure") }
+        let (measures, source) = melodyLine(primary: primary,
+                                            others: Array(allParts.dropFirst()))
 
         // Follow the printed beams where there are any; fall back to the metre.
         let usesBeams = measures.contains { measure in
             measure.all("note").contains { $0.child("beam") != nil }
         }
 
+        // `divisions` is the number of ticks in a quarter note, and this scanner
+        // re-declares it whenever a bar needs a different one — P1 uses 1, 2, 4
+        // and 16 through this file, P2 uses 1, 2, 3, 4 and 12. It is therefore a
+        // property of the *part*, and reading a note from P2 while the running
+        // divisions came from P1 would misread every duration in the bar — a
+        // fault that says nothing and silently rewrites the rhythm. So it is
+        // tracked per part, and looked up by where each bar actually came from.
+        var divisionsInForce: [[Int]] = []
+        for measures in allParts {
+            var running = 1
+            var perMeasure: [Int] = []
+            for measure in measures {
+                if let d = measure.child("attributes")?.string("divisions"),
+                   let value = Int(d), value > 0 { running = value }
+                perMeasure.append(running)
+            }
+            divisionsInForce.append(perMeasure)
+        }
+
         // What's in force at each measure, so a segment can start anywhere.
+        //
+        // Key and metre come from the first part, which is where this scanner
+        // writes them and which every part agrees with; only the divisions
+        // follow the staff the notes were taken from.
         var running = Context()
         var contexts: [Context] = []
-        for measure in measures {
+        for (i, measure) in primary.enumerated() {
             if let attributes = measure.child("attributes") { apply(attributes, to: &running) }
-            contexts.append(running)
+            var here = running
+            let from = source[i]
+            if from < divisionsInForce.count, i < divisionsInForce[from].count {
+                here.divisions = divisionsInForce[from][i]
+            }
+            contexts.append(here)
         }
 
         let baseTitle = titleOf(root)
@@ -189,6 +276,12 @@ public enum MusicXMLToABC {
             let closedOut = previous.all("barline").contains { barline in
                 guard (barline.attributes["location"] ?? "right") == "right" else { return false }
                 guard barline.child("repeat") == nil else { return false }
+                // A double bar that closes a first- or second-time ending is
+                // the end of a *part*, not of a tune. Archie's set is written
+                // that way throughout, and reading those as tune breaks cut a
+                // three-tune set into five — two of them four and nine bars
+                // long, which is not a tune anyone would recognise.
+                guard barline.child("ending") == nil else { return false }
                 let style = barline.string("bar-style") ?? ""
                 return style == "light-heavy" || style == "final" || style == "light-light"
             }
