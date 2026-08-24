@@ -199,8 +199,92 @@ public enum FluteFling {
         return Set(entries.map(\.title).filter { known.contains(TitleMatching.normalise($0)) })
     }
 
+    /// Add these as tunes, fetching the sheet music and the recording onto the
+    /// device as you go.
+    ///
+    /// The link version below leaves you with a tune that needs a signal to show
+    /// you anything — which is the wrong way round for an app whose whole point
+    /// is a session in a hall with no reception. These are small files: a page of
+    /// music is tens of kilobytes and a tune's recording a megabyte or two, so
+    /// the whole catalogue is a few hundred megabytes at the outside and a
+    /// handful of tunes is nothing.
+    ///
+    /// A file that won't come down is not a failure worth stopping for: the tune
+    /// is still made, and what couldn't be fetched is attached as a link, which
+    /// is exactly what the old behaviour was. So a bad connection costs you the
+    /// offline copy and nothing else, and running it again later fills the gap.
+    ///
+    /// `progress` is called on the main actor with (done, total) counted in
+    /// files rather than tunes, because that is what takes the time.
+    @discardableResult
+    @MainActor
+    public static func addDownloading(
+        _ entries: [Entry],
+        in context: ModelContext,
+        progress: ((Int, Int) -> Void)? = nil
+    ) async -> (tunes: Int, files: Int, unfetched: Int) {
+
+        let total = entries.reduce(0) {
+            $0 + ($1.pdf == nil ? 0 : 1) + ($1.mp3 == nil ? 0 : 1)
+        }
+        var done = 0, tunes = 0, files = 0, unfetched = 0
+
+        for entry in entries {
+            let record = Tune(title: entry.title, type: entry.type)
+            record.sourceURL = archive
+            context.insert(record)
+            tunes += 1
+
+            // The PDF is the sheet music and the MP3 is the recording; either
+            // may be missing, and neither is worth a second query about.
+            let wanted: [(URL?, MediaKind, String)] = [
+                (entry.pdf, .pdf, "Sheet music"),
+                (entry.mp3, .audio, "Recording"),
+            ]
+
+            for (source, kind, title) in wanted {
+                guard let source else { continue }
+                let item: MediaItem
+                if let data = await fetch(source), !data.isEmpty,
+                   let name = try? MediaStore.shared.save(data, as: source.lastPathComponent) {
+                    item = MediaItem(kind: kind, title: title, filename: name)
+                    // Kept as well as the file. Nothing reads it while the file
+                    // is there — `MediaLinks` prefers the local copy — but it
+                    // records where the thing came from, and it is what a later
+                    // re-fetch would use.
+                    item.urlString = source.absoluteString
+                    files += 1
+                } else {
+                    item = MediaItem(kind: .link, title: title,
+                                     urlString: source.absoluteString)
+                    unfetched += 1
+                }
+                item.tune = record
+                context.insert(item)
+                done += 1
+                progress?(done, total)
+            }
+        }
+        try? context.save()
+        return (tunes, files, unfetched)
+    }
+
+    /// One file, with the same headers the catalogue needed. Nil for anything
+    /// that isn't a clean 200 — the caller falls back to a link.
+    private static func fetch(_ url: URL) async -> Data? {
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 60
+        request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                         + "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+                         forHTTPHeaderField: "User-Agent")
+        request.setValue(archive, forHTTPHeaderField: "Referer")
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
+        return data
+    }
+
     /// Add these as tunes, each carrying its sheet music and recording as
-    /// attachments.
+    /// links.
     ///
     /// No ABC: FlutefFling publishes PDFs, not notation, and inventing an empty
     /// ABC body would put 400 blank staves in the library. A tune with a PDF
