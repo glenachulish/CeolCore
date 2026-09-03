@@ -157,6 +157,116 @@ public enum VersionTools {
         }
     }
 
+    /// Make several settings into one tune.
+    ///
+    /// Lifted out of the Tunes list so the collection screen can offer the same
+    /// action, and so there is one description of what grouping means rather
+    /// than two that drift.
+    ///
+    /// Each setting keeps its own name as an alias, so searching for any of the
+    /// spellings still finds the tune. The first in filing order becomes the
+    /// default — the one the lists show and the one sets play — and that is a
+    /// guess the Versions panel can overrule in a tap.
+    @MainActor
+    @discardableResult
+    public static func group(_ tunes: [Tune], named name: String,
+                             in context: ModelContext) -> Bool {
+        let ordered = tunes.sorted { TitleDisplay.precedes($0.title, $1.title) }
+        guard ordered.count > 1 else { return false }
+
+        // Reuse an existing group id when one of the chosen settings already
+        // belongs to a group, so this reads as "these are that tune too" rather
+        // than making a third group alongside the two there already.
+        let groupID = ordered.compactMap(\.groupID).first ?? UUID()
+        let newName = name.trimmingCharacters(in: .whitespaces)
+
+        // Which groups these settings are leaving, read before anything moves.
+        let leaving = Set(ordered.compactMap(\.groupID))
+
+        for (index, tune) in ordered.enumerated() {
+            tune.groupID = groupID
+            tune.isDefaultVersion = (index == 0)
+            if !newName.isEmpty, tune.title != newName {
+                if !tune.aliases.contains(tune.title) { tune.aliases.append(tune.title) }
+                tune.title = newName
+            }
+            if tune.versionLabel.isEmpty && index > 0 {
+                tune.versionLabel = tune.displayKey.isEmpty
+                    ? "Setting \(index + 1)"
+                    : "Setting \(index + 1) · \(tune.displayKey)"
+            }
+        }
+        pointSetsAtDefault(of: ordered[0], in: ordered)
+        try? context.save()
+
+        // Taking a setting out of another group can leave *that* group with no
+        // default, and a group with no default hides every one of its settings
+        // — so grouping two tunes could silently make a third vanish. One of
+        // the ways 75 of them went missing.
+        VersionRepair.heal(groups: leaving.subtracting([groupID]), in: context)
+        return true
+    }
+
+    /// The setting of this tune that the rest of the app shows.
+    ///
+    /// The Tunes list shows one row per tune: grouped settings collapse to
+    /// whichever is the default. Anywhere else that lists tunes has to agree,
+    /// or the same library is two different sizes depending on where you look
+    /// at it — which is exactly what a collection did, listing "Bunny's Hat",
+    /// "Bunny's Hat (edited)" and "Bunny's Hat in A" as three tunes.
+    ///
+    /// Not the same as filtering out non-defaults. A collection can hold a
+    /// setting that is *not* the default — filed when it was, or filed on
+    /// purpose — and dropping those rows would make tunes disappear from
+    /// collections they are genuinely in. So this substitutes rather than
+    /// removes: you get the default in its place, and the caller de-duplicates.
+    ///
+    /// Costs a fetch only for a tune that is both grouped and not the default,
+    /// which is the rare case; everything else answers immediately.
+    public static func shown(_ tune: Tune, in context: ModelContext) -> Tune {
+        guard tune.groupID != nil, !tune.isDefaultVersion else { return tune }
+        return versions(of: tune, in: context).first(where: \.isDefaultVersion) ?? tune
+    }
+
+    /// Whether a list of tunes "contains" one, in the same sense `shown`
+    /// displays it.
+    ///
+    /// A collection can file a non-default setting, and `shown` then shows its
+    /// default sibling in that row instead — so a check against the raw list
+    /// using plain identity can miss a tune that is genuinely filed there, just
+    /// under a different setting. This answers the question `shown`'s callers
+    /// actually need: does `tunes` hold this tune, or another setting from the
+    /// same version group?
+    ///
+    /// No fetch: two records are in the same group exactly when their
+    /// `groupID`s match, which is already in hand on both sides.
+    public static func collection(_ tunes: [Tune], contains tune: Tune) -> Bool {
+        tunes.contains {
+            $0 === tune || (tune.groupID != nil && $0.groupID == tune.groupID)
+        }
+    }
+
+    /// How many tunes a list of records actually amounts to.
+    ///
+    /// The companion to `shown`. A badge reading 12 above a list of 10 rows is
+    /// its own small bug, so anywhere that collapses version groups for display
+    /// has to count them the same way.
+    ///
+    /// No fetch and no context: two records collapse into one exactly when they
+    /// share a `groupID`, and that is already in hand.
+    public static func shownCount(of tunes: [Tune]) -> Int {
+        var groups: Set<UUID> = []
+        var count = 0
+        for tune in tunes {
+            if let group = tune.groupID {
+                if groups.insert(group).inserted { count += 1 }
+            } else {
+                count += 1
+            }
+        }
+        return count
+    }
+
     /// Everything attached anywhere in a tune's version group.
     ///
     /// A recording of you playing Calliope House is a recording of *the tune*,

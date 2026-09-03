@@ -67,10 +67,55 @@ public enum DuplicateFinder {
         public let similarity: Double
     }
 
+    /// One tune, sitting in two version groups that don't know about each other.
+    public struct Split: Identifiable {
+        public let id: String
+        public let title: String
+        /// One entry per version group, each with its default setting first.
+        public let groups: [[Tune]]
+        /// Every record across all of them — what grouping would act on.
+        public var all: [Tune] { groups.flatMap { $0 } }
+    }
+
     /// Tunes already grouped as versions are not candidates — dealing with a
     /// group is what takes it off this list.
     private static func candidates(_ tunes: [Tune]) -> [Tune] {
         tunes.filter { $0.groupID == nil && !$0.title.isEmpty }
+    }
+
+    /// The same tune in more than one version group.
+    ///
+    /// This is the blind spot that let 67 tunes sit doubled in a tidied
+    /// library. `candidates` above excludes anything already grouped, on the
+    /// reasoning that dealing with a group is what takes it off the list — true
+    /// right up until two libraries were merged, each with its own grouping, and
+    /// the result was pairs of groups that are the same tune. Neither half was
+    /// a candidate, so neither was ever offered.
+    ///
+    /// Note this looks at *grouped* tunes only, and matches on the same
+    /// normalised title the exact-duplicate pass uses — so "Above And Beyond"
+    /// and "Above-and-Beyond" are found, and a group is listed once however
+    /// many of its settings carry the title.
+    public static func splits(in tunes: [Tune]) -> [Split] {
+        var byTitle: [String: [UUID: [Tune]]] = [:]
+        for tune in tunes {
+            guard let id = tune.groupID, !tune.title.isEmpty else { continue }
+            byTitle[normalisedTitle(tune.title), default: [:]][id, default: []].append(tune)
+        }
+        return byTitle.compactMap { key, groups -> Split? in
+            guard groups.count > 1 else { return nil }
+            let ordered = groups.values
+                .map { $0.sorted { a, b in
+                    if a.isDefaultVersion != b.isDefaultVersion { return a.isDefaultVersion }
+                    return TitleDisplay.precedes(a.title, b.title)
+                } }
+                .sorted { TitleDisplay.precedes($0[0].title, $1[0].title) }
+            // The name to show: whichever group's default is spelled fullest.
+            let name = ordered.compactMap(\.first).map(\.title)
+                .sorted { $0.count > $1.count }.first ?? key
+            return Split(id: key, title: name, groups: ordered)
+        }
+        .sorted { TitleDisplay.precedes($0.title, $1.title) }
     }
 
     public static func exactGroups(in tunes: [Tune]) -> [Group] {
@@ -132,8 +177,15 @@ public enum DuplicateFinder {
     /// real notation — becomes the one the library lists and the sets play.
     /// That is the whole reason this is safe to press.
     @discardableResult
+    @MainActor
     public static func group(_ tunes: [Tune], in context: ModelContext) -> Bool {
         guard tunes.count > 1 else { return false }
+
+        // Which groups these settings are leaving, read before anything moves.
+        // A group that loses its default keeps every remaining setting hidden —
+        // see VersionRepair.heal, which is the whole reason this line exists.
+        let leaving = Set(tunes.compactMap(\.groupID))
+
         let groupID = UUID()
         let chosen = tunes.first { !$0.abc.trimmingCharacters(in: .whitespaces).isEmpty } ?? tunes[0]
         for (i, tune) in tunes.enumerated() {
@@ -146,6 +198,8 @@ public enum DuplicateFinder {
         // Any set using a non-default version now points at the default.
         VersionTools.pointSetsAtDefault(of: chosen, in: tunes)
         try? context.save()
+
+        VersionRepair.heal(groups: leaving.subtracting([groupID]), in: context)
         return true
     }
 }
