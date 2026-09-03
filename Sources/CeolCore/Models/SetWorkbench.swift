@@ -104,8 +104,8 @@ public struct SetWorkbench {
             }
             if starts.count >= limit { break }
         }
-        let ordered = starts.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
-            + contains.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+        let ordered = starts.sorted { TitleDisplay.precedes($0.title, $1.title) }
+            + contains.sorted { TitleDisplay.precedes($0.title, $1.title) }
         return Array(ordered.prefix(limit))
     }
 

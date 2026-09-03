@@ -1,0 +1,179 @@
+{
+  "ceol": 1,
+  "type": "library",
+  "exported_by": "Fonn starter library",
+  "exported_at": "2026-09-02",
+  "tunes": [
+    {
+      "id": 1,
+      "title": "The Kesh Jig",
+      "type": "jig",
+      "key": "G major",
+      "mode": "",
+      "abc": "X:1\nT:The Kesh Jig\nR:jig\nM:6/8\nL:1/8\nQ:1/4=120\nK:Gmaj\n|:G3 GAB|A3 ABd|edd gdd|edB dBA|\nG3 GAB|A3 ABd|edd gdB|AGF G3:|\n|:B2B dBd|ege dBA|B2B dBG|ABA AGA|\nB2B dBd|ege dBd|gfg aga|bgf g3:|\n",
+      "notes": "One of the best-known Irish jigs, printed in O'Neill's Music of Ireland (1903). A good first tune: it sits neatly under the fingers on a D flute or whistle.",
+      "composer": "",
+      "transcribed_by": "",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "aliases": [
+        "The Kesh"
+      ],
+      "parent_id": null,
+      "transpose": 0,
+      "version_label": "",
+      "source_url": "",
+      "is_default": 1
+    },
+    {
+      "id": 2,
+      "title": "Out on the Ocean",
+      "type": "jig",
+      "key": "G major",
+      "mode": "",
+      "abc": "X:1\nT:Out on the Ocean\nR:jig\nM:6/8\nL:1/8\nQ:1/4=120\nK:Gmaj\n|:BGG dGG|BGB dBd|ege dBA|BGB AGA|\nBGG dGG|BGB dBd|ege dBA|BGF G3:|\n|:B2d g2a|bgb aga|bgb age|dBG ABA|\nB2d g2a|bgb age|dBG ABA|BGF G3:|\n",
+      "notes": "An Irish jig, also in O'Neill's. Pairs naturally with The Kesh — same key, same lift — which is why the two are set together here.",
+      "composer": "",
+      "transcribed_by": "",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "aliases": [],
+      "parent_id": null,
+      "transpose": 0,
+      "version_label": "",
+      "source_url": "",
+      "is_default": 1
+    },
+    {
+      "id": 3,
+      "title": "The Athole Highlanders",
+      "type": "jig",
+      "key": "A mixolydian",
+      "mode": "mixolydian",
+      "abc": "X:1\nT:The Athole Highlanders\nR:jig\nM:6/8\nL:1/8\nQ:1/4=120\nK:Amix\n|:A2B cBA|cBA cde|f2e edB|dBG GBd|\nA2B cBA|cBA cde|f2e edB|cAA A3:|\n|:a2a agf|e2e edB|d2d dBG|GBd gfe|\na2a agf|e2e edB|dBG GBd|cAA A3:|\n",
+      "notes": "A Perthshire jig, and one of the great Scottish marching tunes. Found in the 19th-century collections; Kerr's Merry Melodies has it.",
+      "composer": "",
+      "transcribed_by": "",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "aliases": [
+        "The Atholl Highlanders"
+      ],
+      "parent_id": null,
+      "transpose": 0,
+      "version_label": "",
+      "source_url": "",
+      "is_default": 1
+    },
+    {
+      "id": 4,
+      "title": "Miss McLeod's Reel",
+      "type": "reel",
+      "key": "G major",
+      "mode": "",
+      "abc": "X:1\nT:Miss McLeod's Reel\nR:reel\nM:4/4\nL:1/8\nQ:1/2=104\nK:Gmaj\n|:BGBd gdBd|cAce aecA|BGBd gdBd|egdB A2GA|\nBGBd gdBd|cAce aecA|BGBd gdBd|egdB G2GA:|\n|:g2gf gdBd|c2cB cAce|g2gf gdBd|egdB A2GA|\ng2gf gdBd|c2cB cAce|BGBd gdBd|egdB G2GA:|\n",
+      "notes": "Known on both sides of the water — Mrs McLeod of Raasay in Scotland, Miss McLeod's in Ireland. It has been in print since the early 1800s.",
+      "composer": "",
+      "transcribed_by": "",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "aliases": [
+        "Mrs McLeod of Raasay",
+        "Miss McLeod's"
+      ],
+      "parent_id": null,
+      "transpose": 0,
+      "version_label": "",
+      "source_url": "",
+      "is_default": 1
+    },
+    {
+      "id": 5,
+      "title": "The Deil Amang the Tailors",
+      "type": "reel",
+      "key": "G major",
+      "mode": "",
+      "abc": "X:1\nT:The Deil Amang the Tailors\nR:reel\nM:4/4\nL:1/8\nQ:1/2=104\nK:Gmaj\n|:G2BG dGBG|G2BG AcBA|G2BG dGBd|edcA BG G2:|\n|:g2dg bgdg|g2dg agfe|g2dg bgdB|edcA BG G2:|\n",
+      "notes": "A Scottish reel, and a standard of the ceilidh band — the Devil among the tailors. In Kerr's and in the Skye Collection.",
+      "composer": "",
+      "transcribed_by": "",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "aliases": [
+        "The Devil Among the Tailors"
+      ],
+      "parent_id": null,
+      "transpose": 0,
+      "version_label": "",
+      "source_url": "",
+      "is_default": 1
+    },
+    {
+      "id": 6,
+      "title": "The Maid Behind the Bar",
+      "type": "reel",
+      "key": "D major",
+      "mode": "",
+      "abc": "X:1\nT:The Maid Behind the Bar\nR:reel\nM:4/4\nL:1/8\nQ:1/2=104\nK:Dmaj\n|:d2fd Adfd|ADFA BAFA|d2fd Adfa|gfeg fd d2:|\n|:afdf a2fa|bfaf gfeg|afdf a2fg|afeg fd d2:|\n",
+      "notes": "An Irish reel in D, another of O'Neill's. Sits well on the flute and is played almost everywhere.",
+      "composer": "",
+      "transcribed_by": "",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "aliases": [
+        "The Maid Behind the Bar"
+      ],
+      "parent_id": null,
+      "transpose": 0,
+      "version_label": "",
+      "source_url": "",
+      "is_default": 1
+    }
+  ],
+  "sets": [
+    {
+      "name": "The Kesh / Out on the Ocean",
+      "notes": "Two jigs in G that sit together. Press play to hear the join — that is what the set player is for.",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "entries": [
+        {
+          "tune_id": 1,
+          "position": 0,
+          "repeats": 2,
+          "key_override": ""
+        },
+        {
+          "tune_id": 2,
+          "position": 1,
+          "repeats": 2,
+          "key_override": ""
+        }
+      ]
+    }
+  ],
+  "collections": [
+    {
+      "name": "Starter tunes",
+      "description": "Six traditional tunes to start with — three Scottish, three Irish, all long out of copyright. Delete this collection and its tunes whenever you like; your own library is the point.",
+      "rating": 0,
+      "on_hitlist": 0,
+      "is_favourite": 0,
+      "tune_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    }
+  ]
+}

@@ -82,7 +82,7 @@ public enum DuplicateFinder {
             guard group.count > 1 else { return nil }
             return Group(id: key, title: group[0].title, tunes: group)
         }
-        .sorted { $0.title < $1.title }
+        .sorted { TitleDisplay.precedes($0.title, $1.title) }
     }
 
     /// A word-bucket scan rather than comparing every pair against every other.

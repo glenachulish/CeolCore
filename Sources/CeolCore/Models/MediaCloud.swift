@@ -218,4 +218,68 @@ public enum MediaCloud {
     public static func awaiting(_ filenames: [String]) -> Int {
         filenames.filter { !$0.isEmpty && !isDownloaded($0) }.count
     }
+
+    // MARK: - Keeping the whole library on this device
+
+    /// Fetching on demand is the right default and the wrong one for this app.
+    ///
+    /// Right, because nobody should be made to carry 500 MB of somebody else's
+    /// recordings on a phone. Wrong, because the places people play traditional
+    /// music are the places with no signal — which is the sentence the support
+    /// page opens with — and a recording that downloads when you tap it is a
+    /// recording you cannot hear in a hall in Skye.
+    ///
+    /// So it is a choice, and this is where it is remembered.
+    private static let keepLocalKey = "ceol.media.keepOnDevice"
+
+    /// Should this device hold every attachment rather than fetch on demand?
+    ///
+    /// Per device, deliberately: a Mac with a terabyte and a phone with 64 GB
+    /// should be allowed to disagree, and the setting lives in UserDefaults
+    /// rather than in the synced store for exactly that reason.
+    public static var keepsEverythingOnDevice: Bool {
+        get { UserDefaults.standard.bool(forKey: keepLocalKey) }
+        set { UserDefaults.standard.set(newValue, forKey: keepLocalKey) }
+    }
+
+    /// Ask iCloud for everything that isn't here yet, and return how many were
+    /// asked for.
+    ///
+    /// It does **not** wait. `startDownloadingUbiquitousItem` is a request, not
+    /// a transfer: it returns at once and the daemon does the work in its own
+    /// time, in the background, resuming across launches. Awaiting 675 files
+    /// one after another would take an afternoon and block on the slowest;
+    /// asking for all of them and then reporting progress with `awaiting(_:)`
+    /// is both faster and honest about what is actually happening.
+    ///
+    /// **What this cannot do.** There is no public API to pin a downloaded
+    /// iCloud file so the system will not evict it when storage runs short. So
+    /// this is "fetch everything, and keep asking", not a guarantee. Calling it
+    /// again at launch re-fetches anything that has been evicted since, which
+    /// in practice is what keeping a library local amounts to.
+    @discardableResult
+    public static func requestEverything(_ filenames: [String]) -> Int {
+        var asked = 0
+        for name in filenames where !name.isEmpty {
+            guard !isDownloaded(name) else { continue }
+            let url = MediaStore.shared.url(for: name)
+            do {
+                try FileManager.default.startDownloadingUbiquitousItem(at: url)
+                asked += 1
+            } catch {
+                // A file the database names and iCloud has never heard of —
+                // an attachment deleted on another device, most likely. Not
+                // worth failing the whole sweep over.
+                continue
+            }
+        }
+        return asked
+    }
+
+    /// The two numbers a Settings line needs: how many attachments are on this
+    /// device, and how many there are altogether.
+    public static func localCount(_ filenames: [String]) -> (here: Int, total: Int) {
+        let real = filenames.filter { !$0.isEmpty }
+        return (real.filter(isDownloaded).count, real.count)
+    }
 }

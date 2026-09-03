@@ -62,6 +62,11 @@ let package = Package(
                 // that is not one of the bundle-reserved ones — Resources,
                 // Contents, Frameworks, PlugIns, Versions — will do.
                 .copy("Web"),
+
+                // The six starter tunes, as the same .ceol.json the importer
+                // already reads — so seeding a new install is the existing,
+                // tested import path rather than a second way of making tunes.
+                .copy("Seed"),
             ]
         ),
         .testTarget(
