@@ -327,3 +327,60 @@ function ceolTidyRepeats(abc) {
   // Any run of whitespace or newlines between them, but nothing else.
   return abc.replace(/:\|\s*\|:/g, "::");
 }
+
+/// Shared machinery behind ceolTidyRepeatsMapped and stripDisplayHeadersMapped
+/// (abc.html): build the transformed text the same way `source.replace(re,
+/// ...)` would, but also a `mapBack(offset)` that turns an offset into that
+/// text back into the corresponding offset in `source`.
+///
+/// Needed because abcjs's click and bar offsets are always relative to
+/// whatever string was actually handed to ABCJS.renderAbc — and by the time a
+/// tune reaches the page, that is neither the ABC the tune was saved with
+/// (ceolTidyRepeats already folded ":| |:" into "::") nor even that
+/// (stripDisplayHeaders already took the header lines back out). Undoing both,
+/// in the order they were applied, is the only way a click on the sheet music
+/// can land back on the right character of what's actually stored.
+///
+/// An offset that lands INSIDE a replaced span — the "::" that stood in for
+/// ":| |:", say — has no exact original counterpart, so it snaps to where
+/// that span began in `source`.
+function ceolBuildOffsetMap(source, re, replacement) {
+  var text = "";
+  var ranges = []; // {newStart, newEnd, origStart, origEnd}, in order
+  var last = 0;
+  var m;
+  while ((m = re.exec(source))) {
+    var origStart = m.index, origEnd = m.index + m[0].length;
+    text += source.slice(last, origStart);
+    var newStart = text.length;
+    text += replacement(m[0]);
+    ranges.push({ newStart: newStart, newEnd: text.length, origStart: origStart, origEnd: origEnd });
+    last = origEnd;
+    // A pattern that can match zero characters would otherwise spin here
+    // forever. Neither regex this feeds ever does, but the guard is cheap.
+    if (m[0].length === 0) re.lastIndex++;
+  }
+  text += source.slice(last);
+
+  function mapBack(n) {
+    if (typeof n !== "number") return n;
+    var delta = 0;
+    for (var i = 0; i < ranges.length; i++) {
+      var r = ranges[i];
+      if (n <= r.newStart) return n + delta;
+      if (n <= r.newEnd) return r.origStart;
+      delta += (r.origEnd - r.origStart) - (r.newEnd - r.newStart);
+    }
+    return n + delta;
+  }
+
+  return { text: text, mapBack: mapBack };
+}
+
+/// ceolTidyRepeats, but returning the offset map alongside the text so a
+/// click reported against the tidied string can be traced back to the ABC as
+/// the tune actually stores it.
+function ceolTidyRepeatsMapped(abc) {
+  if (!abc) return { text: abc, mapBack: function (n) { return n; } };
+  return ceolBuildOffsetMap(abc, /:\|\s*\|:/g, function () { return "::"; });
+}

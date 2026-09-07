@@ -218,6 +218,12 @@ var currentABC = "";
 var currentTranspose = 0;
 var playbackEnabled = true;
 
+// Click-to-select in the ABC editor. See ceolElementClicked and
+// ceolSetEditMode below, and ceolBuildOffsetMap in abctools.js.
+var ceolEditMode = false;
+var ceolTidyMapBack = function (n) { return n; };
+var ceolStripMapBack = function (n) { return n; };
+
 var hiddenToVis = new Map();
 var lastEls = [];
 
@@ -238,6 +244,48 @@ function measuresPerLine() { return SIZE_MEASURES[sizeStep - 1] || 4; }
 // gets the notes, since the app shows the name above the music already.
 function stripDisplayHeaders(abc) {
   return abc.replace(/^(T|C|S|Z|N|O|B|D|F|W|H|R):[^\n]*\n?/gm, "");
+}
+
+/// stripDisplayHeaders, but returning the offset map alongside the text —
+/// the editor-only twin of ceolTidyRepeatsMapped in abctools.js, for the same
+/// reason. See ceolElementClicked.
+function stripDisplayHeadersMapped(abc) {
+  if (!abc) return { text: abc, mapBack: function (n) { return n; } };
+  return ceolBuildOffsetMap(abc, /^(T|C|S|Z|N|O|B|D|F|W|H|R):[^\n]*\n?/gm, function () { return ""; });
+}
+
+// abcjs's own click handling on the sheet music — a note, rest, bar or lyric
+// clicked while ceolEditMode is on reports back which stretch of the ORIGINAL
+// stored ABC it came from, so the editor can select it there. Off everywhere
+// else: normal viewing, sets and practice mode never turn edit mode on, so
+// selectTypes stays false below and abcjs never calls this at all — the
+// ceolEditMode check is a second guard, not the only one.
+//
+// abcelem.startChar/endChar are UTF-16 offsets into whatever string was
+// actually handed to ABCJS.renderAbc for this draw: the tidied, header-
+// stripped text renderVisible() draws, not the ABC the tune is stored as.
+// ceolStripMapBack and ceolTidyMapBack undo those two transforms in the order
+// they were applied, landing back on an offset into the real thing.
+function ceolElementClicked(abcelem) {
+  if (!ceolEditMode) return;
+  if (!abcelem || typeof abcelem.startChar !== "number" || typeof abcelem.endChar !== "number") return;
+  var start = ceolTidyMapBack(ceolStripMapBack(abcelem.startChar));
+  var end = ceolTidyMapBack(ceolStripMapBack(abcelem.endChar));
+  try {
+    window.webkit.messageHandlers.elementSelected.postMessage({ start: start, end: end });
+  } catch (e) {}
+}
+
+/// Turns note-click selection on or off. Only the ABC editor calls this — see
+/// MacABCSheetView's `editable` — so every other screen sharing this page
+/// keeps behaving exactly as it did before this existed. Re-renders at once
+/// so flipping it after the first draw takes effect without waiting for the
+/// tune to change.
+function ceolSetEditMode(on) {
+  var next = !!on;
+  if (next === ceolEditMode) return;
+  ceolEditMode = next;
+  if (currentABC) renderVisible();
 }
 
 // Vertical spacing, in UNSCALED units — which is the whole problem: abcjs
@@ -2249,11 +2297,29 @@ function renderVisible() {
   // notation sizes abcjs was giving a third of the screen to a title you can
   // read at the top anyway. The hidden render keeps them, so the audio and the
   // note ordering are untouched.
-  renderFitted("paper", printMode ? currentABC : stripDisplayHeaders(currentABC), {
+  //
+  // In print mode nothing is stripped, so the map back to the original ABC is
+  // just the identity — there is nothing here for ceolElementClicked to undo.
+  var toDraw;
+  if (printMode) {
+    toDraw = currentABC;
+    ceolStripMapBack = function (n) { return n; };
+  } else {
+    var ceolStripped = stripDisplayHeadersMapped(currentABC);
+    toDraw = ceolStripped.text;
+    ceolStripMapBack = ceolStripped.mapBack;
+  }
+  renderFitted("paper", toDraw, {
     scale: printMode ? 1.0 : sizeScale(),
     wrap: wrapOptions(currentABC),
     add_classes: true,
-    selectTypes: false,
+    // Only the ABC editor turns edit mode on. Everywhere else this stays
+    // false exactly as it always has, so clickListener — needed there for the
+    // editor's click-to-select — never actually fires: abcjs's own canSelect
+    // check refuses every element while selectTypes is false, whatever
+    // listener is registered.
+    selectTypes: ceolEditMode ? true : false,
+    clickListener: ceolElementClicked,
     visualTranspose: currentTranspose,
     // Fill the last line rather than leaving it hanging.
     stretchlast: true,
@@ -2399,8 +2465,12 @@ var lastScrolledState = false;
 function renderABC(opts) {
   // Tidy ":| |:" into the single "::" barline before anything renders,
   // so the hidden and visible engravings agree. Display only — the
-  // stored tune is untouched. See ceolTidyRepeats in abctools.js.
-  currentABC = ceolTidyRepeats(opts.abc || "");
+  // stored tune is untouched. See ceolTidyRepeatsMapped in abctools.js.
+  // The map lets a click on the rendered notation find its way back to the
+  // character of opts.abc it actually came from — see ceolElementClicked.
+  var ceolTidied = ceolTidyRepeatsMapped(opts.abc || "");
+  currentABC = ceolTidied.text;
+  ceolTidyMapBack = ceolTidied.mapBack;
   currentTranspose = opts.transpose || 0;
   syncTransposeUI();
   playbackEnabled = !!opts.playback;
