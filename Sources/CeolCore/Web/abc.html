@@ -395,6 +395,11 @@ function ceolSetEditMode(on) {
   ceolEditMode = next;
   ceolSelectAnchor = null;
   ceolApplySheetHighlight(-1, -1);
+  // A loop chosen before the editor was opened would otherwise keep its
+  // shading and its panel over the music for as long as you edited.
+  // Safe with playback off: syncSynthSource returns at once when there is
+  // no synth, which in the editor there never is.
+  if (next) clearBarSel();
   if (currentABC) renderVisible();
 }
 
@@ -1621,6 +1626,13 @@ function barBBox(bar) {
 }
 
 function drawTapTargets() {
+  // Not in the ABC editor. These are transparent rectangles laid over each
+  // bar to make it an easy tap target for choosing a practice loop — and
+  // because they sit ON TOP of the notes and a zero fill-opacity is still a
+  // hit target, they also swallow clicks aimed at a notehead. That is
+  // exactly the wrong trade in the editor, where the whole point of a click
+  // is which NOTE it landed on, and where there is no playback to loop.
+  if (ceolEditMode) return;
   barMap.forEach(function (bar) {
     if (bar.wrapper.querySelector('rect[data-ceol-tap="1"][data-bar-m="' + bar.m + '"]')) return;
     var box = barBBox(bar);
@@ -1829,6 +1841,12 @@ function clearBarSel() {
 // Tap a bar: first tap sets the start AND starts playing from there (Pi
 // behaviour); second tap sets the end and turns looping on.
 document.getElementById("paper").addEventListener("click", function (e) {
+  // Choosing a passage to loop and choosing notes to edit are two different
+  // intentions, and this listener is not gated by anything abcjs does — so
+  // without this a click in the editor did BOTH, moving the practice loop
+  // and popping the Looping panel open on top of the music every time you
+  // picked a note.
+  if (ceolEditMode) return;
   if (!barMap.length) { buildBarMap(); drawTapTargets(); }
   var paper = document.getElementById("paper");
   var el = e.target, measure = null;
