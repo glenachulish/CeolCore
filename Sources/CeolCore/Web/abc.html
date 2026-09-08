@@ -108,6 +108,13 @@
     fill: #e67e22 !important; stroke: #e67e22 !important;
   }
   .ceol-sel { fill: #c9a227; pointer-events: none; }
+  /* ABC editor's click/text-selection block highlight — deliberately a
+     different colour from .abc-playing (orange, the playback cursor) so the
+     two are never ambiguous when the tune is also sounding. */
+  .abc-editsel path, .abc-editsel rect, .abc-editsel ellipse,
+  path.abc-editsel, rect.abc-editsel, ellipse.abc-editsel {
+    fill: #2f6fed !important; stroke: #2f6fed !important;
+  }
 
   /* Landscape (music-stand) mode: give the screen to the music. The player
      transport and loop controls stay; decorative chrome steps aside. */
@@ -224,8 +231,42 @@ var ceolEditMode = false;
 var ceolTidyMapBack = function (n) { return n; };
 var ceolStripMapBack = function (n) { return n; };
 
+// Block selection, both directions — see rebuildMaps() (builds this),
+// ceolElementClicked (sheet -> text) and ceolHighlightRange (text -> sheet).
+//
+// ceolSelectableNotes is every note/rest in the VISIBLE render, in the same
+// sequential order abcjs drew them, each carrying its ORIGINAL-ABC char
+// range (already unwound through ceolStripMapBack/ceolTidyMapBack, the same
+// two transforms ceolElementClicked always had to undo) so both directions
+// compare offsets in the one coordinate space the app already speaks:
+// offsets into the tune's stored ABC.
+//
+// ceolSelectableIndex is the same information keyed the other way — from
+// the abcelem object abcjs's clickListener hands back, to that element's
+// position in ceolSelectableNotes — since object identity is stable within
+// one render and is a far more reliable way to find "which note was that"
+// than re-deriving it from char offsets, which can collide (a repeated
+// note has the same text).
+var ceolSelectableNotes = [];
+var ceolSelectableIndex = new Map();
+// The anchor note of the current block selection (an index into
+// ceolSelectableNotes), so a shift-click extends from where the selection
+// started rather than from wherever was clicked last.
+var ceolSelectAnchor = null;
+// Set from a plain `mousedown` on #paper, captured ahead of abcjs's own
+// click handling — abcjs's clickListener does not reliably pass the
+// triggering DOM event through, but the browser's native event does, and
+// #paper itself is never replaced across re-renders (only its children
+// are), so one listener registered once below covers every future render.
+var ceolShiftHeld = false;
+
 var hiddenToVis = new Map();
 var lastEls = [];
+
+(function () {
+  var p = document.getElementById("paper");
+  if (p) p.addEventListener("mousedown", function (e) { ceolShiftHeld = !!e.shiftKey; }, true);
+})();
 
 // Notation size: 4 steps combining a real scale factor with bars-per-line,
 // so A−/A+ visibly resize the notation rather than just re-wrapping it.
@@ -254,6 +295,17 @@ function stripDisplayHeadersMapped(abc) {
   return ceolBuildOffsetMap(abc, /^(T|C|S|Z|N|O|B|D|F|W|H|R):[^\n]*\n?/gm, function () { return ""; });
 }
 
+// Paint the block from ceolSelectableNotes[lo..hi] inclusive (or nothing, if
+// lo is -1) as the current edit selection, on the SHEET side. The text side
+// is the app's own TextEditor selection, driven by whatever posts on the
+// elementSelected channel — this function only ever touches the SVG.
+function ceolApplySheetHighlight(lo, hi) {
+  for (var i = 0; i < ceolSelectableNotes.length; i++) {
+    var on = lo !== -1 && i >= lo && i <= hi;
+    ceolSelectableNotes[i].el.classList.toggle("abc-editsel", on);
+  }
+}
+
 // abcjs's own click handling on the sheet music — a note, rest, bar or lyric
 // clicked while ceolEditMode is on reports back which stretch of the ORIGINAL
 // stored ABC it came from, so the editor can select it there. Off everywhere
@@ -261,19 +313,75 @@ function stripDisplayHeadersMapped(abc) {
 // selectTypes stays false below and abcjs never calls this at all — the
 // ceolEditMode check is a second guard, not the only one.
 //
+// A plain click selects just the one note clicked, same as before. A
+// shift-click EXTENDS the selection from wherever it last started (the
+// anchor) through to the note just clicked — a whole block of notes, not
+// one at a time — matching how text selection already works in the ABC
+// pane itself. ceolShiftHeld comes from #paper's own mousedown listener
+// above; abcjs's clickListener is not reliably handed the triggering event.
+//
 // abcelem.startChar/endChar are UTF-16 offsets into whatever string was
 // actually handed to ABCJS.renderAbc for this draw: the tidied, header-
 // stripped text renderVisible() draws, not the ABC the tune is stored as.
 // ceolStripMapBack and ceolTidyMapBack undo those two transforms in the order
-// they were applied, landing back on an offset into the real thing.
+// they were applied, landing back on an offset into the real thing — which
+// is also the coordinate space ceolSelectableNotes' start/end are stored in,
+// so a block's overall range is just the lowest start and highest end among
+// the notes it spans.
 function ceolElementClicked(abcelem) {
   if (!ceolEditMode) return;
   if (!abcelem || typeof abcelem.startChar !== "number" || typeof abcelem.endChar !== "number") return;
-  var start = ceolTidyMapBack(ceolStripMapBack(abcelem.startChar));
-  var end = ceolTidyMapBack(ceolStripMapBack(abcelem.endChar));
+  var idx = ceolSelectableIndex.get(abcelem);
+  if (idx === undefined) {
+    // Not a note/rest abcjs put in ceolSelectableNotes — a bar, say. Select
+    // just that one element's own text, and drop any note-block anchor since
+    // it no longer corresponds to anything on screen.
+    ceolSelectAnchor = null;
+    ceolApplySheetHighlight(-1, -1);
+    var start = ceolTidyMapBack(ceolStripMapBack(abcelem.startChar));
+    var end = ceolTidyMapBack(ceolStripMapBack(abcelem.endChar));
+    try { window.webkit.messageHandlers.elementSelected.postMessage({ start: start, end: end }); } catch (e) {}
+    return;
+  }
+  if (!ceolShiftHeld || ceolSelectAnchor === null) ceolSelectAnchor = idx;
+  var lo = Math.min(ceolSelectAnchor, idx);
+  var hi = Math.max(ceolSelectAnchor, idx);
+  ceolApplySheetHighlight(lo, hi);
   try {
-    window.webkit.messageHandlers.elementSelected.postMessage({ start: start, end: end });
+    window.webkit.messageHandlers.elementSelected.postMessage({
+      start: ceolSelectableNotes[lo].start,
+      end: ceolSelectableNotes[hi].end
+    });
   } catch (e) {}
+}
+
+// The reverse direction: the app's own TextEditor selection changed (a drag,
+// a click, or just the cursor moving) and wants the sheet music to show what
+// that covers. start/end are UTF-16 offsets into the tune's stored ABC — the
+// SAME coordinate space ceolSelectableNotes' entries are already in, so no
+// forward mapping through the strip/tidy transforms is needed at all.
+//
+// A collapsed selection (start === end, an ordinary cursor with nothing
+// dragged) highlights whichever single note contains that position, if any
+// — the same "point inside a half-open range" test as everywhere else in
+// this file. A real range highlights every note it overlaps, so dragging
+// across several notes in the text lights up the whole block on the sheet,
+// matching ceolElementClicked's shift-click block selection in the other
+// direction.
+function ceolHighlightRange(start, end) {
+  if (!ceolEditMode) return;
+  var lo = -1, hi = -1;
+  for (var i = 0; i < ceolSelectableNotes.length; i++) {
+    var n = ceolSelectableNotes[i];
+    var hits = (start === end) ? (n.start <= start && start <= n.end)
+                                : (n.start < end && n.end > start);
+    if (hits) { if (lo === -1) lo = i; hi = i; }
+  }
+  ceolApplySheetHighlight(lo, hi);
+  // A block picked in the text becomes the new anchor for the sheet side too,
+  // so a shift-click on the sheet right after extends from where the text
+  // selection left off rather than from a stale earlier click.
+  if (lo !== -1) ceolSelectAnchor = lo;
 }
 
 /// Turns note-click selection on or off. Only the ABC editor calls this — see
@@ -285,6 +393,8 @@ function ceolSetEditMode(on) {
   var next = !!on;
   if (next === ceolEditMode) return;
   ceolEditMode = next;
+  ceolSelectAnchor = null;
+  ceolApplySheetHighlight(-1, -1);
   if (currentABC) renderVisible();
 }
 
@@ -2373,6 +2483,33 @@ function patchSvgViewBox(containerId) {
   });
 }
 
+// Every note/rest abcjs actually drew to #paper, in the same order abcjs
+// drew them — walking tune.lines[].staff[].voices[][] rather than trusting
+// any index abcjs's click machinery hands back, since object identity
+// (checked in ceolSelectableIndex) is the only thing guaranteed stable
+// between a render and a click on it. el_type "note" covers rests too — ABC
+// has no separate element type for a rest, only a `.rest` flag on the same
+// note element, and abcjs classes them identically ("abcjs-note") in the DOM
+// for exactly that reason, which is what rebuildMaps' own hidden/visible
+// pairing above already relies on.
+function ceolFlattenNotes(tune) {
+  var flat = [];
+  if (!tune || !tune.lines) return flat;
+  tune.lines.forEach(function (line) {
+    (line.staff || []).forEach(function (staff) {
+      (staff.voices || []).forEach(function (voice) {
+        voice.forEach(function (el) {
+          if (el && el.el_type === "note" &&
+              typeof el.startChar === "number" && typeof el.endChar === "number") {
+            flat.push(el);
+          }
+        });
+      });
+    });
+  });
+  return flat;
+}
+
 function rebuildMaps() {
   // Pi approach: match hidden and visible notes by sequential position.
   var hiddenNotes = Array.prototype.slice.call(
@@ -2383,6 +2520,33 @@ function rebuildMaps() {
   for (var i = 0; i < Math.min(hiddenNotes.length, visibleNotes.length); i++) {
     hiddenToVis.set(hiddenNotes[i], visibleNotes[i]);
   }
+
+  // ceolSelectableNotes/-Index — see their declarations near the top of the
+  // file. ceolLastDrawn is renderFitted's own record of what it last drew,
+  // and renderFitted is only ever called for "paper" (search the file — the
+  // hidden render goes straight through ABCJS.renderAbc, never through
+  // renderFitted), so it is always in step with the #paper DOM queried just
+  // above, however this particular call to rebuildMaps() was reached.
+  var flatElems = ceolFlattenNotes(ceolLastDrawn);
+  ceolSelectableNotes = [];
+  ceolSelectableIndex = new Map();
+  for (var j = 0; j < Math.min(flatElems.length, visibleNotes.length); j++) {
+    var elem = flatElems[j];
+    ceolSelectableNotes.push({
+      el: visibleNotes[j],
+      start: ceolTidyMapBack(ceolStripMapBack(elem.startChar)),
+      end: ceolTidyMapBack(ceolStripMapBack(elem.endChar))
+    });
+    ceolSelectableIndex.set(elem, j);
+  }
+  // The DOM elements a moment ago just got new classList membership rebuilt
+  // from scratch above; whatever was selected before this render no longer
+  // has anything holding it highlighted, and the indices an old anchor
+  // pointed at may not even mean the same notes any more. Rather than leave
+  // a stale, silently-wrong highlight on screen, drop it — the next click or
+  // text-selection change picks a fresh one.
+  ceolSelectAnchor = null;
+
   buildBarMap();
   drawTapTargets();
   updateBarShading();
