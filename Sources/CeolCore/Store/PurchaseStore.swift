@@ -105,7 +105,7 @@ public final class PurchaseStore: ObservableObject {
         // "Ask to Buy", redeemed with a code, or bought on another device —
         // arrive here, not through `purchase()`.
         updates = Task { [weak self] in
-            for await result in Transaction.updates {
+            for await result in StoreKit.Transaction.updates {
                 await self?.handle(result)
             }
         }
@@ -192,7 +192,7 @@ public final class PurchaseStore: ObservableObject {
         }
     }
 
-    private func handle(_ result: VerificationResult<Transaction>) async {
+    private func handle(_ result: VerificationResult<StoreKit.Transaction>) async {
         guard case .verified(let transaction) = result,
               transaction.productID == Self.productID else { return }
         purchased = transaction.revocationDate == nil
@@ -203,7 +203,7 @@ public final class PurchaseStore: ObservableObject {
 
     private func refreshPurchases() async {
         var owned = false
-        for await result in Transaction.currentEntitlements {
+        for await result in StoreKit.Transaction.currentEntitlements {
             if case .verified(let transaction) = result,
                transaction.productID == Self.productID,
                transaction.revocationDate == nil {
@@ -215,7 +215,7 @@ public final class PurchaseStore: ObservableObject {
         // stands unless a revoked transaction for this product turns up.
         var refunded = false
         if !owned && purchased {
-            for await result in Transaction.all {
+            for await result in StoreKit.Transaction.all {
                 if case .verified(let transaction) = result,
                    transaction.productID == Self.productID,
                    transaction.revocationDate != nil {
