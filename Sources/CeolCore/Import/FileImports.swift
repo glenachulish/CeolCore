@@ -11,6 +11,10 @@ public enum FileImports {
 
         public var tunesImported = 0
         public var tunesSkipped = 0      // duplicates
+        /// Not added because the free version's allowance ran out. Kept apart
+        /// from `tunesSkipped` so "already in your library" and "over the
+        /// limit" never read as the same thing.
+        public var tunesOverLimit = 0
         public var setsCreated = 0
         public var collectionsCreated = 0
         public var versionGroups = 0
@@ -88,6 +92,12 @@ public enum FileImports {
                 summary.tunesSkipped += 1
                 continue
             }
+            // The free version's allowance. A tune that is refused is simply
+            // not added; the unlock screen opens when the import finishes.
+            guard TuneAllowance.shared.admit() else {
+                summary.tunesOverLimit += 1
+                continue
+            }
             let tune = Tune(title: parsed.title, type: parsed.type,
                             key: parsed.key, mode: parsed.mode, abc: parsed.abc)
             tune.composer = parsed.composer
@@ -145,6 +155,12 @@ public enum FileImports {
                 continue
             }
 
+            // The free version's allowance. A tune that is refused is simply
+            // not added; the unlock screen opens when the import finishes.
+            guard TuneAllowance.shared.admit() else {
+                summary.tunesOverLimit += 1
+                continue
+            }
             let tune = Tune(title: title,
                             type: td["type"] as? String ?? "",
                             key: td["key"] as? String ?? "",
@@ -238,6 +254,9 @@ public enum FileImports {
         }
 
         var idToTune: [Int: Tune] = [:]
+        // Whether the free version's allowance cut anything out of this file.
+        // Sets are tidied up differently if it did; see the sets loop.
+        var refusedAny = false
         // Bound to a local because the grouping pass below needs the same
         // array again once idToTune is complete.
         let tuneList = (json["tunes"] as? [[String: Any]]) ?? []
@@ -255,6 +274,18 @@ public enum FileImports {
                 summary.tunesSkipped += 1
                 if let originalID { idToTune[originalID] = match }
                 continue
+            }
+
+            // A later setting of a tune that arrived earlier in this same file
+            // is a version rather than a new tune, so it does not use up the
+            // free version's allowance. Everything else does.
+            let joinsKnownTune = (td["parent_id"] as? Int).flatMap { idToTune[$0] } != nil
+            if !joinsKnownTune {
+                guard TuneAllowance.shared.admit() else {
+                    summary.tunesOverLimit += 1
+                    refusedAny = true
+                    continue
+                }
             }
 
             let tune = Tune(title: title,
@@ -305,6 +336,14 @@ public enum FileImports {
         for (fileIndex, sd) in ((json["sets"] as? [[String: Any]]) ?? []).enumerated() {
             let name = (sd["name"] as? String ?? "").trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { continue }
+            // If the allowance cut tunes out of this import, a set whose tunes
+            // were *all* cut has nothing left to hold. Leave it out rather than
+            // create an empty shell the person then has to delete.
+            if refusedAny {
+                let wanted = ((sd["entries"] as? [[String: Any]]) ?? [])
+                    .compactMap { $0["tune_id"] as? Int }
+                if !wanted.isEmpty, !wanted.contains(where: { idToTune[$0] != nil }) { continue }
+            }
             let set: TuneSet
             if let found = existingSets.first(where: {
                 $0.name.lowercased().trimmingCharacters(in: .whitespaces) == name.lowercased()

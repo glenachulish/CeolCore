@@ -171,6 +171,16 @@ public enum BulkImport {
         for candidate in candidates {
             guard candidate.action != .skip else { result.skipped += 1; continue }
 
+            // A new tune uses up the free version's allowance; attaching a file
+            // to a tune that is already there does not. Asked before the file
+            // is copied in, and a folder import's earlier copy is put back, so
+            // a refusal leaves nothing behind.
+            if candidate.action == .create, !TuneAllowance.shared.admit() {
+                if let already = candidate.stored { MediaStore.shared.delete(filename: already) }
+                result.skipped += 1
+                continue
+            }
+
             // A folder import has already brought the file in — see Candidate.
             // Files picked individually still carry their own security scope,
             // so they are copied here.

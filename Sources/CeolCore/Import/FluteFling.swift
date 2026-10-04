@@ -224,12 +224,17 @@ public enum FluteFling {
         progress: ((Int, Int) -> Void)? = nil
     ) async -> (tunes: Int, files: Int, unfetched: Int) {
 
-        let total = entries.reduce(0) {
+        // The free version's allowance: take as many entries as there is room
+        // for and leave the rest. Asked once, up front, so the progress total
+        // below is the work that will actually be done.
+        let admitted = Array(entries.prefix(TuneAllowance.shared.admit(wanting: entries.count)))
+
+        let total = admitted.reduce(0) {
             $0 + ($1.pdf == nil ? 0 : 1) + ($1.mp3 == nil ? 0 : 1)
         }
         var done = 0, tunes = 0, files = 0, unfetched = 0
 
-        for entry in entries {
+        for entry in admitted {
             let record = Tune(title: entry.title, type: entry.type)
             record.sourceURL = archive
             context.insert(record)
@@ -294,7 +299,9 @@ public enum FluteFling {
     @MainActor
     public static func add(_ entries: [Entry], in context: ModelContext) -> Int {
         var added = 0
-        for entry in entries {
+        // The free version's allowance; see `addDownloading`.
+        let admitted = Array(entries.prefix(TuneAllowance.shared.admit(wanting: entries.count)))
+        for entry in admitted {
             // `sourceURL`, not `source` — the model has no `source`, and
             // guessing a property name is the same class of mistake as
             // guessing a type.

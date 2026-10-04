@@ -131,6 +131,12 @@ public enum ABCImportPlan {
                 }
 
             case .newTune:
+                // The free version's allowance. A refused tune is left out,
+                // and a set built from this import simply has fewer tunes.
+                guard TuneAllowance.shared.admit() else {
+                    summary.tunesOverLimit += 1
+                    continue
+                }
                 let tune = make(from: item.parsed)
                 context.insert(tune)
                 landed.append((item, tune))
@@ -138,6 +144,13 @@ public enum ABCImportPlan {
 
             case .version(let id):
                 guard let existing = context.model(for: id) as? Tune else {
+                    // The tune this was to join has gone, so it stands alone
+                    // and is a new tune like any other. (A setting that does
+                    // join an existing tune below is not counted.)
+                    guard TuneAllowance.shared.admit() else {
+                        summary.tunesOverLimit += 1
+                        continue
+                    }
                     let tune = make(from: item.parsed)
                     context.insert(tune)
                     landed.append((item, tune))

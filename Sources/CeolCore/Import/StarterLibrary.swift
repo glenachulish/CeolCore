@@ -77,7 +77,12 @@ public enum StarterLibrary {
         }
 
         guard let file else { return false }
-        guard let summary = try? FileImports.importCeolJSON(url: file, context: context),
+        // The starter tunes are the app's gift to a new reader, not something
+        // they added, so they neither use up the free version's allowance nor
+        // are refused by it.
+        guard let summary = try? TuneAllowance.shared.uncounted({
+                  try FileImports.importCeolJSON(url: file, context: context)
+              }),
               summary.tunesImported > 0 else {
             // A failed seed is not worth a second attempt on every launch, but
             // it is worth another go next install, so the flag stays off.

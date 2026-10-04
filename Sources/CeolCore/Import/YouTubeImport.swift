@@ -60,9 +60,12 @@ public enum YouTubeImport {
         return (secured, await title(of: secured) ?? "YouTube – \(id)")
     }
 
+    /// Nil when the free version's allowance has run out; the unlock screen
+    /// opens by itself, so the caller has nothing to explain.
     @MainActor
     public static func add(url: URL, title: String, type: String = "",
-                           in context: ModelContext) -> Tune {
+                           in context: ModelContext) -> Tune? {
+        guard TuneAllowance.shared.admit() else { return nil }
         let tune = Tune(title: title.trimmingCharacters(in: .whitespacesAndNewlines),
                         type: type)
         tune.sourceURL = url.absoluteString
