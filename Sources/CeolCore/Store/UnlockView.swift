@@ -116,6 +116,9 @@ public struct UnlockStatusRow: View {
             Button("Reset the free-tune count (testing)") {
                 TuneAllowance.shared.resetForTesting()
             }
+            Button("Pretend \(TuneAllowance.freeLimit - 1) of \(TuneAllowance.freeLimit) are used (testing)") {
+                TuneAllowance.shared.setUsedForTesting(TuneAllowance.freeLimit - 1)
+            }
             #endif
         }
     }

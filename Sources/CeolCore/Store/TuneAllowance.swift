@@ -227,10 +227,15 @@ public final class TuneAllowance: @unchecked Sendable {
     #if DEBUG
     /// Back to nothing added, for testing the limit over and over. Not
     /// compiled into release builds, so there is no way to call it for real.
-    public func resetForTesting() {
+    public func resetForTesting() { setUsedForTesting(0) }
+
+    /// Pretend this many places are used, so the limit can be reached with one
+    /// small import rather than twenty tunes. Debug builds only, for the same
+    /// reason as the reset.
+    public func setUsedForTesting(_ value: Int) {
         lock.lock()
-        count = 0
-        for layer in layers { layer.write(0) }
+        count = max(0, value)
+        for layer in layers { layer.write(count) }
         lock.unlock()
         postOnMain(Self.didChange)
     }

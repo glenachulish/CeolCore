@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import Security
 import StoreKit
 import SwiftUI
 
@@ -84,13 +85,45 @@ public final class PurchaseStore: ObservableObject {
     }
 
     /// True when this copy of the app did not come from the App Store or
-    /// TestFlight. Both of those leave a receipt in the bundle; a build run
-    /// from Xcode, or one copied into /Applications by a script, does not.
+    /// TestFlight: run from Xcode, or the Mac app installed by script.
     public var developerBuild: Bool {
         if UserDefaults.standard.bool(forKey: Self.forceDemoKey) { return false }
-        guard let url = Bundle.main.appStoreReceiptURL else { return true }
-        return !FileManager.default.fileExists(atPath: url.path)
+        return Self.isDeveloperSigned
     }
+
+    /// Worked out once per launch; the answer cannot change while running.
+    ///
+    /// This used to ask whether an App Store receipt file was in the bundle,
+    /// on the theory that the App Store and TestFlight always leave one. On
+    /// 8 October 2026 a fresh install from TestFlight on an iPhone (iOS 27),
+    /// never purchased, showed itself unlocked — taking itself for a developer
+    /// copy, almost certainly because there was no receipt file. An App Store
+    /// copy could do the same and give the full version away. The receipt
+    /// file is on its way out on iOS anyway, so the question is now asked of
+    /// the signature instead:
+    ///
+    /// - **iPhone and iPad:** a build signed for development carries its
+    ///   provisioning profile as `embedded.mobileprovision`. Apple strips it
+    ///   from everything it distributes, TestFlight included.
+    /// - **Simulator:** carries no profile at all, so it is named outright —
+    ///   otherwise the Simulator would show the limit.
+    /// - **Mac:** App Store and TestFlight copies carry a profile too, so the
+    ///   profile proves nothing there. What a development signature always has
+    ///   and a distribution one never does is `get-task-allow` (the debugger's
+    ///   permission). `install-mac.sh` builds Release but still signs for
+    ///   development, so its copy keeps it and stays unlocked, as intended.
+    private static let isDeveloperSigned: Bool = {
+        #if targetEnvironment(simulator)
+        return true
+        #elseif os(macOS)
+        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+        let value = SecTaskCopyValueForEntitlement(
+            task, "com.apple.security.get-task-allow" as CFString, nil)
+        return (value as? Bool) == true
+        #else
+        return Bundle.main.path(forResource: "embedded", ofType: "mobileprovision") != nil
+        #endif
+    }()
 
     private var updates: Task<Void, Never>?
     private var observers: [NSObjectProtocol] = []
