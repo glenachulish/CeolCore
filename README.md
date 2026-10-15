@@ -72,3 +72,7 @@ modifier chains.
 Several bugs in the engraving were only ever found that way, and several
 confident theories were wrong until tested. Use it before changing anything
 about how music is laid out.
+
+## Tobar link
+
+`Sources/CeolCore/Tobar/` holds the rules both apps use to link with Tobar: `fonn://tune?title=…&link=…` in, and `tobar://add?link=…&title=…` out, with the "Tobar isn't on this device" fallback. Tests are in `Tests/CeolCoreTests/TobarLinkTests.swift`; `tools/verify_tobar_link.py` runs the same cases without Swift. The reasoning is in `../FONN-SCOPE.md`.
