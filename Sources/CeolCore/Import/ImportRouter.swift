@@ -177,11 +177,29 @@ public enum ImportRouter {
 
         try? FileManager.default.startDownloadingUbiquitousItem(at: url)
         let deadline = Date().addingTimeInterval(timeout)
+        // A fresh URL each time round, with its cache emptied.
+        //
+        // `URL` caches resource values, and the cache is only thrown away when
+        // a run loop turns — which never happens on the detached task this
+        // runs on. So polling the same URL kept reading the status from the
+        // first look ("not downloaded") for the whole 45 seconds, long after
+        // the file had arrived. The import then called it stranded, and the
+        // second attempt worked because by then the file was simply there:
+        // the "needs several goes" fault with MusicXML from a scanner.
         while Date() < deadline {
             try? await Task.sleep(nanoseconds: 300_000_000)
-            let status = (try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?
+            var probe = URL(fileURLWithPath: url.path)
+            probe.removeAllCachedResourceValues()
+            let status = (try? probe.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?
                 .ubiquitousItemDownloadingStatus
             if status == .current { return true }
+            // Belt and braces: if the bytes can be read, the file is here,
+            // whatever the metadata says.
+            if FileManager.default.isReadableFile(atPath: url.path),
+               let size = (try? FileManager.default.attributesOfItem(atPath: url.path))?[.size] as? Int,
+               size > 0, status == nil {
+                return true
+            }
         }
         return false
     }

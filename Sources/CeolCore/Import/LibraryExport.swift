@@ -60,6 +60,7 @@ public enum LibraryExport {
                 "is_favourite": tune.isFavourite ? 1 : 0,
                 "source_url": tune.sourceURL,
                 "version_label": tune.versionLabel,
+                "version_order": tune.versionOrder,
                 "transpose": tune.transpose,
                 "is_default": tune.isDefaultVersion ? 1 : 0,
                 "aliases": tune.aliases,

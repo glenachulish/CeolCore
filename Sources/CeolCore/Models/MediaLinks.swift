@@ -204,12 +204,46 @@ public enum MediaLinks {
             let id = url.lastPathComponent
             return id.isEmpty ? nil : id
         }
-        guard host.contains("youtube.com") else { return nil }
-        if url.path.hasPrefix("/shorts/") {
-            let id = url.lastPathComponent
+        guard host.contains("youtube.com") || host.contains("youtube-nocookie.com") else { return nil }
+        // Shorts, embeds, live streams and the old /v/ form all carry the id as
+        // the next path component. Only /shorts/ was recognised, so a link
+        // copied from an embed or a live recording fell through to "opens in
+        // your browser" when it would have played in the app.
+        let parts = url.path.split(separator: "/").map(String.init)
+        if parts.count >= 2, ["shorts", "embed", "live", "v", "e"].contains(parts[0]) {
+            let id = parts[1]
             return id.isEmpty ? nil : id
         }
         return URLComponents(url: url, resolvingAgainstBaseURL: false)?
             .queryItems?.first(where: { $0.name == "v" })?.value
+    }
+}
+
+extension MediaLinks {
+    /// The numeric id of a Vimeo video, from vimeo.com/123456,
+    /// vimeo.com/channels/x/123456 or player.vimeo.com/video/123456.
+    public static func vimeoID(of url: URL) -> String? {
+        guard let host = url.host?.lowercased(), host.hasSuffix("vimeo.com") else { return nil }
+        let numeric = url.path.split(separator: "/").map(String.init)
+            .last { !$0.isEmpty && $0.allSatisfy(\.isNumber) }
+        return numeric
+    }
+
+    /// A page that is nothing but the video's own player, for sites that offer
+    /// one. Played in a web view in the app rather than sending you to the
+    /// browser: Vimeo's player allows embedding for most videos.
+    public static func playerPage(for url: URL) -> URL? {
+        if let id = vimeoID(of: url) {
+            return URL(string: "https://player.vimeo.com/video/\(id)?playsinline=1")
+        }
+        return nil
+    }
+}
+
+extension MediaItem {
+    /// A web player page to show in the app — Vimeo, for now — or nil.
+    public var playerPageURL: URL? {
+        guard let url = webURL else { return nil }
+        return MediaLinks.playerPage(for: url)
     }
 }

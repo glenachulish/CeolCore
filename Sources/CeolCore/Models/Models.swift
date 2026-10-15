@@ -46,6 +46,15 @@ public final class Tune {
     public var groupID: UUID? = nil
     /// The version shown in the library and used in sets. Exactly one per group.
     public var isDefaultVersion: Bool = true
+    /// Where this version sits in its group's list, as you arranged it.
+    ///
+    /// Zero for every version until you reorder a group, so an existing library
+    /// keeps its old order (default first, then by label) untouched. Optional
+    /// with a default like everything else here, so SwiftData migrates the
+    /// store unasked and CloudKit can carry it — **but a new attribute needs
+    /// Deploy Schema Changes to Production before a TestFlight build ships it**
+    /// (the Òrain lesson of 8 Oct).
+    public var versionOrder: Int = 0
     public var aliases: [String] = []
     public var createdAt: Date = Date()
     public var updatedAt: Date = Date()
@@ -81,6 +90,35 @@ public final class Tune {
     }
 
     public var isInASet: Bool { !(setEntries ?? []).isEmpty }
+
+    /// The version's name as it should be shown.
+    ///
+    /// Grouping writes labels like "Setting 1 · F" — the key baked into the
+    /// text at the moment of grouping. Change the key afterwards and the label
+    /// goes on saying F. So a label in exactly that generated shape has its key
+    /// part re-read from the tune as it is now; anything you typed yourself is
+    /// left exactly as you typed it.
+    public var versionName: String {
+        let label = versionLabel.trimmingCharacters(in: .whitespaces)
+        guard label.hasPrefix("Setting ") else { return label }
+        let rest = label.dropFirst("Setting ".count)
+        let number = rest.prefix(while: \.isNumber)
+        guard !number.isEmpty else { return label }
+        let after = rest.dropFirst(number.count)
+        // Either "Setting 2" alone, or "Setting 2 · <key>" with nothing after
+        // the key — the two shapes the app itself writes.
+        let generated: Bool
+        if after.isEmpty {
+            generated = true
+        } else if after.hasPrefix(" · ") {
+            generated = !after.dropFirst(3).contains(" ")
+        } else {
+            generated = false
+        }
+        guard generated else { return label }
+        let key = displayKey
+        return key.isEmpty ? "Setting \(number)" : "Setting \(number) · \(key)"
+    }
 
     /// Display key like "Ddor" or "G".
     ///

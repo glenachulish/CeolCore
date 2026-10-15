@@ -145,16 +145,153 @@ public enum VersionTools {
         return sharps[((index + steps) % 12 + 12) % 12]
     }
 
-    /// Every version in a tune's group, default first, then by label.
+    /// Every version in a tune's group, in the order you arranged them.
+    ///
+    /// Until a group has been reordered every `versionOrder` is zero, and the
+    /// old rule decides: default first, then by label. Once you drag them
+    /// about, your order wins and the default is simply marked where it sits.
     public static func versions(of tune: Tune, in context: ModelContext) -> [Tune] {
         guard let groupID = tune.groupID else { return [tune] }
         let all = (try? context.fetch(
             FetchDescriptor<Tune>(predicate: #Predicate { $0.groupID == groupID })
         )) ?? [tune]
         return all.sorted {
+            if $0.versionOrder != $1.versionOrder { return $0.versionOrder < $1.versionOrder }
             if $0.isDefaultVersion != $1.isDefaultVersion { return $0.isDefaultVersion }
-            return $0.versionLabel < $1.versionLabel
+            if $0.versionLabel != $1.versionLabel { return $0.versionLabel < $1.versionLabel }
+            return $0.createdAt < $1.createdAt
         }
+    }
+
+    // MARK: - Managing a group by hand
+
+    /// Give a version a name of its own.
+    ///
+    /// An empty name clears the label, and the lists fall back to the key — so
+    /// a stale "Setting 1 · F" can be got rid of as well as replaced.
+    public static func rename(_ version: Tune, to name: String, in context: ModelContext) {
+        version.versionLabel = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        version.updatedAt = Date()
+        try? context.save()
+    }
+
+    /// Put a group's versions in the order given. Writes 1…n so the order
+    /// survives sync and relaunch; versions not in the list keep theirs.
+    public static func reorder(_ ordered: [Tune], in context: ModelContext) {
+        for (index, version) in ordered.enumerated() where version.versionOrder != index + 1 {
+            version.versionOrder = index + 1
+            version.updatedAt = Date()
+        }
+        try? context.save()
+    }
+
+    /// Move versions within a group, the way a list's drag-to-reorder reports it.
+    public static func move(in group: [Tune], from source: IndexSet, to destination: Int,
+                            in context: ModelContext) {
+        var list = group
+        // IndexSet move, written out: Array.move(fromOffsets:toOffset:) is
+        // SwiftUI's, and this file is not a view.
+        let moving = source.sorted().map { list[$0] }
+        let before = source.filter { $0 < destination }.count
+        for index in source.sorted(by: >) { list.remove(at: index) }
+        let at = max(0, min(list.count, destination - before))
+        list.insert(contentsOf: moving, at: at)
+        reorder(list, in: context)
+    }
+
+    /// Move one version up (-1) or down (+1) its group's list.
+    public static func nudge(_ version: Tune, by step: Int, in context: ModelContext) {
+        let group = versions(of: version, in: context)
+        guard let index = group.firstIndex(where: { $0 === version }) else { return }
+        let target = index + step
+        guard group.indices.contains(target) else { return }
+        var list = group
+        list.swapAt(index, target)
+        reorder(list, in: context)
+    }
+
+    /// A copy of a version, as a new version of the same tune, ready to amend.
+    ///
+    /// Not the default: copying is the first step of changing something, and
+    /// your sets should not start playing the copy before you have changed it.
+    /// Attachments stay where they are — they are shown across the whole group
+    /// anyway, so copying them would only show everything twice.
+    @discardableResult
+    public static func duplicate(_ source: Tune, named name: String = "",
+                                 in context: ModelContext) -> Tune {
+        let copy = Tune(title: source.title, type: source.type,
+                        key: source.key, mode: source.mode, abc: source.abc)
+        copy.composer = source.composer
+        copy.transcribedBy = source.transcribedBy
+        copy.aliases = source.aliases
+        copy.notes = source.notes
+        copy.sourceURL = source.sourceURL
+        copy.theSessionID = source.theSessionID
+        copy.theSessionSettingID = source.theSessionSettingID
+        copy.transpose = source.transpose
+        copy.practiceBPM = source.practiceBPM
+
+        let base = source.versionName.isEmpty ? (source.displayKey.isEmpty ? "Version" : source.displayKey)
+                                              : source.versionName
+        let label = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        copy.versionLabel = label.isEmpty ? "\(base) (copy)" : label
+
+        add(copy, toGroupOf: source, in: context)
+        return copy
+    }
+
+    /// A brand-new version of a tune from notation you supply — pasted ABC,
+    /// typically. The title, type and key come from the tune it joins unless
+    /// the notation says otherwise.
+    @discardableResult
+    public static func addVersion(to tune: Tune, abc: String, named name: String = "",
+                                  in context: ModelContext) -> Tune {
+        let header = keyHeader(in: abc)
+        let version = Tune(title: tune.title, type: tune.type,
+                           key: header.isEmpty ? tune.key : header,
+                           mode: header.isEmpty ? tune.mode : "",
+                           abc: abc)
+        version.composer = tune.composer
+        version.aliases = tune.aliases
+        version.theSessionID = tune.theSessionID
+        let label = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let count = versions(of: tune, in: context).count
+        version.versionLabel = label.isEmpty ? "Setting \(count + 1)" : label
+        add(version, toGroupOf: tune, in: context)
+        return version
+    }
+
+    /// The value of the first `K:` line, or "" — the key the pasted notation
+    /// says it is in.
+    static func keyHeader(in abc: String) -> String {
+        for line in abc.split(whereSeparator: \.isNewline) {
+            let t = line.trimmingCharacters(in: .whitespaces)
+            if t.hasPrefix("K:") {
+                let value = t.dropFirst(2)
+                let cut = value.firstIndex(of: "%") ?? value.endIndex
+                return value[..<cut].trimmingCharacters(in: .whitespaces)
+            }
+        }
+        return ""
+    }
+
+    /// Put a new record into a tune's group, straight after it in the list.
+    private static func add(_ version: Tune, toGroupOf source: Tune, in context: ModelContext) {
+        let groupID = source.groupID ?? UUID()
+        if source.groupID == nil {
+            source.groupID = groupID
+            source.isDefaultVersion = true
+        }
+        version.groupID = groupID
+        version.isDefaultVersion = false
+        context.insert(version)
+
+        // Slot it in right after the one it came from, so it is where you are
+        // looking rather than at the bottom of a long list.
+        var list = versions(of: source, in: context).filter { $0 !== version }
+        let at = (list.firstIndex(where: { $0 === source }) ?? (list.count - 1)) + 1
+        list.insert(version, at: min(at, list.count))
+        reorder(list, in: context)
     }
 
     /// Make several settings into one tune.

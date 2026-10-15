@@ -305,6 +305,7 @@ public enum FileImports {
                 ?? (td["setting_id"] as? Int).map(String.init) ?? ""
             tune.sourceURL = td["source_url"] as? String ?? ""
             tune.versionLabel = td["version_label"] as? String ?? ""
+            tune.versionOrder = td["version_order"] as? Int ?? 0
             tune.transpose = td["transpose"] as? Int ?? 0
             // Absent means no practice tempo, which is different from zero —
             // hence the optional rather than `?? 0`.
