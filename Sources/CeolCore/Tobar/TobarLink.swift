@@ -16,6 +16,13 @@
 //    if it has it, or offers to save it. If Tobar isn't installed the open is
 //    refused, and Fonn offers the App Store or the page in the browser.
 //
+//  - Fonn → Tobar, a recording to offer to an archive: an audio attachment is
+//    handed to Tobar as a file (share sheet on iPhone, opened with Tobar on
+//    the Mac). Tobar makes it a new draft in "My contributions", where it is
+//    described and packaged for Tobar an Dualchais or rareTunes. The file is
+//    named "<tune> (tune).<ext>": the title travels in the name, and
+//    " (tune)" tells Tobar it is a tune rather than a song.
+//
 //  Link formats: ~/Apple Apps/Tobar/docs/PARTNER-APPS.md.
 
 import Foundation
@@ -78,6 +85,53 @@ public enum TobarLink {
         var s = link.trimmingCharacters(in: .whitespacesAndNewlines)
         if !s.contains("://") { s = "https://" + s }
         return URL(string: s)
+    }
+
+    // MARK: Fonn → Tobar, a recording to offer to an archive
+
+    /// Tobar's bundle identifier, for finding it on the Mac.
+    public static let bundleID = "com.glenachulish.tobar"
+
+    /// The suffix that tells Tobar a handed-over recording is a tune. Tobar
+    /// strips it from the title and sets the contribution's type to Tune.
+    public static let tuneSuffix = " (tune)"
+
+    /// Whether an attachment can be offered to an archive through Tobar:
+    /// a recording whose file is on this device.
+    public static func canOffer(_ item: MediaItem) -> Bool {
+        guard item.kind == .audio, let url = item.fileURL else { return false }
+        return FileManager.default.fileExists(atPath: url.path)
+    }
+
+    /// What the handed-over file is called: the tune's spoken title, the tune
+    /// marker, and the recording's own extension. Characters a file name can't
+    /// hold are replaced.
+    public static func contributionFilename(title: String, ext: String) -> String {
+        let bad = CharacterSet(charactersIn: "/\\:*?\"<>|")
+        var name = title.components(separatedBy: bad).joined(separator: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.isEmpty { name = "Recording" }
+        let clean = ext.trimmingCharacters(in: CharacterSet(charactersIn: ". ")).lowercased()
+        return name + tuneSuffix + "." + (clean.isEmpty ? "m4a" : clean)
+    }
+
+    /// A copy of the recording under its hand-over name, in a folder of its
+    /// own in the temporary directory, ready to give to Tobar. Nil if the
+    /// file isn't on this device or can't be copied.
+    public static func contributionCopy(of item: MediaItem) -> URL? {
+        guard canOffer(item), let source = item.fileURL else { return nil }
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ForTobar", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let name = contributionFilename(title: title(for: item), ext: source.pathExtension)
+        let target = folder.appendingPathComponent(name)
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: source, to: target)
+            return target
+        } catch {
+            return nil
+        }
     }
 
     // MARK: Tobar → Fonn

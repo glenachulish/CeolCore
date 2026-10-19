@@ -69,6 +69,12 @@ def match_index(title, titles):
     if not w: return None
     return next((i for i, t in enumerate(titles) if match_key(t) == w), None)
 
+def contribution_filename(title, ext):
+    name = "".join("-" if c in '/\\:*?"<>|' else c for c in title).strip()
+    if not name: name = "Recording"
+    clean = ext.strip(". ").lower()
+    return name + " (tune)." + (clean or "m4a")
+
 failures = 0
 def check(cond, what):
     global failures
@@ -117,6 +123,11 @@ check(match_index("The Banshee", titles) == 1, "index banshee")
 check(match_index("morrison’s jig", titles) == 2, "index morrison")
 check(match_index("Kesh", titles) is None, "no near miss")
 check(match_index("", titles) is None, "empty title")
+
+check(contribution_filename("The Banshee", "m4a") == "The Banshee (tune).m4a", "name banshee")
+check(contribution_filename("Fear a' Bh\u00e0ta", ".WAV") == "Fear a' Bh\u00e0ta (tune).wav", "name wav")
+check(contribution_filename("Reel: A/B", "") == "Reel- A-B (tune).m4a", "name bad chars")
+check(contribution_filename("  ", "mp3") == "Recording (tune).mp3", "name empty")
 
 print("verify_tobar_link: all checks passed" if failures == 0 else f"verify_tobar_link: {failures} failed")
 sys.exit(1 if failures else 0)

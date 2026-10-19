@@ -45,6 +45,17 @@ struct TobarLinkTests {
         #expect(TobarLink.appStoreURL?.absoluteString == "https://apps.apple.com/app/id6818873213")
     }
 
+    // MARK: Fonn → Tobar, a recording for an archive
+
+    @Test("a handed-over recording is named after the tune and marked as a tune")
+    func contributionNames() {
+        #expect(TobarLink.contributionFilename(title: "The Banshee", ext: "m4a") == "The Banshee (tune).m4a")
+        #expect(TobarLink.contributionFilename(title: "Fear a' Bhàta", ext: ".WAV") == "Fear a' Bhàta (tune).wav")
+        #expect(TobarLink.contributionFilename(title: "Reel: A/B", ext: "") == "Reel- A-B (tune).m4a")
+        #expect(TobarLink.contributionFilename(title: "  ", ext: "mp3") == "Recording (tune).mp3")
+        #expect(TobarLink.bundleID == "com.glenachulish.tobar")
+    }
+
     // MARK: Tobar → Fonn
 
     @Test("fonn://tune carries a title and a track link")

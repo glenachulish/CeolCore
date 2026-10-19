@@ -31,6 +31,33 @@ public extension View {
     }
 }
 
+public extension View {
+    /// "Tobar isn't on this device", for offering a recording to an archive:
+    /// the App Store, or cancel. There is no web fallback — preparing a
+    /// contribution is something only Tobar does.
+    func tobarNeededDialog(_ isPresented: Binding<Bool>) -> some View {
+        modifier(TobarNeededDialog(isPresented: isPresented))
+    }
+}
+
+private struct TobarNeededDialog: ViewModifier {
+    @Binding var isPresented: Bool
+    @Environment(\.openURL) private var openURL
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog("Tobar isn't on this device",
+                                   isPresented: $isPresented,
+                                   titleVisibility: .visible) {
+            if let store = TobarLink.appStoreURL {
+                Button("Get Tobar on the App Store") { openURL(store) }
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Tobar prepares your own recordings to offer to Tobar an Dualchais or rareTunes: it describes them, records consent and makes the package to send.")
+        }
+    }
+}
+
 private struct TobarMissingDialog: ViewModifier {
     @Binding var link: String?
     @Environment(\.openURL) private var openURL
