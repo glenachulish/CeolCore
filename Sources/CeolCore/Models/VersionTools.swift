@@ -33,6 +33,7 @@ public enum VersionTools {
         copy.theSessionID = source.theSessionID
         copy.versionLabel = "Transposed \(describe)"
         copy.transpose = 0
+        carryMarks(from: marksHolder(of: source, in: context), to: copy)
 
         // Join the source's group, or start one containing both.
         let groupID = source.groupID ?? UUID()
@@ -108,9 +109,7 @@ public enum VersionTools {
         edited.notes = source.notes
         edited.sourceURL = source.sourceURL
         edited.theSessionID = source.theSessionID
-        edited.rating = source.rating
-        edited.isFavourite = source.isFavourite
-        edited.onHitlist = source.onHitlist
+        carryMarks(from: marksHolder(of: source, in: context), to: edited)
         edited.versionLabel = title
         edited.transpose = 0
 
@@ -230,6 +229,7 @@ public enum VersionTools {
         copy.theSessionSettingID = source.theSessionSettingID
         copy.transpose = source.transpose
         copy.practiceBPM = source.practiceBPM
+        carryMarks(from: marksHolder(of: source, in: context), to: copy)
 
         let base = source.versionName.isEmpty ? (source.displayKey.isEmpty ? "Version" : source.displayKey)
                                               : source.versionName
@@ -254,6 +254,7 @@ public enum VersionTools {
         version.composer = tune.composer
         version.aliases = tune.aliases
         version.theSessionID = tune.theSessionID
+        carryMarks(from: marksHolder(of: tune, in: context), to: version)
         let label = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let count = versions(of: tune, in: context).count
         version.versionLabel = label.isEmpty ? "Setting \(count + 1)" : label
@@ -333,6 +334,12 @@ public enum VersionTools {
                     : "Setting \(index + 1) · \(tune.displayKey)"
             }
         }
+        // Every version brings its marks to the one that now holds them, so
+        // grouping never loses a star or a hitlist flag.
+        let holder = ordered[0]
+        holder.rating = ordered.map(\.rating).max() ?? holder.rating
+        holder.onHitlist = ordered.contains { $0.onHitlist }
+        holder.isFavourite = ordered.contains { $0.isFavourite }
         pointSetsAtDefault(of: ordered[0], in: ordered)
         try? context.save()
 
@@ -432,10 +439,46 @@ public enum VersionTools {
         return out
     }
 
+    // MARK: - Your marks belong to the tune
+
+    /// The record that holds a tune's stars, hitlist and favourite.
+    ///
+    /// They are marks on *the tune*, not on one setting of it. The list shows
+    /// and filters the group's default, and row actions write there, so the
+    /// default is where they live. A tune screen that read them from whichever
+    /// setting was on screen showed no stars as soon as you switched version or
+    /// opened a transposed or edited one, and starring it there put the stars
+    /// on a record the list never shows (26 Oct 2026).
+    public static func marksHolder(of tune: Tune, in context: ModelContext) -> Tune {
+        shown(tune, in: context)
+    }
+
+    /// A new version starts with the tune's marks, so that if it is later made
+    /// the default nothing goes missing.
+    public static func carryMarks(from source: Tune, to target: Tune) {
+        target.rating = source.rating
+        target.onHitlist = source.onHitlist
+        target.isFavourite = source.isFavourite
+    }
+
+    /// When another record takes over holding the marks. What the old holder
+    /// had wins; where it had nothing, the new one keeps its own. So a mark is
+    /// never lost in the handover.
+    static func handOverMarks(from old: Tune, to new: Tune) {
+        if old.rating > 0 { new.rating = old.rating }
+        if old.onHitlist { new.onHitlist = true }
+        if old.isFavourite { new.isFavourite = true }
+    }
+
     /// Make `newDefault` the group's default and repoint every set entry that
     /// used any version of this tune, so sets always play the default.
     public static func makeDefault(_ newDefault: Tune, in context: ModelContext) {
         let group = versions(of: newDefault, in: context)
+        // The marks move with the job of being the default — otherwise
+        // promoting another setting would empty the tune's stars in the list.
+        for old in group where old !== newDefault && old.isDefaultVersion {
+            handOverMarks(from: old, to: newDefault)
+        }
         for tune in group { tune.isDefaultVersion = (tune === newDefault) }
         pointSetsAtDefault(of: newDefault, in: group)
         try? context.save()
@@ -470,7 +513,10 @@ public enum VersionTools {
             ?? remaining[0]
         for entry in version.setEntries ?? [] { entry.tune = successor }
 
-        if version.isDefaultVersion { successor.isDefaultVersion = true }
+        if version.isDefaultVersion {
+            successor.isDefaultVersion = true
+            handOverMarks(from: version, to: successor)
+        }
         context.delete(version)
 
         if remaining.count == 1, let last = remaining.first {

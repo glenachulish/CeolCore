@@ -1409,6 +1409,19 @@ function tuneLooksEmpty() {
 /// If every note failed and we were reading from the app's own bundle, the
 /// scheme answered the check but isn't delivering; drop to the CDN and try
 /// once more rather than leave the tune silent.
+/// The sound options, moved by the same number of semitones as the stave.
+///
+/// abcjs treats visualTranspose as a display setting: its sequencer takes the
+/// shift back off again (abcjs 6.4.4, `g = midiTranspose - visualTranspose`),
+/// so the notes on the page moved and the playback stayed in the written key.
+/// Pressing ♭ or ♯ changed what you read and not what you heard (26 Oct 2026).
+/// midiTranspose puts the shift back, so the two agree.
+function transposedAudioParams() {
+  var params = audioParams();
+  if (currentTranspose) params.midiTranspose = currentTranspose;
+  return params;
+}
+
 function primeTune(done) {
   var settled = false;
   function finish() {
@@ -1423,7 +1436,7 @@ function primeTune(done) {
   }
   setTimeout(finish, 8000);
   try {
-    var promise = synthControl.setTune(visualObj, true, audioParams());
+    var promise = synthControl.setTune(visualObj, true, transposedAudioParams());
     if (!promise || !promise.then) { finish(); return; }
     promise.then(function (result) {
       var status = result && result.notesStatus;
