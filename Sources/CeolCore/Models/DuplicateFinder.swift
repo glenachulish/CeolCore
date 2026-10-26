@@ -195,6 +195,8 @@ public enum DuplicateFinder {
             tune.isDefaultVersion = (tune === chosen)
             tune.updatedAt = Date()
         }
+        // The marks come with them: grouping never loses a star or a flag.
+        VersionTools.gatherMarks(onto: chosen, from: tunes)
         // Any set using a non-default version now points at the default.
         VersionTools.pointSetsAtDefault(of: chosen, in: tunes)
         try? context.save()

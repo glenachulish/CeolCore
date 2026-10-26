@@ -336,10 +336,7 @@ public enum VersionTools {
         }
         // Every version brings its marks to the one that now holds them, so
         // grouping never loses a star or a hitlist flag.
-        let holder = ordered[0]
-        holder.rating = ordered.map(\.rating).max() ?? holder.rating
-        holder.onHitlist = ordered.contains { $0.onHitlist }
-        holder.isFavourite = ordered.contains { $0.isFavourite }
+        gatherMarks(onto: ordered[0], from: ordered)
         pointSetsAtDefault(of: ordered[0], in: ordered)
         try? context.save()
 
@@ -468,6 +465,52 @@ public enum VersionTools {
         if old.rating > 0 { new.rating = old.rating }
         if old.onHitlist { new.onHitlist = true }
         if old.isFavourite { new.isFavourite = true }
+    }
+
+    /// Bring everyone's marks onto the one that holds them: the highest
+    /// rating, and the hitlist or heart if any of them had it.
+    public static func gatherMarks(onto holder: Tune, from members: [Tune]) {
+        holder.rating = max(holder.rating, members.map(\.rating).max() ?? 0)
+        if members.contains(where: \.onHitlist) { holder.onHitlist = true }
+        if members.contains(where: \.isFavourite) { holder.isFavourite = true }
+    }
+
+    private static let marksGatheredKey = "ceol.versions.marksGathered.v1"
+
+    /// Once per device: give back marks stranded on a version that isn't the
+    /// tune's default.
+    ///
+    /// Until 26 Oct 2026 the phone's tune screen starred whichever version was
+    /// on screen, and saving edited notes as a new version copied the marks
+    /// from that version. So a 4★ tune could become a 0★ default: it fell out
+    /// of a "4 and up" filter the moment its notes were edited. This puts the
+    /// marks back on the default.
+    ///
+    /// Only defaults with something to gain are written, so it is cheap and,
+    /// run on two devices, comes to the same answer on both. Returns the titles
+    /// of the tunes it changed.
+    @MainActor
+    @discardableResult
+    public static func gatherStrandedMarksOnce(in context: ModelContext) -> [String] {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: marksGatheredKey) else { return [] }
+        let all = (try? context.fetch(FetchDescriptor<Tune>(
+            predicate: #Predicate { $0.groupID != nil }))) ?? []
+        var groups: [UUID: [Tune]] = [:]
+        for tune in all { if let id = tune.groupID { groups[id, default: []].append(tune) } }
+
+        var changed: [String] = []
+        for (_, members) in groups {
+            guard let holder = members.first(where: \.isDefaultVersion) else { continue }
+            let before = (holder.rating, holder.onHitlist, holder.isFavourite)
+            gatherMarks(onto: holder, from: members)
+            if before != (holder.rating, holder.onHitlist, holder.isFavourite) {
+                changed.append(holder.title)
+            }
+        }
+        if !changed.isEmpty { try? context.save() }
+        defaults.set(true, forKey: marksGatheredKey)
+        return changed.sorted()
     }
 
     /// Make `newDefault` the group's default and repoint every set entry that

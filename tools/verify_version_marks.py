@@ -86,4 +86,37 @@ x, y, z = Tune("X", rating=1), Tune("Y", rating=4, fav=True), Tune("Z", hit=True
 LIB += [x, y, z]; group([x, y, z])
 check("grouping keeps highest rating, any hitlist, any heart", (x.rating, x.onHitlist, x.isFavourite) == (4, True, True))
 
+# 6. The reported case: a 4★ tune, a non-default version on screen, notes edited
+#    and saved as a new version. It must still pass a "4 and up" filter.
+def saveEdited(src):
+    e = Tune(src.name + " (edited)"); carryMarks(marksHolder(src), e); add(e, src); makeDefault(e); return e
+def library(min_rating): return [x for x in LIB if (x.groupID is None or x.isDefaultVersion) and x.rating >= min_rating]
+LIB.clear()
+a = Tune("Bunny's Hat", rating=4); LIB.append(a)
+v = Tune("Bunny's Hat in G"); add(v, a)          # 0★, the one on screen
+e = saveEdited(v)
+check("edited tune stays in the 4★+ filter", e in library(4) and e.rating == 4)
+check("and stays in its version group", e.groupID == a.groupID)
+
+# 7. One-off repair: a default left at 0★ gets its sibling's stars back.
+def gatherStranded():
+    groups = {}
+    for x in LIB:
+        if x.groupID: groups.setdefault(x.groupID, []).append(x)
+    n = 0
+    for ms in groups.values():
+        h = next((m for m in ms if m.isDefaultVersion), None)
+        if not h: continue
+        before = (h.rating, h.onHitlist, h.isFavourite)
+        h.rating = max(h.rating, max(m.rating for m in ms))
+        if any(m.onHitlist for m in ms): h.onHitlist = True
+        if any(m.isFavourite for m in ms): h.isFavourite = True
+        n += before != (h.rating, h.onHitlist, h.isFavourite)
+    return n
+LIB.clear()
+a = Tune("A", rating=4); LIB.append(a)
+b = Tune("A (edited)"); add(b, a); b.isDefaultVersion, a.isDefaultVersion = True, False   # the old bug's result
+check("repair finds the stranded tune", gatherStranded() == 1 and b in library(4))
+check("repair is a no-op the second time", gatherStranded() == 0)
+
 print("\nall passed" if not fails else f"\n{fails} failed"); raise SystemExit(fails)
