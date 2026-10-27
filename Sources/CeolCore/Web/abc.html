@@ -1108,6 +1108,9 @@ function takeOverTransport() {
     if (!nativeMode) return webRestart ? webRestart(arg) : undefined;
     transport("seek", { seconds: 0 });
     nativeIndex = -1;
+    // The app only reports the position while playing, so a rewind while
+    // paused has to move the dot itself. See ceolShowRewound.
+    ceolShowRewound(synthControl);
   };
   // Dragging the progress bar. abcjs works the fraction out from the click
   // position; the same sum, without reaching into its internals.
@@ -1122,7 +1125,22 @@ function takeOverTransport() {
     var fraction = Math.max(0, Math.min(1, (event.clientX - box.left) / box.width));
     transport("seek", { seconds: fraction * nativeDurationMs / 1000 });
     nativeIndex = -1;
+    // Paused: nothing will report the new place until play is pressed, so
+    // show it now — the dot where you put it, and the note that starts there.
+    if (!synthControl.isStarted) {
+      syncMs = lastNativeMs = fraction * nativeDurationMs;
+      renderAtMs(syncMs);
+    }
   };
+}
+
+/// After a rewind with the music stopped: nothing lit, and the cursor's clock
+/// starting from the beginning rather than from where it was last told.
+function ceolAfterRewind() {
+  unhighlight();
+  nativeIndex = -1;
+  syncMs = 0;
+  lastNativeMs = 0;
 }
 
 /// The metronome takes its beat from `msPerMeasure`, which only refreshTiming

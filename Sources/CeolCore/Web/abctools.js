@@ -68,6 +68,30 @@ function ceolGuardTransport(synthControl) {
   control.disable = function (off) {
     try { originalDisable.call(control, off); } catch (e) {}
   };
+  // Rewind while paused. abcjs moves the audio back to the start but only
+  // redraws the progress dot as the music plays, so pressing ⏮ with the music
+  // stopped appeared to do nothing (27 Oct 2026). The dot goes to the start
+  // now, at once.
+  var options = control.options;
+  if (options && !options._ceolRewind) {
+    options._ceolRewind = true;
+    var originalRestart = options.restartHandler;
+    options.restartHandler = function (arg) {
+      var out = originalRestart ? originalRestart.apply(this, arguments) : undefined;
+      ceolShowRewound(synthControl);
+      return out;
+    };
+  }
+}
+
+/// Put the progress dot and clock at the start, and clear any lit notes, when
+/// the music is not playing. While it plays, the audio clock moves them itself.
+function ceolShowRewound(synthControl) {
+  if (!synthControl || synthControl.isStarted) return;
+  try { synthControl.setProgress(0, 0); } catch (e) {}
+  if (typeof ceolAfterRewind === "function") {
+    try { ceolAfterRewind(); } catch (e) {}
+  }
 }
 
 // Handing the rendered audio to the app, so it can be played natively.

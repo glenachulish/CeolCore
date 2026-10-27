@@ -1635,6 +1635,13 @@ function takeOverTransport() {
     if (!nativeMode) return webRestart ? webRestart(arg) : undefined;
     transport("seek", { seconds: 0 });
     nativeIndex = -1;
+    // Paused: the app reports nothing until play, so show the start now —
+    // the dot, the strip and the first tune of the set (27 Oct 2026).
+    if (!synthControl.isStarted) {
+      syncMs = lastNativeMs = 0;
+      renderAtMs(0);
+      ceolAfterRewind();
+    }
   };
   control.options.progressHandler = function (event) {
     if (!nativeMode) return webProgress ? webProgress(event) : undefined;
@@ -1647,7 +1654,19 @@ function takeOverTransport() {
     var fraction = Math.max(0, Math.min(1, (event.clientX - box.left) / box.width));
     transport("seek", { seconds: fraction * nativeDurationMs / 1000 });
     nativeIndex = -1;
+    if (!synthControl.isStarted) {
+      syncMs = lastNativeMs = fraction * nativeDurationMs;
+      renderAtMs(syncMs);
+    }
   };
+}
+
+/// After a rewind with the music stopped: nothing lit, the strip empty.
+function ceolAfterRewind() {
+  unhighlight();
+  nativeIndex = -1;
+  var strip = document.getElementById("progress");
+  if (strip) strip.style.width = "0%";
 }
 
 /// The app saying what it is really doing — the only thing the ▶/⏸ symbol and
