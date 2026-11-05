@@ -76,7 +76,16 @@ public enum LibraryExport {
             if let practice = tune.practiceBPM { dict["practice_bpm"] = practice }
 
             let media = (tune.media ?? []).map { item -> [String: Any] in
-                ["kind": item.kindRaw, "filename": item.filename, "url": item.urlString]
+                var m: [String: Any] = ["kind": item.kindRaw, "filename": item.filename,
+                                        "url": item.urlString]
+                // FONN-LOOPSYNC-1 / FONN-CHIPLABEL-1: written only when set,
+                // so older readers see exactly what they did before.
+                if !item.title.isEmpty { m["title"] = item.title }
+                if let loop = item.savedLoop {
+                    m["loop_start"] = loop.lowerBound
+                    m["loop_end"] = loop.upperBound
+                }
+                return m
             }
             if !media.isEmpty { dict["media"] = media }
             return dict
@@ -140,6 +149,121 @@ public enum LibraryExport {
         return try write(data, named: "ceol-library-\(stamp).ceol.json")
     }
 
+    // MARK: - Sharing a copy (FONN-SHARE-1)
+
+    /// A tune, or a collection's tunes, as a `.ceol.json` to send to someone
+    /// else who has Fonn. A copy, not a live share: SwiftData's CloudKit store
+    /// can't share records between iCloud accounts.
+    ///
+    /// What goes: the notation and what describes the tune (type, key,
+    /// composer, source, aliases); every link on it or its other versions,
+    /// with its name and practice loop; and PDFs, inside the file. What stays:
+    /// recordings, videos and photos (too large to send, and often yours
+    /// alone), and your own marks on the tune (stars, hitlist, favourite,
+    /// notes, practice tempo).
+    ///
+    /// The other end is the existing `.ceol.json` import (type "tunes" or
+    /// "collection"), which now attaches links and PDFs too.
+    public static func shareFile(tunes: [Tune], collection: TuneCollection? = nil,
+                                 set: TuneSet? = nil,
+                                 context: ModelContext) throws -> URL {
+        // A collection's sets travel with it, and so do the tunes in them; a
+        // shared set (FONN-SHARE-2) is a running order of its own tunes.
+        var allTunes = tunes
+        let sets = collection?.sets ?? (set.map { [$0] } ?? [])
+        for set in sets {
+            for entry in set.orderedEntries {
+                if let tune = entry.tune, !allTunes.contains(where: { $0 === tune }) {
+                    allTunes.append(tune)
+                }
+            }
+        }
+        let tuneDicts: [[String: Any]] = allTunes.map { tune in
+            var dict: [String: Any] = [
+                "title": tune.title,
+                "type": tune.type,
+                "key": tune.key,
+                "mode": tune.mode,
+                "abc": tune.abc,
+                "composer": tune.composer,
+                "transcribed_by": tune.transcribedBy,
+                "source_url": tune.sourceURL,
+                "aliases": tune.aliases,
+            ]
+            if let sessionID = tune.theSessionID { dict["session_id"] = sessionID }
+            var media: [[String: Any]] = []
+            for (item, _) in VersionTools.mediaAcrossGroup(of: tune, in: context) {
+                if let entry = shareEntry(for: item) { media.append(entry) }
+            }
+            if !media.isEmpty { dict["media"] = media }
+            return dict
+        }
+        var payload: [String: Any] = [
+            "ceol": 1,
+            "type": collection == nil ? "tunes" : "collection",
+            "exported_at": ISO8601DateFormatter().string(from: .now).prefix(10).description,
+            "exported_by": "Fonn for iOS",
+            "tunes": tuneDicts,
+        ]
+        if let collection {
+            payload["name"] = collection.name
+            payload["description"] = collection.about
+        }
+        if !sets.isEmpty {
+            // The importer's shape for embedded sets: names, in order, matched
+            // to the tunes above by title.
+            payload["sets"] = sets.map { set -> [String: Any] in
+                [
+                    "name": set.name,
+                    "notes": set.notes,
+                    "tunes": set.orderedEntries.enumerated().compactMap { index, entry -> [String: Any]? in
+                        guard let tune = entry.tune else { return nil }
+                        return ["title": tune.title, "_position": index,
+                                "_key_override": entry.keyOverride]
+                    },
+                ]
+            }
+        }
+        let data = try JSONSerialization.data(withJSONObject: payload,
+                                              options: [.prettyPrinted, .sortedKeys])
+        let name = collection?.name ?? set?.name
+            ?? tunes.first.map { TitleDisplay.plain($0.title) } ?? "Tunes"
+        return try write(data, named: safeName(name) + "." + fonnFileExtension)
+    }
+
+    // FONN-SHARE-2
+    /// A shared tune or collection's own file type. It was `.ceol.json`, which
+    /// is what a library backup is called too, and to the phone receiving it
+    /// that was just JSON: tapped in Messages it showed as text, and Fonn was
+    /// never offered. `.fonn` is declared by the app (UTExportedTypeDeclarations,
+    /// `com.glenachulish.fonn.tunes`), so tapping one opens Fonn. The inside is
+    /// the same JSON, and `.ceol.json` files still import.
+    public static let fonnFileExtension = "fonn"
+
+    /// One attachment as it travels in a shared file, or nil for the kinds
+    /// that stay behind (and a PDF whose file isn't on this device).
+    static func shareEntry(for item: MediaItem) -> [String: Any]? {
+        switch item.kind {
+        case .link:
+            guard !item.urlString.isEmpty else { return nil }
+            var m: [String: Any] = ["kind": "link", "url": item.urlString]
+            if !item.title.isEmpty { m["title"] = item.title }
+            if let loop = item.savedLoop {
+                m["loop_start"] = loop.lowerBound
+                m["loop_end"] = loop.upperBound
+            }
+            return m
+        case .pdf:
+            guard let url = item.fileURL, let data = try? Data(contentsOf: url) else { return nil }
+            var m: [String: Any] = ["kind": "pdf", "data": data.base64EncodedString(),
+                                    "filename": item.filename]
+            if !item.title.isEmpty { m["title"] = item.title }
+            return m
+        case .audio, .video, .photo:
+            return nil
+        }
+    }
+
     // MARK: - One tune, one set
 
     /// ABC for a single tune, as a `.abc` file other trad software can read.
@@ -190,4 +314,11 @@ public enum LibraryExport {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return cleaned.isEmpty ? "Untitled" : String(cleaned.prefix(80))
     }
+}
+
+extension Notification.Name {
+    /// FONN-SHARE-2: a file opened in Fonn from elsewhere (Messages, Mail,
+    /// Files, Finder), with its URL as `object`. Posted by the app's one
+    /// `onOpenURL` and taken up by whatever shows the import.
+    public static let ceolIncomingFile = Notification.Name("ceolIncomingFile")
 }

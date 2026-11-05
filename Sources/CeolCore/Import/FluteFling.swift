@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// The FlutefFling session-tunes catalogue.
+/// The FluteFling session-tunes catalogue.
 ///
 /// The Pi had this and neither app does, which is the largest of the gaps
 /// between them: it is a flute player's own source, it is where a good number
@@ -73,7 +73,7 @@ public enum FluteFling {
         do {
             let (body, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                throw Failure.offline("FlutefFling answered \(http.statusCode).")
+                throw Failure.offline("FluteFling answered \(http.statusCode).")
             }
             data = body
         } catch let failure as Failure {
@@ -291,7 +291,7 @@ public enum FluteFling {
     /// Add these as tunes, each carrying its sheet music and recording as
     /// links.
     ///
-    /// No ABC: FlutefFling publishes PDFs, not notation, and inventing an empty
+    /// No ABC: FluteFling publishes PDFs, not notation, and inventing an empty
     /// ABC body would put 400 blank staves in the library. A tune with a PDF
     /// and no notation is a shape this app already handles — `MediaWindowInline`
     /// exists precisely because 560 tunes here are like that.

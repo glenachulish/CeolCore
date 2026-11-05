@@ -94,6 +94,8 @@ public enum ImportRouter {
                 // once by the import — and the first copy is orphaned.
                 if let export = files.first(where: {
                     $0.lastPathComponent.lowercased().hasSuffix(".ceol.json")
+                        // FONN-SHARE-2: a shared tune or collection.
+                        || $0.pathExtension.lowercased() == LibraryExport.fonnFileExtension
                 }) {
                     if isFolder { scan.ceolFolder = url } else { scan.ceolFile = export }
                     continue
@@ -300,7 +302,7 @@ public enum ImportRouter {
             return """
                 Nothing in there that Fonn can use.
 
-                It takes ABC notation (.abc), MusicXML (.xml, .musicxml, .mxl), recordings, photos, PDFs, video, and Fonn exports (.ceol.json).
+                It takes ABC notation (.abc), MusicXML (.xml, .musicxml, .mxl), recordings, photos, PDFs, video, and Fonn files (.fonn, .ceol.json).
                 """
         }
         return "That folder is empty."

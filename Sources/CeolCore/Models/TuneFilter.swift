@@ -6,10 +6,10 @@ import Foundation
 /// facts about a tune and not about a screen. The phone puts them behind a
 /// sheet and shows what is set as chips; the Mac has room for them in a row.
 /// Both should agree about what "has media" means.
-public struct TuneFilter: Equatable, Sendable {
+public struct TuneFilter: Equatable, Sendable, Codable {
 
     /// What the tune has attached, or doesn't.
-    public enum Content: String, CaseIterable, Identifiable, Sendable {
+    public enum Content: String, CaseIterable, Identifiable, Sendable, Codable {
         case any, notation, noNotation, anyMedia, audio, video, images, links, videoLinks
 
         public var id: String { rawValue }
@@ -73,7 +73,7 @@ public struct TuneFilter: Equatable, Sendable {
         }
     }
 
-    public enum InSet: String, CaseIterable, Identifiable, Sendable {
+    public enum InSet: String, CaseIterable, Identifiable, Sendable, Codable {
         case any, inSet, notInSet
 
         public var id: String { rawValue }

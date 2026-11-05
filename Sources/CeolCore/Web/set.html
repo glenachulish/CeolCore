@@ -171,6 +171,19 @@
   html.dark #audioMsg { color: #999; }
   html.dark .tune-hd { color: inherit; }
 
+  /* FONN-PDF-1: paper — see abc.html. The frame is let go so every tune flows
+     down the page, the player and per-tune buttons are hidden, and night
+     mode's inversion is switched off. */
+  html.ceol-print, html.ceol-print body {
+    height: auto !important; overflow: visible !important;
+    background: #fff !important; display: block !important;
+  }
+  html.ceol-print #topbar, html.ceol-print #dbg,
+  html.ceol-print #pracPanel, html.ceol-print .tune-hd button { display: none !important; }
+  html.ceol-print #scroller { overflow: visible !important; height: auto !important; }
+  html.ceol-print #hiddenRender, html.ceol-print #measureRender { max-height: 0; }
+  html.ceol-print .tune-section svg { filter: none !important; }
+
 </style>
 </head>
 <body>
@@ -770,6 +783,7 @@ var printMode = false;
 
 function renderForPrint(on) {
   printMode = !!on;
+  document.documentElement.classList.toggle('ceol-print', printMode);
   renderVisibleSections();
 }
 

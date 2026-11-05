@@ -138,6 +138,22 @@
   html.dark #ctlRow select { border-color: #555; color: #eee; }
   html.dark #audioMsg, html.dark #dbg { color: #999; }
 
+  /* FONN-PDF-1: paper. The page is built as a screen — a fixed frame with the
+     player on top and the music scrolling inside — and a PDF or print of it
+     captured that frame: the player, the buttons, and only as much music as
+     fitted. While printing (renderForPrint), the frame is let go so the whole
+     score flows down the page, the controls are hidden, and night mode's
+     inverted colours are switched off. */
+  html.ceol-print, html.ceol-print body {
+    height: auto !important; overflow: visible !important;
+    background: #fff !important; display: block !important;
+  }
+  html.ceol-print #topbar, html.ceol-print #selInfo,
+  html.ceol-print #pracPanel, html.ceol-print #dbg { display: none !important; }
+  html.ceol-print #scroller { overflow: visible !important; height: auto !important; }
+  html.ceol-print #hidden { max-height: 0; }
+  html.ceol-print #paper svg { filter: none !important; }
+
 </style>
 </head>
 <body>
@@ -2444,6 +2460,7 @@ var printMode = false;
 
 function renderForPrint(on) {
   printMode = !!on;
+  document.documentElement.classList.toggle('ceol-print', printMode);
   renderVisible();
 }
 

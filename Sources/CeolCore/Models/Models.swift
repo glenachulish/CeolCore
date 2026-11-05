@@ -251,6 +251,12 @@ public final class MediaItem {
     public var title: String = ""
     public var notes: String = ""
     public var createdAt: Date = Date()
+    /// FONN-LOOPSYNC-1: the practice loop on this recording, in seconds from
+    /// its start; -1 when there is none. One loop per recording, kept here so
+    /// it syncs with everything else. Plain numbers with defaults, as CloudKit
+    /// needs for a field added after the store exists.
+    public var loopStart: Double = -1
+    public var loopEnd: Double = -1
 
     @Relationship(inverse: \Tune.media) public var tune: Tune?
     @Relationship(inverse: \TuneSet.media) public var tuneSet: TuneSet?
@@ -265,6 +271,18 @@ public final class MediaItem {
         self.title = title
         self.filename = filename
         self.urlString = urlString
+    }
+
+    /// The saved loop, or nil. A loop needs both ends, the right way round.
+    public var savedLoop: ClosedRange<Double>? {
+        guard loopStart >= 0, loopEnd > loopStart else { return nil }
+        return loopStart...loopEnd
+    }
+
+    /// Keep a loop, or clear it with nil.
+    public func setLoop(_ loop: ClosedRange<Double>?) {
+        loopStart = loop?.lowerBound ?? -1
+        loopEnd = loop?.upperBound ?? -1
     }
 
     /// Where the file actually is on this device.

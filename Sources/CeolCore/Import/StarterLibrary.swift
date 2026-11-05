@@ -92,4 +92,118 @@ public enum StarterLibrary {
         hasSeeded = true
         return true
     }
+
+    // MARK: - On request
+
+    /// The starter file as shipped, parsed. nil only if the build is broken.
+    static var shipped: [String: Any]? {
+        guard let file,
+              let data = try? Data(contentsOf: file),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return json
+    }
+
+    /// The starter tunes' titles, compared the way `key(_:)` compares them.
+    /// Read once: the library screen asks on every redraw.
+    static let shippedKeys: [String] = {
+        ((StarterLibrary.shipped?["tunes"] as? [[String: Any]]) ?? [])
+            .compactMap { $0["title"] as? String }
+            .map { StarterLibrary.key($0) }
+    }()
+
+    /// How many starter tunes there are. Six, unless the file changes.
+    public static var total: Int { shippedKeys.count }
+
+    /// How a title is compared when asking whether a starter tune is here.
+    ///
+    /// By title alone, not by title and notation the way the importer matches
+    /// duplicates. A starter tune somebody has corrected, or added a version
+    /// to, is still *that tune*; matching on notation would hand them the
+    /// shipped setting back as a second copy beside their own.
+    static func key(_ title: String) -> String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// How many starter tunes a library with these titles is missing.
+    public static func missingCount<S: Sequence>(presentTitles: S) -> Int
+    where S.Element == String {
+        let present = Set(presentTitles.map(key))
+        return shippedKeys.filter { !present.contains($0) }.count
+    }
+
+    /// `json` cut down to the tunes whose titles are not in `present`.
+    ///
+    /// Sets and collections are cut down to match, or asking for two missing
+    /// tunes would also re-file four the reader had deliberately taken out of
+    /// "Starter tunes". A set comes back only if *every* tune in it is being
+    /// added: half a set is worse than none, and a set the reader deleted
+    /// while keeping its tunes was a decision. A collection left with nothing
+    /// in it is dropped, so asking when nothing is missing makes nothing.
+    ///
+    /// Mirrored by `tools/verify_starter_missing.py`.
+    static func onlyMissing(_ json: [String: Any], present: Set<String>) -> [String: Any] {
+        let tunes = ((json["tunes"] as? [[String: Any]]) ?? []).filter {
+            !present.contains(key($0["title"] as? String ?? ""))
+        }
+        let keptIDs = Set(tunes.compactMap { $0["id"] as? Int })
+
+        var newIndex: [Int: Int] = [:]
+        var sets: [[String: Any]] = []
+        for (oldIndex, set) in ((json["sets"] as? [[String: Any]]) ?? []).enumerated() {
+            let wanted = ((set["entries"] as? [[String: Any]]) ?? [])
+                .compactMap { $0["tune_id"] as? Int }
+            guard !wanted.isEmpty, wanted.allSatisfy(keptIDs.contains) else { continue }
+            newIndex[oldIndex] = sets.count
+            sets.append(set)
+        }
+
+        var collections: [[String: Any]] = []
+        for var c in (json["collections"] as? [[String: Any]]) ?? [] {
+            let ids = ((c["tune_ids"] as? [Int]) ?? []).filter(keptIDs.contains)
+            let setIndexes = ((c["set_indexes"] as? [Int]) ?? []).compactMap { newIndex[$0] }
+            guard !ids.isEmpty || !setIndexes.isEmpty else { continue }
+            c["tune_ids"] = ids
+            if c["set_indexes"] != nil { c["set_indexes"] = setIndexes }
+            collections.append(c)
+        }
+
+        var out = json
+        out["tunes"] = tunes
+        out["sets"] = sets
+        out["collections"] = collections
+        return out
+    }
+
+    public struct NotInBuild: LocalizedError {
+        public var errorDescription: String? {
+            "The starter tunes are missing from this copy of Fonn."
+        }
+    }
+
+    /// Add whichever starter tunes this library is missing, with their set
+    /// and collection.
+    ///
+    /// The way in for anyone the automatic seed missed, or who deleted the
+    /// starter tunes and wants them back. A tap cannot race an iCloud sync the
+    /// way the launch-time seed can, so it is safe in either storage mode.
+    /// Tunes already here are left exactly as they are; see `onlyMissing`.
+    /// Like the seed, these never count towards the free version's 20.
+    @discardableResult
+    @MainActor
+    public static func addMissing(context: ModelContext) throws -> FileImports.Summary {
+        guard let json = shipped else { throw NotInBuild() }
+        let present = Set(((try? context.fetch(FetchDescriptor<Tune>())) ?? []).map { key($0.title) })
+        let trimmed = onlyMissing(json, present: present)
+        guard !((trimmed["tunes"] as? [[String: Any]]) ?? []).isEmpty else {
+            return FileImports.Summary()
+        }
+        let summary = try TuneAllowance.shared.uncounted {
+            try FileImports.importLibrary(json: trimmed, context: context)
+        }
+        try context.save()
+        // So the automatic seed cannot add them a second time later.
+        hasSeeded = true
+        return summary
+    }
 }

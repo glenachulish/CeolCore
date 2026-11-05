@@ -49,6 +49,10 @@ public enum FileImports {
                 if mediaCopyFailed > 0 { why.append("\(mediaCopyFailed) couldn't be copied") }
                 if !why.isEmpty { parts.append("(" + why.joined(separator: ", ") + ")") }
             }
+            // FONN-SHARE-1: links and PDFs from a shared file.
+            else if mediaAttached > 0 {
+                parts.append("\(mediaAttached) link\(mediaAttached == 1 ? "" : "s") or PDF\(mediaAttached == 1 ? "" : "s") attached")
+            }
             if setsCreated > 0 { parts.append("\(setsCreated) set\(setsCreated == 1 ? "" : "s")") }
             if collectionsCreated > 0 { parts.append("\(collectionsCreated) collection\(collectionsCreated == 1 ? "" : "s")") }
             return parts.joined(separator: ", ")
@@ -62,7 +66,7 @@ public enum FileImports {
         public var errorDescription: String? {
             switch self {
             case .unreadable: return "Couldn't read the file."
-            case .notCeolFile: return "Not a valid Fonn export file (.ceol.json)."
+            case .notCeolFile: return "Not a valid Fonn file (.fonn or .ceol.json)."
             case .noLibraryInFolder:
                 return """
                     No library.ceol.json in there.
@@ -152,6 +156,9 @@ public enum FileImports {
             if let existing {
                 titleToTune[titleKey] = existing
                 summary.tunesSkipped += 1
+                // FONN-SHARE-1: a shared tune you already have still brings
+                // its links and PDFs, without doubling the ones you have.
+                summary.mediaAttached += attachShared(td["media"], to: existing, context: context)
                 continue
             }
 
@@ -179,9 +186,11 @@ public enum FileImports {
             context.insert(tune)
             titleToTune[titleKey] = tune
             summary.tunesImported += 1
+            summary.mediaAttached += attachShared(td["media"], to: tune, context: context)
         }
 
         // 2. Recreate collection (for collection exports)
+        var importedCollection: TuneCollection?
         if ftype == "collection" {
             let name = (json["name"] as? String ?? "Imported Collection")
                 .trimmingCharacters(in: .whitespaces)
@@ -197,6 +206,7 @@ public enum FileImports {
                 context.insert(collection)
                 summary.collectionsCreated += 1
             }
+            importedCollection = collection
             for td in tuneList {
                 let key = (td["title"] as? String ?? "").trimmingCharacters(in: .whitespaces).lowercased()
                 if let tune = titleToTune[key],
@@ -228,16 +238,72 @@ public enum FileImports {
                                              tuneDicts: tuneDicts,
                                              titleToTune: titleToTune,
                                              context: context)
+            // FONN-SHARE-1: a shared collection's sets go back into it.
+            if let collection = importedCollection,
+               let set = ((try? context.fetch(FetchDescriptor<TuneSet>())) ?? []).first(where: {
+                   $0.name.lowercased().trimmingCharacters(in: .whitespaces) == name.lowercased()
+               }),
+               collection.sets?.contains(where: { $0 === set }) != true {
+                collection.sets?.append(set)
+            }
         }
 
         return summary
+    }
+
+    // FONN-SHARE-1
+    /// Links and PDFs from a shared file, added to a tune unless it already
+    /// has them: a link by its address, a PDF by its name. Recordings never
+    /// travel in a shared file, and anything else in `media` (an old export's
+    /// filename with no file) is passed over. Returns how many were added.
+    static func attachShared(_ raw: Any?, to tune: Tune, context: ModelContext) -> Int {
+        let entries = (raw as? [[String: Any]]) ?? []
+        guard !entries.isEmpty else { return 0 }
+        var have = tune.media ?? []
+        var added = 0
+        for entry in entries {
+            let kind = entry["kind"] as? String ?? ""
+            let title = entry["title"] as? String ?? ""
+            switch kind {
+            case "link":
+                let url = (entry["url"] as? String ?? "").trimmingCharacters(in: .whitespaces)
+                guard !url.isEmpty, !have.contains(where: { $0.urlString == url }) else { continue }
+                let item = MediaItem(kind: .link, title: title, urlString: url)
+                if let a = (entry["loop_start"] as? NSNumber)?.doubleValue,
+                   let b = (entry["loop_end"] as? NSNumber)?.doubleValue, b > a, a >= 0 {
+                    item.setLoop(a...b)
+                }
+                item.tune = tune
+                context.insert(item)
+                have.append(item)
+                added += 1
+            case "pdf":
+                guard let encoded = entry["data"] as? String,
+                      let data = Data(base64Encoded: encoded), !data.isEmpty else { continue }
+                let name = title.isEmpty ? (entry["filename"] as? String ?? "") : title
+                guard !have.contains(where: {
+                    $0.kind == .pdf && !name.isEmpty && ($0.title == name || $0.filename == name)
+                }) else { continue }
+                guard let stored = try? MediaStore.shared.save(data, extension: "pdf") else { continue }
+                let item = MediaItem(kind: .pdf, title: name, filename: stored)
+                item.tune = tune
+                context.insert(item)
+                have.append(item)
+                added += 1
+            default:
+                continue
+            }
+        }
+        return added
     }
 
     /// Whole-library import (type "library"): tunes carry their original ids,
     /// and sets/collections reference tunes BY ID — titles are ambiguous in a
     /// full library (multiple settings share a title). Duplicates are only
     /// skipped when both title and ABC match exactly.
-    private static func importLibrary(json: [String: Any], context: ModelContext) throws -> Summary {
+    /// Internal rather than private so `StarterLibrary.addMissing` can hand
+    /// it a cut-down starter file without writing that file to disk first.
+    static func importLibrary(json: [String: Any], context: ModelContext) throws -> Summary {
         var summary = Summary()
 
         // Duplicate key → the tune that owns it. Seeded from the library, then
@@ -623,7 +689,12 @@ public enum FileImports {
 
                 if !urlString.isEmpty {
                     guard !existing.contains(where: { $0.urlString == urlString }) else { continue }
-                    let media = MediaItem(kind: kind, urlString: urlString)
+                    let media = MediaItem(kind: kind, title: item["title"] as? String ?? "",
+                                          urlString: urlString)
+                    if let a = (item["loop_start"] as? NSNumber)?.doubleValue,
+                       let b = (item["loop_end"] as? NSNumber)?.doubleValue, b > a, a >= 0 {
+                        media.setLoop(a...b)
+                    }
                     media.tune = tune
                     context.insert(media)
                     attached += 1
