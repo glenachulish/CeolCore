@@ -57,8 +57,7 @@ struct StreamingLinksTests {
 
     @Test("search pages for both services (FONN-EMBEDS-3)")
     func searchURLs() {
-        #expect(SpotifyLink.searchURL(for: "The Kesh  Jig")?.absoluteString
-                == "https://duckduckgo.com/?q=site%3Aopen.spotify.com+The+Kesh+Jig")
+        #expect(SpotifyLink.searchPage.absoluteString == "https://open.spotify.com/search")
         #expect(BandcampLink.searchURL(for: "McGoldrick reels")?.absoluteString
                 == "https://bandcamp.com/search?q=McGoldrick+reels&item_type=t")
         #expect(BandcampLink.searchURL(for: " ")?.absoluteString == "https://bandcamp.com/search")

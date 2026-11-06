@@ -99,8 +99,7 @@ check("bc nothing", bc_embed_item("<html><body>hello</body></html>"), None)
 from urllib.parse import quote, urlunsplit
 def sp_search(w):
     c = " ".join(w.split())
-    if not c: return "https://open.spotify.com/search"
-    return "https://duckduckgo.com/?q=site%3Aopen.spotify.com+" + quote(c, safe="-._~ ").replace(" ", "+")
+    return "https://open.spotify.com/search"
 def bc_search(w):
     c = " ".join(w.split())
     if not c: return "https://bandcamp.com/search"
@@ -109,7 +108,7 @@ def bc_playable(u):
     if not u or not bc_is_page(u): return None
     x = urlsplit(u)
     return urlunsplit((x.scheme, x.netloc, x.path, "", ""))
-check("sp search", sp_search("The Kesh  Jig"), "https://duckduckgo.com/?q=site%3Aopen.spotify.com+The+Kesh+Jig")
+check("sp search", sp_search("The Kesh  Jig"), "https://open.spotify.com/search")
 check("bc search", bc_search("McGoldrick reels"), "https://bandcamp.com/search?q=McGoldrick+reels&item_type=t")
 check("bc search blank", bc_search(" "), "https://bandcamp.com/search")
 check("bc playable", bc_playable("https://michaelmcgoldrick.bandcamp.com/track/the-wiggly-jig?from=search&search_item_id=1"), "https://michaelmcgoldrick.bandcamp.com/track/the-wiggly-jig")

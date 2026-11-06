@@ -45,18 +45,16 @@ public enum SpotifyLink {
         s.count == 22 && s.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber) }
     }
 
-    // FONN-EMBEDS-3
-    /// A search for some words among Spotify's pages.
+    // FONN-SPOTIFYSEARCH-1
+    /// Spotify's own search page.
     ///
-    /// Through DuckDuckGo, limited to open.spotify.com: Spotify's web player
-    /// throws away words given in its own search address (`/search/<words>`)
-    /// and opens a blank search (seen 30 Oct 2026). A result opens Spotify's
-    /// own track or album page, which is what Add needs.
-    public static func searchURL(for words: String) -> URL? {
-        let collapsed = words.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
-        guard !collapsed.isEmpty else { return URL(string: "https://open.spotify.com/search") }
-        return URL(string: "https://duckduckgo.com/?q=site%3Aopen.spotify.com+\(WebABC.queryEncoded(collapsed))")
-    }
+    /// This used to go through DuckDuckGo, limited to open.spotify.com. On
+    /// 6 Nov 2026 that failed repeatedly with DuckDuckGo's own error, and the
+    /// unfiltered results had nothing from Spotify; Spotify's page found the
+    /// tune without signing in. Spotify throws away words given in its search
+    /// address (`/search/<words>`, seen 30 Oct 2026), and filling in its box by
+    /// script didn't work when tried, so the person types the name there.
+    public static let searchPage = URL(string: "https://open.spotify.com/search")!
 
     /// A page worth attaching: something the strip can play.
     public static func isPlayable(_ url: URL?) -> Bool {
