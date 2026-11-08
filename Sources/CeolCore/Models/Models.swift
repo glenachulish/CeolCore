@@ -257,6 +257,12 @@ public final class MediaItem {
     /// needs for a field added after the store exists.
     public var loopStart: Double = -1
     public var loopEnd: Double = -1
+    /// FONN-ARRANGE-1: where this sits among the tune's (or set's)
+    /// attachments, as you arranged them. Zero until you arrange them, so an
+    /// existing library keeps its old order untouched. Defaulted, as CloudKit
+    /// needs — **and a new attribute needs Deploy Schema Changes to Production
+    /// before a TestFlight build ships it.**
+    public var position: Int = 0
 
     @Relationship(inverse: \Tune.media) public var tune: Tune?
     @Relationship(inverse: \TuneSet.media) public var tuneSet: TuneSet?

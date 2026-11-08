@@ -2714,6 +2714,8 @@ setInterval(function () {
 // Tell the app when the music has scrolled off the top so the branded header
 // above the web view can step aside (see abc.html).
 var lastScrolledState = false;
+var setLastTop = 0;
+var setScrolledChangedAt = 0;
 (function () {
   var scroller = document.getElementById("scroller");
   if (!scroller) return;
@@ -2721,11 +2723,20 @@ var lastScrolledState = false;
     // Only the reader's scrolling may move the header — see abc.html. Follow-
     // the-music scrolls this element itself; letting that resize the web view
     // broke loop selection and cut playback short.
+    // FONN-NOBOUNCE-1 (see abc.html): room under the music once off the
+    // top, ignore the settling scroll, and back only when scrolled up to it.
+    var top = scroller.scrollTop;
+    var goingUp = top < setLastTop;
+    setLastTop = top;
     if (Date.now() - lastScrollAt < 1200) return;
     if (synthControl && synthControl.isStarted) return;
-    var scrolled = scroller.scrollTop > 24;
+    if (Date.now() - setScrolledChangedAt < 700) return;
+    var scrolled = lastScrolledState ? !(top <= 2 && goingUp) : top > 24;
     if (scrolled !== lastScrolledState) {
       lastScrolledState = scrolled;
+      setScrolledChangedAt = Date.now();
+      var sections = document.getElementById("sections");
+      if (sections) sections.style.paddingBottom = scrolled ? "256px" : "";
       try {
         window.webkit.messageHandlers.scrolled.postMessage({ scrolled: scrolled });
       } catch (e) {}

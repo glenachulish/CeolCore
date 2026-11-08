@@ -2053,6 +2053,9 @@ function followHighlight(el) {
   if (!(synthControl && synthControl.isStarted)) return;
   var now = Date.now();
   if (now - lastFollowAt < 350) return;
+  // FONN-NOBOUNCE-1: the reader has just scrolled by hand — to look ahead,
+  // or down to the end — so don't pull the page back to the note for a while.
+  if (now - readerScrollAt < 4000) return;
   var scroller = document.getElementById("scroller");
   var sRect = scroller.getBoundingClientRect();
   var eRect = el.getBoundingClientRect();
@@ -2504,6 +2507,7 @@ function renderVisible() {
   });
   patchSvgViewBox("paper");
   rebuildMaps();
+  if (fitWhole) applyFitWhole();   // FONN-FITWHOLE-1
 }
 
 // Port of the Pi's _patchSvgViewBox, extended to include content that abcjs
@@ -2634,7 +2638,11 @@ window.addEventListener("resize", function () {
     // map under the tap handlers for no reason.
     var el = document.getElementById("paper");
     var w = el ? el.clientWidth : 0;
-    if (!w || w === lastRenderWidth) return;
+    if (!w || w === lastRenderWidth) {
+      // FONN-FITWHOLE-1: a height change still changes what "fits".
+      if (fitWhole) applyFitWhole();
+      return;
+    }
     renderVisible();
   }, 250);
 });
@@ -2666,11 +2674,32 @@ setInterval(function () {
 // Tell the app when the music has been scrolled off the top, so the branded
 // header above the web view can get out of the way. Only the crossing of the
 // threshold is posted, not every pixel — this fires on a scroll gesture.
+//
+// FONN-NOBOUNCE-1: scrolling to the bottom of a tune used to throw you back
+// up it. Hiding the header makes the web view taller, a taller view can't
+// scroll as far, so the page was clamped back towards the top — and for a
+// tune only a little longer than the screen it hit the top, the header came
+// back, and round it went. Three things stop that:
+//   * once off the top, room is added under the music, at least the height
+//     the header gives back, so the view growing can't clamp the page;
+//   * the scroll that the view resizing causes is ignored;
+//   * back to the top only when the reader scrolls up to it.
 var lastScrolledState = false;
+var scrolledChangedAt = 0;
+var readerScrollAt = 0;
+var HEADER_ROOM = 240;
 (function () {
   var scroller = document.getElementById("scroller");
   if (!scroller) return;
+  // Moving the page by hand, as opposed to tapping a bar on it.
+  ["touchmove", "wheel"].forEach(function (evt) {
+    scroller.addEventListener(evt, function () { readerScrollAt = Date.now(); }, { passive: true });
+  });
+  var lastTop = 0;
   scroller.addEventListener("scroll", function () {
+    var top = scroller.scrollTop;
+    var goingUp = top < lastTop;
+    lastTop = top;
     // Only the READER's scrolling may move the header.
     //
     // Follow-the-music scrolls this element itself, several times a tune. If
@@ -2682,9 +2711,14 @@ var lastScrolledState = false;
     // while the synth is running.
     if (Date.now() - lastFollowAt < 1200) return;
     if (synthControl && synthControl.isStarted) return;
-    var scrolled = scroller.scrollTop > 24;
+    // The header has just moved: this is the page settling, not the reader.
+    if (Date.now() - scrolledChangedAt < 700) return;
+    var scrolled = lastScrolledState ? !(top <= 2 && goingUp) : top > 24;
     if (scrolled !== lastScrolledState) {
       lastScrolledState = scrolled;
+      scrolledChangedAt = Date.now();
+      var paper = document.getElementById("paper");
+      if (paper) paper.style.paddingBottom = scrolled ? (HEADER_ROOM + 16) + "px" : "";
       try {
         window.webkit.messageHandlers.scrolled.postMessage({ scrolled: scrolled });
       } catch (e) {}
@@ -2692,7 +2726,58 @@ var lastScrolledState = false;
   }, { passive: true });
 })();
 
+// FONN-FITWHOLE-1
+// The whole tune on one screen: the notation drawn smaller until all of it
+// fits the height there is, so you can see the shape of it — and read the
+// last line — without scrolling. Driven from the app's button beside A−/A+.
+// The engraving is not redone: each SVG is just drawn narrower (its viewBox
+// keeps the proportions), so the bar map and tap targets, which work in the
+// SVG's own units, are untouched.
+var fitWhole = false;
+function ceolFitWhole(on) {
+  on = !!on;
+  if (on === fitWhole) return;
+  fitWhole = on;
+  var scroller = document.getElementById("scroller");
+  if (on && scroller) scroller.scrollTop = 0;
+  applyFitWhole();
+  // Again once the app's header has finished moving.
+  setTimeout(applyFitWhole, 450);
+}
+function applyFitWhole() {
+  var paper = document.getElementById("paper");
+  var scroller = document.getElementById("scroller");
+  if (!paper || !scroller) return;
+  var svgs = Array.prototype.slice.call(paper.querySelectorAll("svg"));
+  svgs.forEach(function (svg) {
+    svg.style.width = ""; svg.style.display = "";
+    svg.style.marginLeft = ""; svg.style.marginRight = "";
+  });
+  if (!fitWhole) return;
+  var drawn = 0;
+  svgs.forEach(function (svg) { drawn += svg.getBoundingClientRect().height; });
+  var other = paper.getBoundingClientRect().height - drawn;
+  var room = scroller.clientHeight - other - 8;
+  if (drawn <= 0 || room <= 0 || drawn <= room) return;
+  // Not past the point where it stops being readable at all.
+  var f = Math.max(0.3, room / drawn);
+  svgs.forEach(function (svg) {
+    svg.style.width = (f * 100).toFixed(2) + "%";
+    svg.style.display = "block";
+    svg.style.marginLeft = "auto";
+    svg.style.marginRight = "auto";
+  });
+}
+
 function renderABC(opts) {
+  // FONN-NOBOUNCE-1: a page from the pool may still carry the last tune's
+  // scrolled state and the room added under it. A new tune starts at the top.
+  if (lastScrolledState) {
+    lastScrolledState = false;
+    var _p0 = document.getElementById("paper");
+    if (_p0) _p0.style.paddingBottom = "";
+    try { window.webkit.messageHandlers.scrolled.postMessage({ scrolled: false }); } catch (e) {}
+  }
   // Tidy ":| |:" into the single "::" barline before anything renders,
   // so the hidden and visible engravings agree. Display only — the
   // stored tune is untouched. See ceolTidyRepeatsMapped in abctools.js.
