@@ -19,7 +19,7 @@ var CEOL_VOICES = [
   { id: "mflute",                label: "Concert Flute", program: 73,  offline: true },
   { id: "whistle",               label: "Tin Whistle",   program: 78,  offline: true },
   { id: "violin",                label: "Fiddle",        program: 40,  offline: true },
-  { id: "accordion",             label: "Accordion",     program: 21 },
+  { id: "accordion",             label: "Accordion",     program: 21,  offline: true },
   { id: "banjo",                 label: "Banjo",         program: 105 },
   { id: "acoustic_guitar_nylon", label: "Guitar",        program: 24,  offline: true },
   { id: "orchestral_harp",       label: "Harp",          program: 46 },

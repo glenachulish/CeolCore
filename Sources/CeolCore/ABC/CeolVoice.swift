@@ -28,7 +28,7 @@ public struct CeolVoice: Identifiable, Hashable, Sendable {
         CeolVoice(id: "mflute",                label: "Concert Flute", offline: true,  program: 73),
         CeolVoice(id: "whistle",               label: "Tin Whistle",   offline: true,  program: 78),
         CeolVoice(id: "violin",                label: "Fiddle",        offline: true,  program: 40),
-        CeolVoice(id: "accordion",             label: "Accordion",     offline: false, program: 21),
+        CeolVoice(id: "accordion",             label: "Accordion",     offline: true,  program: 21),
         CeolVoice(id: "banjo",                 label: "Banjo",         offline: false, program: 105),
         CeolVoice(id: "acoustic_guitar_nylon", label: "Guitar",        offline: true,  program: 24),
         CeolVoice(id: "orchestral_harp",       label: "Harp",          offline: false, program: 46),

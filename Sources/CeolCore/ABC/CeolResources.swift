@@ -47,7 +47,7 @@ public enum CeolResources {
 
     /// A bundled instrument sample, e.g. folder "flute", note "A4".
     ///
-    /// Six instruments are carried so the app plays at a session with no
+    /// Seven instruments are carried so the app plays at a session with no
     /// reception; everything else is fetched once and cached. Note the
     /// subdirectory: under `.copy` the folder structure is preserved, so these
     /// are at `Web/soundfont/`, where `Bundle.main.url(forResource:)` used to

@@ -10,8 +10,9 @@ import WebKit
 /// answered from, in order:
 ///
 ///   1. the app bundle — the flute, whistle and fiddle samples carried over
-///      from the Pi, and both guitars (nylon for picked backing, steel-string
-///      for strumming), which work on a plane or in a cellar;
+///      from the Pi, the fiddle (Musyng Kite) and accordion (FatBoy), and
+///      both guitars (nylon for picked backing, steel-string for strumming),
+///      which work on a plane or in a cellar;
 ///   2. the on-disk cache — anything played once before, while online;
 ///   3. the CDN — fetched, answered, and written to the cache so it is never
 ///      needed twice.
