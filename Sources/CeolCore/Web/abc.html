@@ -1487,8 +1487,15 @@ function transposedAudioParams() {
 
 function primeTune(done) {
   var settled = false;
+  var gaveUp = false;
+  // FONN-LIVESOUND-1: the 8-second fallback below used to be the end of it --
+  // a render that finished later was thrown away and the player kept the old
+  // recording. Now a late finish still hands its audio over.
   function finish() {
-    if (settled) return;
+    if (settled) {
+      if (gaveUp) { gaveUp = false; ceolTameAudio(synthControl); offerAudioToApp(); }
+      return;
+    }
     settled = true;
     ceolTameAudio(synthControl);   // FONN-CLEANSOUND-1: no clipping
     setAudioReady(true);
@@ -1498,7 +1505,7 @@ function primeTune(done) {
     // swap, instrument, chords — comes through here, so none can be forgotten.
     offerAudioToApp();
   }
-  setTimeout(finish, 8000);
+  setTimeout(function () { if (!settled) gaveUp = true; finish(); }, 8000);
   try {
     var promise = synthControl.setTune(visualObj, true, transposedAudioParams());
     if (!promise || !promise.then) { finish(); return; }

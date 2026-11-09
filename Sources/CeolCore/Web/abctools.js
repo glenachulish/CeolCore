@@ -1,3 +1,37 @@
+// FONN-LIVESOUND-1 (9 Nov 2026): rendering must not wait for the speaker.
+//
+// abcjs begins every render with audioContext.resume() and does nothing more
+// until that promise settles. In the app the page's own audio sits idle --
+// the native player does the sounding -- and WebKit can leave an idle page's
+// context suspended or interrupted with resume() pending until the music is
+// next touched. The first tune was fine; a change of instrument, backing or
+// style made from the Sound panel waited, the page gave up after 8 seconds,
+// and the player went on with the recording it already had. Only opening
+// another tune (another page) seemed to apply it.
+//
+// Working out the waveform needs no running context: the samples decode and
+// the notes mix into an ordinary buffer either way. So resume() is still
+// asked for, but anything waiting on it is let go after a short wait. When
+// the page plays through Web Audio itself the resume comes from a tap and
+// settles at once, so nothing there changes.
+(function ceolPatientResume() {
+  function patch(C) {
+    if (!C || !C.prototype || C.prototype._ceolPatient) return;
+    var original = C.prototype.resume;
+    if (typeof original !== "function") return;
+    C.prototype._ceolPatient = true;
+    C.prototype.resume = function () {
+      var asked;
+      try { asked = original.apply(this, arguments); } catch (e) { asked = null; }
+      var letGo = new Promise(function (done) { setTimeout(done, 300); });
+      if (!asked || !asked.then) return letGo;
+      return Promise.race([asked.catch(function () {}), letGo]);
+    };
+  }
+  try { patch(window.AudioContext); } catch (e) {}
+  try { patch(window.webkitAudioContext); } catch (e) {}
+})();
+
 // Playing a passage straight through, ignoring what's written.
 //
 // When you set a loop from one bar to another, you want to hear those bars,

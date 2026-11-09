@@ -1125,6 +1125,11 @@ function applySoundChange(full) {
         setAudioReady(true);
         applySpeed();
         rebuildSectionMaps();   // new controller, new timing source
+        flushPendingPlay();
+        // FONN-LIVESOUND-1: hand the new waveform to the app. This path never
+        // did, so on the phone a change of instrument, backing or style in a
+        // set kept playing the old recording until the set was opened again.
+        offerAudioToApp();
       })
       .catch(function (e) {
         lastTuneError = String((e && (e.message || e.toString())) || "unknown");
