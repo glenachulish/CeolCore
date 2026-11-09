@@ -9,7 +9,8 @@ import Combine
 /// It drones on the tune's home note, read from the K: field (D for D major,
 /// D mixolydian or D dorian; E for E minor; A for A dorian), following any
 /// transposition. You can choose another sound or another note, and the choice
-/// is kept for that tune on this device.
+/// is kept on the tune (or set) itself, so it syncs to your other devices
+/// (FONN-DRONE-2).
 ///
 /// Like the metronome, it has a switch (`armed`) and a rule for when it sounds:
 /// with the tune's playback in the ordinary view, on its own in Sheet music
@@ -111,14 +112,15 @@ public final class Drone: ObservableObject {
     private let engine = AVAudioEngine()
     private let mixer = AVAudioMixerNode()
     private var players: [(player: AVAudioPlayerNode, speed: AVAudioUnitVarispeed, layer: Layer)] = []
-    private var tuneID: String?
+    /// Where a changed sound or note goes: onto the tune or set itself, so it
+    /// syncs (FONN-DRONE-2). Nil while nothing is open.
+    private var keep: ((String, Int) -> Void)?
     /// True while a tune's own settings are being applied, so applying them
     /// isn't mistaken for you choosing them.
     private var applying = false
 
     private static let soundKey = "fonn.drone.sound"
     private static let volumeKey = "fonn.drone.volume"
-    private static func choiceKey(_ id: String) -> String { "fonn.drone.choice.\(id)" }
 
     public init() {
         sound = Sound(rawValue: UserDefaults.standard.string(forKey: Self.soundKey) ?? "") ?? .smallPipes
@@ -131,17 +133,21 @@ public final class Drone: ObservableObject {
 
     // MARK: The tune
 
-    /// Called with each tune (or set) shown: its key, any transposition, and
-    /// an identity to keep a changed sound or note against.
-    public func setTune(abc: String, transpose: Int = 0, id: String?) {
+    /// Called with each tune (or set) shown: its key, any transposition, what
+    /// was chosen for it before (`savedSound` "" and `savedNote` -1 for
+    /// nothing), and where to keep a new choice — the tune's or set's own
+    /// `droneSound` / `droneNote`, which sync between your devices.
+    public func setTune(abc: String, transpose: Int = 0,
+                        savedSound: String, savedNote: Int,
+                        keep: @escaping (String, Int) -> Void) {
         applying = true
         defer { applying = false }
-        tuneID = id
+        self.keep = keep
         let home = Self.homeNote(fromABC: abc).map { (($0 + transpose) % 12 + 12) % 12 }
         tuneNote = home
-        if let id, let saved = UserDefaults.standard.dictionary(forKey: Self.choiceKey(id)) {
-            if let s = Sound(rawValue: saved["sound"] as? String ?? "") { sound = s }
-            if let n = saved["note"] as? Int { note = n } else if let home { note = home }
+        if let s = Sound(rawValue: savedSound) { sound = s }
+        if (0..<12).contains(savedNote) {
+            note = savedNote
         } else if let home {
             note = home
         }
@@ -155,9 +161,9 @@ public final class Drone: ObservableObject {
     private func saveChoice() {
         guard !applying else { return }
         UserDefaults.standard.set(sound.rawValue, forKey: Self.soundKey)
-        guard let tuneID else { return }
-        UserDefaults.standard.set(["sound": sound.rawValue, "note": note],
-                                  forKey: Self.choiceKey(tuneID))
+        // The note is kept only when it isn't simply the tune's own, so a
+        // change of key later is followed.
+        keep?(sound.rawValue, note == tuneNote ? -1 : note)
     }
 
     /// The home note of an ABC tune, from its first K: line: the tonic,

@@ -38,6 +38,13 @@ public final class Tune {
     /// the tune is. Optional with a default, so an existing library migrates
     /// unasked and CloudKit can carry it.
     public var practiceBPM: Int? = nil
+    /// FONN-DRONE-2: the drone you chose for this tune, kept here so it
+    /// syncs to your other devices. Empty / -1 means "the default sound, on
+    /// the home note of the key". Defaulted, as CloudKit needs — **a new
+    /// attribute needs Deploy Schema Changes to Production before a
+    /// TestFlight build ships it.**
+    public var droneSound: String = ""
+    public var droneNote: Int = -1
     public var sourceURL: String = ""
     public var theSessionID: Int? = nil       // thesession.org tune id
     public var theSessionSettingID: String = ""
@@ -162,6 +169,13 @@ public final class TuneSet {
     public var onHitlist: Bool = false
     public var isFavourite: Bool = false
     public var createdAt: Date = Date()
+    /// FONN-DRONE-2: the drone you chose for this set, kept here so it
+    /// syncs to your other devices. Empty / -1 means "the default sound, on
+    /// the home note of the key". Defaulted, as CloudKit needs — **a new
+    /// attribute needs Deploy Schema Changes to Production before a
+    /// TestFlight build ships it.**
+    public var droneSound: String = ""
+    public var droneNote: Int = -1
 
     @Relationship(deleteRule: .cascade, inverse: \SetEntry.tuneSet)
     public var entries: [SetEntry]? = []
