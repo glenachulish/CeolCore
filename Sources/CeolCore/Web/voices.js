@@ -262,7 +262,145 @@ function audioParams(visual) {
     // the bass, and both below the level chosen for the old boom-chick.
     params.bassvol = Math.round(accompVol * 0.8);
     // A strum is every chord note on every quaver, so it sits lower still.
-    params.chordvol = Math.round(accompVol * (accompStyle === "picked" ? 0.65 : 0.42));
+    params.chordvol = Math.round(accompVol * (accompStyle === "picked" ? 0.65 : 0.5));
   }
+  // FONN-STRUM-1: abcjs strikes a chord's notes all at once, so "strummed"
+  // came out as a soft three-note pluck and sounded like the picking. The
+  // shaping happens on the note list abcjs builds, before it fetches samples,
+  // so any string added here gets its sample loaded like the rest.
+  params.ceolStrum = accompStyle === "strummed";
+  ceolHookStrum(visual);
   return params;
+}
+
+// -- Strumming -------------------------------------------- FONN-STRUM-1 --
+//
+// What a guitarist's hand does that abcjs doesn't:
+//   * every beat begins with a down-stroke, the bass string first -- the
+//     gchord pattern can only put the bass there alone;
+//   * a down-stroke crosses five strings, low to high, about 11ms apart;
+//     an up-stroke catches the top three, high to low, a little quicker;
+//   * the down-stroke on the beat is the strongest, the up-strokes lightest.
+// The hand keeps moving down-up across the quavers, counted from each bass
+// note, so it lines up with the beat whatever the pickup.
+
+var CEOL_STRUM_DOWN_MS = 11;
+var CEOL_STRUM_UP_MS = 8;
+
+/// Five guitar strings' worth of the chord: its notes and their octaves,
+/// the five nearest the middle of the guitar's range.
+function ceolStrumVoicing(pitches) {
+  var pool = {};
+  pitches.forEach(function (p) {
+    [-12, 0, 12].forEach(function (o) {
+      var q = p + o;
+      if (q >= 45 && q <= 71) pool[q] = true;   // A2 .. B4
+    });
+  });
+  var notes = Object.keys(pool).map(Number);
+  notes.sort(function (a, b) { return Math.abs(a - 57) - Math.abs(b - 57) || a - b; });
+  notes = notes.slice(0, 5);
+  notes.sort(function (a, b) { return a - b; });
+  return notes.length ? notes : pitches.slice().sort(function (a, b) { return a - b; });
+}
+
+function ceolShapeStrum(flat, msPerWhole) {
+  if (!flat || !flat.tracks || !(msPerWhole > 0)) return;
+  var QUAVER = 0.125;
+  var downGap = CEOL_STRUM_DOWN_MS / msPerWhole;
+  var upGap = CEOL_STRUM_UP_MS / msPerWhole;
+  for (var t = 1; t < flat.tracks.length; t++) {
+    var track = flat.tracks[t];
+    var notes = [], others = [];
+    track.forEach(function (e) {
+      (e.cmd === "note" && typeof e.pitch === "number" ? notes : others).push(e);
+    });
+    if (!notes.length) continue;
+    // Gather the notes struck together.
+    var groups = [], byStart = {};
+    notes.forEach(function (n) {
+      var key = Math.round(n.start * 10000);
+      if (!byStart[key]) { byStart[key] = { start: n.start, notes: [] }; groups.push(byStart[key]); }
+      byStart[key].notes.push(n);
+    });
+    groups.sort(function (a, b) { return a.start - b.start; });
+    // Only a chord-and-bass track looks like this: some single bass notes
+    // and some chords. A second melody voice is left alone.
+    var chordCount = groups.filter(function (g) { return g.notes.length >= 2; }).length;
+    if (chordCount < 2) continue;
+
+    var out = [];
+    var beatAt = null;
+    for (var i = 0; i < groups.length; i++) {
+      var g = groups[i];
+      var template = g.notes[0];
+      var bass = null, chord = null;
+      if (g.notes.length === 1) {
+        // The bass note: the start of a beat. Strum with it, using the next
+        // chord's notes if one follows soon enough to be the same harmony.
+        bass = g.notes[0];
+        beatAt = g.start;
+        var next = groups[i + 1];
+        if (next && next.notes.length >= 2 && next.start - g.start <= QUAVER * 1.01) {
+          chord = next.notes.map(function (n) { return n.pitch; });
+        }
+      } else {
+        chord = g.notes.map(function (n) { return n.pitch; });
+      }
+      var slot = beatAt === null ? 0 : Math.round((g.start - beatAt) / QUAVER);
+      var down = slot % 2 === 0;
+      var accent = !!bass;
+      var base = 0;
+      g.notes.forEach(function (n) { base = Math.max(base, n.volume || 0); });
+      if (bass) {
+        out.push(bass);
+        var nextChord = groups[i + 1];
+        if (nextChord && nextChord.notes.length >= 2) {
+          base = 0;
+          nextChord.notes.forEach(function (n) { base = Math.max(base, n.volume || 0); });
+        }
+      }
+      if (!chord) continue;
+      var strings = ceolStrumVoicing(chord);
+      if (!down) strings = strings.slice(-3).reverse();
+      var gap = down ? downGap : upGap;
+      var level = accent ? 1.2 : (down ? 0.95 : 0.65);
+      var end = g.start + (template.duration || QUAVER);
+      strings.forEach(function (pitch, k) {
+        var start = g.start + (bass && down ? (k + 1) : k) * gap;
+        if (start >= end) return;
+        // In a down-stroke the lower strings sound a touch fuller.
+        var shade = down ? (1 - 0.05 * k) : (1 - 0.06 * k);
+        var n = {};
+        for (var f in template) n[f] = template[f];
+        n.pitch = pitch;
+        n.start = start;
+        n.duration = end - start;
+        n.volume = Math.max(1, Math.min(127, Math.round(base * level * shade)));
+        out.push(n);
+      });
+    }
+    out.sort(function (a, b) { return a.start - b.start; });
+    flat.tracks[t] = others.concat(out);
+  }
+}
+
+/// Let the strum reshape what abcjs is about to play. Wrapped once per tune;
+/// the wrapper only acts when the options ask for it.
+function ceolHookStrum(visual) {
+  if (!visual || typeof visual.setUpAudio !== "function" || visual._ceolStrumHooked) return;
+  visual._ceolStrumHooked = true;
+  var original = visual.setUpAudio;
+  visual.setUpAudio = function (options) {
+    var flat = original.apply(this, arguments);
+    if (options && options.ceolStrum) {
+      try {
+        var m = this.getMeterFraction ? this.getMeterFraction() : null;
+        var perBar = this.millisecondsPerMeasure ? this.millisecondsPerMeasure(flat && flat.tempo) : 0;
+        var barFraction = m && m.num && m.den ? m.num / m.den : 1;
+        ceolShapeStrum(flat, perBar / barFraction);
+      } catch (e) {}
+    }
+    return flat;
+  };
 }
