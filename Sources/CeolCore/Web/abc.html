@@ -7,6 +7,7 @@
 <script src="voices.js"></script>
 <script src="abctools.js"></script>
 <script src="sheetmode.js"></script>
+<script src="autochords.js"></script>
 <link rel="stylesheet" href="abcjs-audio.css">
 <style>
   /* The page owns its scrolling: a fixed-height flex column with the sheet
@@ -100,6 +101,10 @@
   }
   #paper { padding: 2px 0 16px; }
   #paper svg { max-width: 100%; height: auto; }
+
+  /* FONN-AUTOCHORDS-1: chords Fonn worked out, in grey, so they are never
+     mistaken for ones written into the tune. */
+  .ceol-auto-chords .abcjs-chord { fill: #8e8e93 !important; font-style: italic; }
 
   /* FONN-SHEETMODE-1: just the music. See sheetmode.js. */
   html.ceol-sheet #topbar { display: none !important; }
@@ -744,8 +749,24 @@ document.getElementById("chordsBtn").addEventListener("click", function () {
 // the music cost a line of sheet music on every tune for a decision nobody
 // makes twice. Same entry point and same name as set.html, so the app drives
 // both the same way.
-function ceolApplySound(voiceId, chords, accompId, accompLevel, style) {
+// FONN-AUTOCHORDS-1: the last tune drawn (to draw it again when made-up
+// chords are turned on or off) and the chords made for it.
+var ceolLastRenderOpts = null;
+var ceolAutoResult = null;
+
+/// The stored tune with the made-up chords written in, for "Keep these
+/// chords" — or "" when there are none to keep.
+function ceolKeepableABC() {
+  return ceolAutoResult ? ceolAutoResult.text : "";
+}
+
+function ceolApplySound(voiceId, chords, accompId, accompLevel, style, autoChords) {
   var voiceChanged = voiceId && voiceId !== melodyVoice;
+  // FONN-AUTOCHORDS-1: made-up chords on or off means drawing the tune again.
+  if (typeof autoChords === "boolean" && autoChords !== ceolAutoChordsOn) {
+    ceolSetAutoChords(autoChords);
+    if (ceolLastRenderOpts) { renderABC(ceolLastRenderOpts); return; }
+  }
   // FONN-ACCOMP-2: picked, strummed or classic. Undefined changes nothing.
   var styleChanged = (typeof style === "string") && style !== accompStyle;
   if (styleChanged) ceolSetAccompStyle(style);
@@ -2812,9 +2833,23 @@ function renderABC(opts) {
   // stored tune is untouched. See ceolTidyRepeatsMapped in abctools.js.
   // The map lets a click on the rendered notation find its way back to the
   // character of opts.abc it actually came from — see ceolElementClicked.
-  var ceolTidied = ceolTidyRepeatsMapped(opts.abc || "");
+  //
+  // FONN-AUTOCHORDS-1: a tune with no chords gets them worked out first, and
+  // the map goes back through them too, so a click on a note still finds the
+  // note in the stored tune.
+  ceolLastRenderOpts = opts;
+  var ceolSource = opts.abc || "";
+  ceolAutoResult = ceolAutoChordsOn ? ceolAutoChords(ceolSource) : null;
+  var ceolTidied = ceolTidyRepeatsMapped(ceolAutoResult ? ceolAutoResult.text : ceolSource);
   currentABC = ceolTidied.text;
-  ceolTidyMapBack = ceolTidied.mapBack;
+  if (ceolAutoResult) {
+    var ceolTidyBack = ceolTidied.mapBack, ceolInserts = ceolAutoResult.inserts;
+    ceolTidyMapBack = function (n) { return ceolAutoChordsMapBack(ceolInserts, ceolTidyBack(n)); };
+  } else {
+    ceolTidyMapBack = ceolTidied.mapBack;
+  }
+  var ceolPaperEl = document.getElementById("paper");
+  if (ceolPaperEl) ceolPaperEl.classList.toggle("ceol-auto-chords", !!ceolAutoResult);
   currentTranspose = opts.transpose || 0;
   syncTransposeUI();
   playbackEnabled = !!opts.playback;

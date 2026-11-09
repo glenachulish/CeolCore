@@ -7,6 +7,7 @@
 <script src="voices.js"></script>
 <script src="abctools.js"></script>
 <script src="sheetmode.js"></script>
+<script src="autochords.js"></script>
 <link rel="stylesheet" href="abcjs-audio.css">
 <style>
   /* Page owns its scrolling (see abc.html for the reasoning). */
@@ -144,6 +145,9 @@
 
   .tune-section.active .tune-hd::after { content: " ♪"; }
   .tune-section svg { max-width: 100%; height: auto; }
+
+  /* FONN-AUTOCHORDS-1: made-up chords in grey (see autochords.js). */
+  .ceol-auto-chords .abcjs-chord { fill: #8e8e93 !important; font-style: italic; }
 
   /* FONN-SHEETMODE-1: just the music. See sheetmode.js. */
   html.ceol-sheet #topbar { display: none !important; }
@@ -798,6 +802,9 @@ function renderVisibleSections() {
   if (_el && _el.clientWidth) lastRenderWidth = _el.clientWidth;
   setData.tunes.forEach(function (t, i) {
     var clean = cleanABC(t.abc);
+    // FONN-AUTOCHORDS-1: grey the chords Fonn made up for this tune.
+    var visHost = document.getElementById("tune-vis-" + i);
+    if (visHost) visHost.classList.toggle("ceol-auto-chords", ceolLastCleanWasAuto);
     // In print mode keep the tune's own headers — on paper there's no app
     // chrome naming it. See abc.html.
     renderFitted("tune-vis-" + i, printMode ? clean : stripDisplayHeaders(clean), {
@@ -1133,8 +1140,13 @@ function applySoundChange(full) {
 // The instrument and the chords now live in the app's ⋯ menu. They are set
 // once and left alone, and on a phone every control kept on the music costs
 // a line of sheet music you could have been reading. The app calls in here.
-function ceolApplySound(voiceId, chords, accompId, accompLevel, style) {
+function ceolApplySound(voiceId, chords, accompId, accompLevel, style, autoChords) {
   var voiceChanged = voiceId && voiceId !== melodyVoice;
+  // FONN-AUTOCHORDS-1: made-up chords on or off means drawing the set again.
+  if (typeof autoChords === "boolean" && autoChords !== ceolAutoChordsOn) {
+    ceolSetAutoChords(autoChords);
+    if (ceolLastSetData) { loadSet(ceolLastSetData); return; }
+  }
   // FONN-ACCOMP-2: picked, strummed or classic. Undefined changes nothing.
   var styleChanged = (typeof style === "string") && style !== accompStyle;
   if (styleChanged) ceolSetAccompStyle(style);
@@ -1162,7 +1174,19 @@ function field(abc, name) {
   return m ? m[1].trim() : null;
 }
 
+// FONN-AUTOCHORDS-1: whether the last tune cleaned had chords made up for it,
+// so its drawing can be greyed.
+var ceolLastCleanWasAuto = false;
+
 function cleanABC(abc) {
+  // FONN-AUTOCHORDS-1: chords for a tune with none, before anything else, so
+  // the hidden and visible engravings — and the character map between them —
+  // all see the same text.
+  ceolLastCleanWasAuto = false;
+  if (ceolAutoChordsOn) {
+    var made = ceolAutoChords(abc);
+    if (made) { abc = made.text; ceolLastCleanWasAuto = true; }
+  }
   // ":| |:" → "::" — one barline instead of two, so a wrapped line cannot
   // strand the opening repeat on the end of the line before. Applied here and
   // in buildCombined, so the visible and hidden engravings match.
@@ -2788,7 +2812,11 @@ var loadedSignature = null;
 // transfer of that waveform to the app, and the total.
 var openedAt = 0, renderedAt = 0, handedOverAt = 0;
 
+// FONN-AUTOCHORDS-1: to load the set again when made-up chords go on or off.
+var ceolLastSetData = null;
+
 function loadSet(data) {
+  ceolLastSetData = data;
   openedAt = Date.now(); renderedAt = 0; handedOverAt = 0;
   var signature = JSON.stringify(data);
   if (signature === loadedSignature) return;
