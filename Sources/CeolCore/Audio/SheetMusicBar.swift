@@ -17,12 +17,19 @@ public struct SheetMusicBar: View {
     @ObservedObject var metronome: Metronome
     /// The full metronome panel, for the click's sound and spacing.
     var openMetronomeSettings: () -> Void
+    /// FONN-DRONE-1: the drone, beside the metronome, and its panel.
+    let drone: Drone?
+    var openDroneSettings: () -> Void
 
     public init(sheet: SheetMode, metronome: Metronome,
-                openMetronomeSettings: @escaping () -> Void) {
+                drone: Drone? = nil,
+                openMetronomeSettings: @escaping () -> Void,
+                openDroneSettings: @escaping () -> Void = {}) {
         self.sheet = sheet
         self.metronome = metronome
+        self.drone = drone
         self.openMetronomeSettings = openMetronomeSettings
+        self.openDroneSettings = openDroneSettings
     }
 
     public var body: some View {
@@ -139,6 +146,10 @@ public struct SheetMusicBar: View {
             Button("Tap") { metronome.tap() }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+
+            if let drone {
+                DroneButton(drone: drone, openPanel: openDroneSettings)
+            }
         }
         .buttonStyle(.bordered)
     }

@@ -1,0 +1,10 @@
+Drone sounds bundled with Fonn
+
+smallpipes-low-G2.wav, smallpipes-high-G3.wav
+  Looped from the drone recordings in "Bagpipe" (FreePats, version 2026-08-06):
+  a bagpipe in G designed by Rémy Dubois and built by Olle Geris, recorded in
+  August 2020 by Gilles Sadowski. https://freepats.zenvoid.org/Ethnic/bagpipe.html
+  Creative Commons CC0 1.0 public domain dedication.
+
+reed-A2.wav
+  Synthesised for Fonn. No third-party material.
