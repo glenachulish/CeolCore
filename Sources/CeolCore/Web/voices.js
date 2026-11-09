@@ -21,7 +21,7 @@ var CEOL_VOICES = [
   { id: "violin",                label: "Fiddle",        program: 40,  offline: true },
   { id: "accordion",             label: "Accordion",     program: 21 },
   { id: "banjo",                 label: "Banjo",         program: 105 },
-  { id: "acoustic_guitar_nylon", label: "Guitar",        program: 24 },
+  { id: "acoustic_guitar_nylon", label: "Guitar",        program: 24,  offline: true },
   { id: "orchestral_harp",       label: "Harp",          program: 46 },
   { id: "acoustic_grand_piano",  label: "Piano",         program: 0 },
 ];
