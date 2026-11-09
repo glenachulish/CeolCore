@@ -104,7 +104,7 @@
 
   /* FONN-AUTOCHORDS-1: chords Fonn worked out, in grey, so they are never
      mistaken for ones written into the tune. */
-  .ceol-auto-chords .abcjs-chord { fill: #8e8e93 !important; font-style: italic; }
+  .ceol-auto-chords .abcjs-chord { fill: #b4b4b9 !important; font-style: italic; }
 
   /* FONN-SHEETMODE-1: just the music. See sheetmode.js. */
   html.ceol-sheet #topbar { display: none !important; }
@@ -1490,6 +1490,7 @@ function primeTune(done) {
   function finish() {
     if (settled) return;
     settled = true;
+    ceolTameAudio(synthControl);   // FONN-CLEANSOUND-1: no clipping
     setAudioReady(true);
     if (done) done();
     // After the caller has rebuilt its maps: the waveform has changed, so the

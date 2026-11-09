@@ -111,7 +111,40 @@ function ceolShowRewound(synthControl) {
 /// identical from the page — so each exit says which one it was.
 var ceolAudioError = "";
 
+// FONN-CLEANSOUND-1
+/// Bring the rendered performance down under full scale, evenly, if it goes
+/// over. The samples are played at ×3 (CEOL_FONT_GAIN); melody, bass and
+/// chords together often added up past 1.0, and what went past was cut off
+/// flat — which is what made the flute sound fuzzy, worst on loud notes and
+/// with the backing on. Scaling the whole thing by one factor keeps the
+/// balance and the dynamics exactly as they were, just without the clipping.
+/// Done in place, on abcjs's own buffer, so the Web Audio path (the Mac, and
+/// the phone before the native player takes over) is cleaned too. Safe to
+/// call more than once: the second time there is nothing over the line.
+function ceolTameAudio(synthControl) {
+  try {
+    var buffer = synthControl && synthControl.midiBuffer && synthControl.midiBuffer.getAudioBuffer();
+    if (!buffer || !buffer.length) return;
+    var peak = 0, c, i, data;
+    for (c = 0; c < buffer.numberOfChannels; c++) {
+      data = buffer.getChannelData(c);
+      for (i = 0; i < data.length; i++) {
+        var a = data[i] < 0 ? -data[i] : data[i];
+        if (a > peak) peak = a;
+      }
+    }
+    var ceiling = 0.89;                   // about −1 dBFS
+    if (peak <= ceiling) return;
+    var k = ceiling / peak;
+    for (c = 0; c < buffer.numberOfChannels; c++) {
+      data = buffer.getChannelData(c);
+      for (i = 0; i < data.length; i++) data[i] *= k;
+    }
+  } catch (e) {}
+}
+
 function ceolRenderedWav(synthControl) {
+  ceolTameAudio(synthControl);
   var buffer = null;
   if (!synthControl) { ceolAudioError = "no transport"; return null; }
   if (!synthControl.midiBuffer) { ceolAudioError = "no midiBuffer"; return null; }

@@ -147,7 +147,7 @@
   .tune-section svg { max-width: 100%; height: auto; }
 
   /* FONN-AUTOCHORDS-1: made-up chords in grey (see autochords.js). */
-  .ceol-auto-chords .abcjs-chord { fill: #8e8e93 !important; font-style: italic; }
+  .ceol-auto-chords .abcjs-chord { fill: #b4b4b9 !important; font-style: italic; }
 
   /* FONN-SHEETMODE-1: just the music. See sheetmode.js. */
   html.ceol-sheet #topbar { display: none !important; }
@@ -1114,6 +1114,7 @@ function applySoundChange(full) {
   try {
     synthControl.setTune(hiddenVisual, true, audioParams(hiddenVisual))
       .then(function (result) {
+        ceolTameAudio(synthControl);   // FONN-CLEANSOUND-1: no clipping
         lastTuneError = "";
         var status = result && result.notesStatus;
         if (status) {
@@ -2933,6 +2934,7 @@ function rebuildAudio(primeNow) {
   ceolWhenFontReady(function () {
     synthControl.setTune(hiddenVisual, true, audioParams(hiddenVisual))
       .then(function (result) {
+        ceolTameAudio(synthControl);   // FONN-CLEANSOUND-1: no clipping
         setTuneMs = Date.now() - t0;
         var status = result && result.notesStatus;
         if (status) {

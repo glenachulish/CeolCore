@@ -133,21 +133,26 @@ function ceolSetAccompStyle(style) {
 }
 
 /// The gchord pattern for a metre and style, or null for abcjs's own.
-/// One letter per quaver of the bar (abcjs counts 8 × num / den of them).
+/// One letter per quaver of the bar (abcjs counts 8 × num / den of them), and
+/// abcjs sounds each letter for exactly one quaver — so a rest really is
+/// silence. The first strummed patterns had rests between the strums and
+/// came out as a short chord on beats two and four with nothing round it
+/// (FONN-ACCOMP-3); a strum fills the bar, the way a guitarist's hand keeps
+/// moving whether or not it touches the strings.
 function ceolGchordFor(num, den, style) {
   if (style === "classic" || !num || !den) return null;
   var slots = Math.round(8 * num / den);
   if (slots < 2) return null;
   var picked = style === "picked";
-  // Waltzes and mazurkas: one bass, two light touches.
-  if (num === 3 && den === 4) return picked ? "fzIzHz" : "fzczcz";
+  // Waltzes and mazurkas: the bass, then the chord on two and three.
+  if (num === 3 && den === 4) return picked ? "fIHIHI" : "fccccc";
   var unit;
   if (den === 8 && num % 3 === 0) {
-    unit = picked ? "fIH" : "fzc";             // jigs, slip jigs, slides: in threes
+    unit = picked ? "fIH" : "fcc";             // jigs, slip jigs, slides: in threes
   } else if (slots % 4 === 0) {
-    unit = picked ? "fIHI" : "fzcz";           // reels, hornpipes, polkas: in twos
+    unit = picked ? "fIHI" : "fccc";           // reels, hornpipes, polkas: in twos
   } else if (slots % 3 === 0) {
-    unit = picked ? "fIH" : "fzc";
+    unit = picked ? "fIH" : "fcc";
   } else if (slots % 2 === 0) {
     unit = picked ? "fI" : "fc";
   } else {
@@ -256,7 +261,8 @@ function audioParams(visual) {
     // Under the tune, not beside it: the plucked notes a little softer than
     // the bass, and both below the level chosen for the old boom-chick.
     params.bassvol = Math.round(accompVol * 0.8);
-    params.chordvol = Math.round(accompVol * (accompStyle === "picked" ? 0.65 : 0.55));
+    // A strum is every chord note on every quaver, so it sits lower still.
+    params.chordvol = Math.round(accompVol * (accompStyle === "picked" ? 0.65 : 0.42));
   }
   return params;
 }
