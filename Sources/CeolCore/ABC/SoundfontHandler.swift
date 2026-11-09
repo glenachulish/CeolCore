@@ -10,7 +10,7 @@ import WebKit
 /// answered from, in order:
 ///
 ///   1. the app bundle — the flute, whistle and fiddle samples carried over
-///      from the Pi, the fiddle and accordion (Fonn's own recordings, like the flute and whistle), and
+///      from the Pi, the fiddle (VSCO-2) and accordion (GeneralUser GS), and
 ///      both guitars (nylon for picked backing, steel-string for strumming),
 ///      which work on a plane or in a cellar;
 ///   2. the on-disk cache — anything played once before, while online;
@@ -39,10 +39,11 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
     private nonisolated static let cdn = "https://paulrosen.github.io/midi-js-soundfonts/FluidR3_GM/"
 
     /// abcjs derives the folder name from the MIDI program, so two instruments
-    /// that share a program share a name. Concert Flute and Irish Flute are
-    /// both program 73; the voice baked into the URL breaks the tie.
+    /// that share a program share a name. Concert Flute plays as abcjs's
+    /// "piccolo" (program 72) so that it does not share a sample cache slot with
+    /// Irish Flute (73); the voice baked into the URL says which folder is meant.
     private static let voiceOverrides: [String: (abcName: String, folder: String)] = [
-        "mflute": (abcName: "flute", folder: "mflute"),
+        "mflute": (abcName: "piccolo", folder: "mflute"),
     ]
 
 

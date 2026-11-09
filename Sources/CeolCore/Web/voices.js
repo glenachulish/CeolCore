@@ -11,12 +11,16 @@
 // the common instruments work in a hall with no reception.
 //
 // The voice id is abcjs's own name for the program, with one exception:
-// Concert Flute and Irish Flute are both program 73, so "mflute" carries the
-// distinction through the URL for the handler to pick up.
+// "mflute". abcjs remembers every sample it has loaded under the instrument
+// NAME alone, whatever URL it came from, so two voices sharing a program share
+// a name and the second is silently played with the first's samples
+// (FONN-LIVESOUND-2: Irish Flute <-> Concert Flute changed nothing until you
+// left the tune). Concert Flute therefore asks for program 72, abcjs's
+// "piccolo", and the handler serves the mflute folder for that name.
 
 var CEOL_VOICES = [
   { id: "flute",                 label: "Irish Flute",   program: 73,  offline: true },
-  { id: "mflute",                label: "Concert Flute", program: 73,  offline: true },
+  { id: "mflute",                label: "Concert Flute", program: 72,  offline: true },
   { id: "whistle",               label: "Tin Whistle",   program: 78,  offline: true },
   { id: "violin",                label: "Fiddle",        program: 40,  offline: true },
   { id: "accordion",             label: "Accordion",     program: 21,  offline: true },

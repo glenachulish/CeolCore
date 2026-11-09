@@ -25,7 +25,7 @@ public struct CeolVoice: Identifiable, Hashable, Sendable {
 
     public static let all: [CeolVoice] = [
         CeolVoice(id: "flute",                 label: "Irish Flute",   offline: true,  program: 73),
-        CeolVoice(id: "mflute",                label: "Concert Flute", offline: true,  program: 73),
+        CeolVoice(id: "mflute",                label: "Concert Flute", offline: true,  program: 72),
         CeolVoice(id: "whistle",               label: "Tin Whistle",   offline: true,  program: 78),
         CeolVoice(id: "violin",                label: "Fiddle",        offline: true,  program: 40),
         CeolVoice(id: "accordion",             label: "Accordion",     offline: true,  program: 21),
