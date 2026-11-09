@@ -90,7 +90,7 @@ public enum AccompanimentStyle: String, CaseIterable, Identifiable, Sendable {
     public var label: String {
         switch self {
         case .picked:   return "Picked — gentle, one note at a time"
-        case .strummed: return "Strummed — light, on the off-beats"
+        case .strummed: return "Strummed — a guitarist's strum"
         case .classic:  return "Boom-chick — as before"
         }
     }
@@ -102,4 +102,34 @@ public enum AccompanimentStyle: String, CaseIterable, Identifiable, Sendable {
         }
     }
     public static let key = "ceol.accompStyle"
+}
+
+/// FONN-STRUM-4: how the strum goes when the backing is strummed. The same
+/// four on the phone and the Mac, stored under the key the pages read; each
+/// fits itself to the tune's metre (a reel, a jig, a waltz).
+public enum StrumPattern: String, CaseIterable, Identifiable, Sendable {
+    case folk, steady, light, boomchuck
+    public var id: String { rawValue }
+    public var label: String {
+        switch self {
+        case .folk:      return "Folk"
+        case .steady:    return "Steady"
+        case .light:     return "Light"
+        case .boomchuck: return "Boom-chuck"
+        }
+    }
+    /// One line for the panel, saying what you'll hear.
+    public var detail: String {
+        switch self {
+        case .folk:
+            return "Down, miss, down-up, miss, up, down-up — with a swing to it."
+        case .steady:
+            return "Down-up on every note, driving the tune along."
+        case .light:
+            return "Just the beats, so the tune has plenty of room."
+        case .boomchuck:
+            return "A bass note, then a short damped chord — oom-pah."
+        }
+    }
+    public static let key = "ceol.strumPattern"
 }

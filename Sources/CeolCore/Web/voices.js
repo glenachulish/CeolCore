@@ -269,6 +269,7 @@ function audioParams(visual) {
   // shaping happens on the note list abcjs builds, before it fetches samples,
   // so any string added here gets its sample loaded like the rest.
   params.ceolStrum = accompStyle === "strummed";
+  params.ceolStrumPattern = strumPattern;
   ceolHookStrum(visual);
   return params;
 }
@@ -297,11 +298,44 @@ function audioParams(visual) {
 // bass, as it is on a guitar.
 
 var CEOL_STRUM_STRINGS = [40, 45, 50, 55, 59, 64];   // E2 A2 D3 G3 B3 E4
+// One letter per quaver from the start of the bar:
+//   D  a full down-stroke        d  a lighter down-stroke (top five strings)
+//   u  an up-stroke (top three)  .  the hand moves but misses the strings
+//   B  the bass string alone     A  the alternate bass (the next string up)
+//   c  a chuck: a short, damped down-stroke on the top four strings
 var CEOL_STRUM_PATTERNS = {
-  "4/4": "D.du.udu", "2/2": "D.du.udu", "4/8": "D.du", "2/4": "D.du",
-  "6/8": "D.uD.u", "9/8": "D.uD.uD.u", "12/8": "D.uD.uD.uD.u",
-  "3/4": "D.dudu", "3/8": "D.u", "6/4": "D.duduD.dudu"
+  folk: {
+    "4/4": "D.du.udu", "2/2": "D.du.udu", "4/8": "D.du", "2/4": "D.du",
+    "6/8": "D.uD.u", "9/8": "D.uD.uD.u", "12/8": "D.uD.uD.uD.u",
+    "3/4": "D.dudu", "3/8": "D.u", "6/4": "D.duduD.dudu"
+  },
+  steady: {
+    "4/4": "DuduDudu", "2/2": "DuduDudu", "4/8": "Dudu", "2/4": "Dudu",
+    "6/8": "DudDud", "9/8": "DudDudDud", "12/8": "DudDudDudDud",
+    "3/4": "Dududu", "3/8": "Dud", "6/4": "DududuDududu"
+  },
+  light: {
+    "4/4": "D.d.D.d.", "2/2": "D.d.D.d.", "4/8": "D.d.", "2/4": "D.d.",
+    "6/8": "D..D..", "9/8": "D..D..D..", "12/8": "D..D..D..D..",
+    "3/4": "D.d.d.", "3/8": "D..", "6/4": "D.d.d.D.d.d."
+  },
+  boomchuck: {
+    "4/4": "B.c.A.c.", "2/2": "B.c.A.c.", "4/8": "B.c.", "2/4": "B.c.",
+    "6/8": "B..c..", "9/8": "B..c..A..", "12/8": "B..c..A..c..",
+    "3/4": "B.c.c.", "3/8": "B..", "6/4": "B.c.c.A.c.c."
+  }
 };
+var strumPattern = "folk";
+try {
+  var _sp = localStorage.getItem("ceol.strumPattern");
+  if (_sp && CEOL_STRUM_PATTERNS[_sp]) strumPattern = _sp;
+} catch (e) {}
+
+function ceolSetStrumPattern(name) {
+  if (!CEOL_STRUM_PATTERNS[name]) return;
+  strumPattern = name;
+  try { localStorage.setItem("ceol.strumPattern", name); } catch (e) {}
+}
 var CEOL_NYLON = 24, CEOL_STEEL = 25;
 
 /// The chord's notes on a guitar in first position: one pitch per string
@@ -355,15 +389,16 @@ function ceolStrumVoicing(pitches) {
   return notes.length ? notes : pitches.slice().sort(function (a, b) { return a - b; });
 }
 
-function ceolShapeStrum(flat, msPerWhole, meter) {
+function ceolShapeStrum(flat, msPerWhole, meter, patternName) {
   if (!flat || !flat.tracks || !(msPerWhole > 0)) return;
   var QUAVER = 0.125;
   var key = meter ? meter.num + "/" + meter.den : "";
-  var pattern = CEOL_STRUM_PATTERNS[key] || null;
+  var table = CEOL_STRUM_PATTERNS[patternName] || CEOL_STRUM_PATTERNS.folk;
+  var pattern = table[key] || null;
   var slots = meter ? Math.round(8 * meter.num / meter.den) : 8;
   if (!pattern || pattern.length !== slots) pattern = null;
-  var gapMs = { D: 13, d: 10, u: 8 };
-  var level = { D: 1.15, d: 0.9, u: 0.66 };
+  var gapMs = { D: 13, d: 10, u: 8, B: 0, A: 0, c: 7 };
+  var level = { D: 1.15, d: 0.9, u: 0.66, B: 1.2, A: 1.1, c: 0.95 };
 
   for (var t = 1; t < flat.tracks.length; t++) {
     var track = flat.tracks[t];
@@ -425,8 +460,20 @@ function ceolShapeStrum(flat, msPerWhole, meter) {
       var kind = pattern ? pattern.charAt(pos) : (pos === 0 ? "D" : (pos % 2 ? "u" : "d"));
       if (kind === ".") continue;
       var shape = ceolStrumVoicing(c.pitches);
-      var strings = kind === "u" ? shape.slice(-3).reverse()
-                  : kind === "d" && shape.length > 4 ? shape.slice(1) : shape;
+      var strings;
+      if (kind === "u") strings = shape.slice(-3).reverse();
+      else if (kind === "d") strings = shape.length > 4 ? shape.slice(1) : shape;
+      else if (kind === "B" || kind === "A") {
+        // The bass: the lowest root on the guitar for B, the lowest fifth for
+        // A -- D's boom is the open D string, its alternate the open A below.
+        var rootPc = ((shape[0] % 12) + 12) % 12;
+        var want = kind === "B" ? rootPc : (rootPc + 7) % 12;
+        var low = 40;
+        while (((low % 12) + 12) % 12 !== want) low++;
+        strings = [low];
+      }
+      else if (kind === "c") strings = shape.slice(-4);
+      else strings = shape;
       strokes.push({ start: c.start, kind: kind, strings: strings,
                      chordKey: shape.join(","), template: c.template,
                      base: c.base || 40 });
@@ -446,7 +493,8 @@ function ceolShapeStrum(flat, msPerWhole, meter) {
             until = later.start; break;
           }
         }
-        until = Math.min(until, st.start + QUAVER * 3);
+        // A chuck is damped straight away; everything else rings.
+        until = Math.min(until, st.start + QUAVER * (st.kind === "c" ? 0.9 : 3));
         var start = st.start + k * gap;
         if (until - start < QUAVER * 0.3) until = start + QUAVER * 0.3;
         var shade = 1 - 0.04 * k;
@@ -481,7 +529,7 @@ function ceolHookStrum(visual) {
         var m = this.getMeterFraction ? this.getMeterFraction() : null;
         var perBar = this.millisecondsPerMeasure ? this.millisecondsPerMeasure(flat && flat.tempo) : 0;
         var barFraction = m && m.num && m.den ? m.num / m.den : 1;
-        ceolShapeStrum(flat, perBar / barFraction, m);
+        ceolShapeStrum(flat, perBar / barFraction, m, options.ceolStrumPattern);
       } catch (e) {}
     }
     return flat;

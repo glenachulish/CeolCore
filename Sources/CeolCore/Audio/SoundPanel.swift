@@ -18,6 +18,7 @@ public struct SoundPanel: View {
     @AppStorage("ceol.accompVol") private var accompLevel = 85
     @AppStorage(AccompanimentStyle.key) private var accompStyle = AccompanimentStyle.picked.rawValue
     @AppStorage(AutoChords.key) private var autoChords = true
+    @AppStorage(StrumPattern.key) private var strumPattern = StrumPattern.folk.rawValue
 
     let drone: Drone?
     var onClose: (() -> Void)?
@@ -77,6 +78,15 @@ public struct SoundPanel: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    // FONN-STRUM-4: only meaningful when strumming.
+                    if accompStyle == AccompanimentStyle.strummed.rawValue {
+                        Picker("Strum", selection: $strumPattern) {
+                            ForEach(StrumPattern.allCases) { pattern in
+                                Text(pattern.label).tag(pattern.rawValue)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
                     Picker("Volume", selection: $accompLevel) {
                         ForEach(Self.levels, id: \.velocity) { level in
                             Text(level.label).tag(level.velocity)
@@ -88,9 +98,7 @@ public struct SoundPanel: View {
             } header: {
                 Text("Backing")
             } footer: {
-                Text(chordsOn
-                     ? "Plays the chords written above the music. Chords Fonn suggests are shown in grey."
-                     : "No backing. Chords on the music are still shown.")
+                Text(backingFooter)
             }
 
             if let drone {
@@ -112,6 +120,16 @@ public struct SoundPanel: View {
             }
         }
         .frame(minWidth: 320, idealWidth: 380, minHeight: 420)
+    }
+
+    private var backingFooter: String {
+        guard chordsOn else { return "No backing. Chords on the music are still shown." }
+        var text = "Plays the chords written above the music. Chords Fonn suggests are shown in grey."
+        if accompStyle == AccompanimentStyle.strummed.rawValue {
+            let pattern = StrumPattern(rawValue: strumPattern) ?? .folk
+            text = pattern.label + ": " + pattern.detail + " " + text
+        }
+        return text
     }
 
     /// For the button that opens the panel: "Irish Flute · Guitar · Drone D",

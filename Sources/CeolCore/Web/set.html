@@ -1146,7 +1146,7 @@ function applySoundChange(full) {
 // The instrument and the chords now live in the app's ⋯ menu. They are set
 // once and left alone, and on a phone every control kept on the music costs
 // a line of sheet music you could have been reading. The app calls in here.
-function ceolApplySound(voiceId, chords, accompId, accompLevel, style, autoChords) {
+function ceolApplySound(voiceId, chords, accompId, accompLevel, style, autoChords, strum) {
   var voiceChanged = voiceId && voiceId !== melodyVoice;
   // FONN-AUTOCHORDS-1: made-up chords on or off means drawing the set again.
   if (typeof autoChords === "boolean" && autoChords !== ceolAutoChordsOn) {
@@ -1156,13 +1156,18 @@ function ceolApplySound(voiceId, chords, accompId, accompLevel, style, autoChord
   // FONN-ACCOMP-2: picked, strummed or classic. Undefined changes nothing.
   var styleChanged = (typeof style === "string") && style !== accompStyle;
   if (styleChanged) ceolSetAccompStyle(style);
+  // FONN-STRUM-4: which strum pattern. Undefined changes nothing.
+  var strumChanged = (typeof strum === "string") && strum !== strumPattern
+    && !!CEOL_STRUM_PATTERNS[strum];
+  if (strumChanged) ceolSetStrumPattern(strum);
   var chordsChanged = (typeof chords === "boolean") && chords !== chordsOn;
   // A string, because "" is a real value here -- it means abcjs's own default.
   // Undefined means "not mentioned", which is how the Mac goes on calling this
   // with two arguments and changing nothing it does not know about.
   var accompChanged = (typeof accompId === "string") && accompId !== accompVoice;
   var levelChanged = (typeof accompLevel === "number") && accompLevel !== accompVol;
-  if (!voiceChanged && !chordsChanged && !accompChanged && !levelChanged && !styleChanged) return;
+  if (!voiceChanged && !chordsChanged && !accompChanged && !levelChanged && !styleChanged
+      && !strumChanged) return;
   if (voiceChanged) ceolSetVoice(voiceId);
   if (accompChanged) ceolSetAccomp(accompId);
   if (levelChanged) ceolSetAccompVol(accompLevel);
