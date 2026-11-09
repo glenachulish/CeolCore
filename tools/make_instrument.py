@@ -40,7 +40,10 @@ NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"]
 
 # Sensible ranges, as MIDI notes. Fiddle: G3 to about E7. Accordion (melody
 # side of a box): roughly F3 to C7.
-RANGES = {"violin": (55, 100), "accordion": (53, 96)}
+RANGES = {"violin": (55, 100), "accordion": (53, 96), "flute": (59, 96), "whistle": (71, 100)}
+# The whistle is written an octave below how it sounds, and Fonn names its
+# samples by the written note: whistle-D4.mp3 sounds D5.
+NAME_OFFSET = {"whistle": -12}
 
 
 def note_name(m):
@@ -98,10 +101,29 @@ def segments(x, f0, ap, low, high, min_ms=110):
     # Relative to the loud passages, not the quiet ones: a tune played
     # straight through has no silences, so its quietest fifth is still music.
     floor = max(np.percentile(rms, 99) * 0.05 if len(rms) else 0, 1e-4)
-    midi = np.where(f0 > 0, 69 + 12 * np.log2(np.maximum(f0, 1e-9) / 440), np.nan)
+    raw = np.where(f0 > 0, 69 + 12 * np.log2(np.maximum(f0, 1e-9) / 440), np.nan)
+    # Smooth over ~50 ms so vibrato and a scratchy frame or two don't break a
+    # held note into pieces; a real change of note lasts longer than that.
+    midi = raw.copy()
+    k = 4
+    for i in range(len(raw)):
+        w = raw[max(i - k, 0):i + k + 1]
+        w = w[~np.isnan(w)]
+        midi[i] = np.median(w) if len(w) > k else np.nan
     near = np.round(midi)
-    ok = (~np.isnan(midi)) & (np.abs(midi - near) < 0.4) & (ap < 0.2) & (rms > floor) \
+    # Any steady note counts, however far out of tune -- a held note can sit
+    # nearly a quarter-tone off. Better-tuned examples are preferred in score().
+    ok = (~np.isnan(midi)) & (np.abs(midi - near) <= 0.5) & (ap < 0.25) & (rms > floor) \
         & (near >= low) & (near <= high)
+    # Bridge dropouts of up to 3 frames (~17 ms) inside a note.
+    for i in range(1, len(ok) - 1):
+        if not ok[i]:
+            j = i
+            while j < len(ok) and not ok[j] and j - i < 3:
+                j += 1
+            if j < len(ok) and ok[j] and ok[i - 1] and near[i - 1] == near[j]:
+                ok[i:j] = True
+                near[i:j] = near[j]
     out, i, n = [], 0, len(f0)
     min_frames = int(min_ms / 1000 * SR / HOP)
     while i < n:
@@ -122,11 +144,27 @@ def segments(x, f0, ap, low, high, min_ms=110):
     return out
 
 
+def clipped(y):
+    """True when the waveform's tops are flattened -- real clipping.
+
+    A level above 1.0 alone is not enough: a loud recording decoded from AAC
+    comes back with its true peaks above full scale, smooth and undamaged.
+    Clipping shows as runs of nearly equal samples along the top.
+    """
+    peak = np.max(np.abs(y))
+    if peak < 0.95:
+        return False
+    top = np.abs(y) > 0.97 * peak
+    flat = np.abs(np.diff(y)) < 0.002 * peak
+    return np.sum(top[1:] & flat) / max(np.sum(top), 1) > 0.25
+
+
 def score(seg):
     secs = (seg["end"] - seg["start"]) * HOP / SR
     # Long and steady counts for most; a start that rises from quiet (a fresh
     # note, not one slurred into) helps; heavy vibrato or a wobbly pitch hurts.
-    return min(secs, 1.5) * 2 + (0.6 if seg["onset"] < 0.5 else 0) - seg["wobble"] / 25
+    return min(secs, 1.5) * 2 + (0.6 if seg["onset"] < 0.5 else 0) - seg["wobble"] / 25 \
+        - abs(seg["cents"]) / 60
 
 
 def lengthen(y, want):
@@ -171,13 +209,15 @@ def main():
     ap.add_argument("--low", type=int, help="lowest MIDI note to write")
     ap.add_argument("--high", type=int, help="highest MIDI note to write")
     ap.add_argument("--seconds", type=float, default=3.0, help="length of each sample")
-    ap.add_argument("--fill", default="21-108", help="MIDI range to fill by retuning, e.g. 21-108")
+    ap.add_argument("--fill", default="21-108", help="MIDI range to fill by retuning, e.g. 21-108 (sounding pitch)")
+    ap.add_argument("--name-offset", type=int, help="semitones added to the note in each file name")
     args = ap.parse_args()
 
     low, high = RANGES.get(args.instrument, (40, 100))
     low, high = args.low or low, args.high or high
     fill_lo, fill_hi = (int(v) for v in args.fill.split("-"))
     os.makedirs(args.out, exist_ok=True)
+    offset = args.name_offset if args.name_offset is not None else NAME_OFFSET.get(args.instrument, 0)
 
     best = {}                                   # note -> (score, seg, audio)
     for path in args.recordings:
@@ -188,7 +228,7 @@ def main():
             a = max(seg["start"] * HOP - int(0.02 * SR), 0)
             b = seg["end"] * HOP + FRAME // 2
             clip = x[a:b]
-            if np.max(np.abs(clip)) > 0.99:     # clipped: skip it
+            if clipped(clip):
                 continue
             if seg["note"] not in best or sc > best[seg["note"]][0]:
                 seg["file"], seg["at"] = os.path.basename(path), round(a / SR, 2)
@@ -196,6 +236,13 @@ def main():
 
     if not best:
         sys.exit("No clear notes found. Is it a solo recording of one instrument?")
+
+    # A note heard only in passing (under ~0.35 s) makes a poor loop. If a
+    # neighbour a semitone away was held, retune that instead.
+    held = {n for n, (_, sg, _) in best.items() if (sg["end"] - sg["start"]) * HOP / SR >= 0.35}
+    for n in list(best):
+        if n not in held and (n - 1 in held or n + 1 in held):
+            del best[n]
 
     want = int(args.seconds * SR)
     level = np.median([np.sqrt(np.mean(c ** 2)) for _, _, c in best.values()])
@@ -225,7 +272,8 @@ def main():
         peak = np.max(np.abs(y))
         if peak > 0.89:
             y *= 0.89 / peak
-        write_mp3(y, os.path.join(args.out, f"{args.instrument}-{note_name(note)}.mp3"))
+        if 0 <= note + offset <= 127:
+            write_mp3(y, os.path.join(args.out, f"{args.instrument}-{note_name(note + offset)}.mp3"))
 
     with open(os.path.join(args.out, "report.json"), "w") as f:
         json.dump(report, f, indent=1)
