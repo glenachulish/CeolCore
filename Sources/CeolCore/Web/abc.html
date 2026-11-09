@@ -6,6 +6,7 @@
 <script src="abcjs-basic-min.js"></script>
 <script src="voices.js"></script>
 <script src="abctools.js"></script>
+<script src="sheetmode.js"></script>
 <link rel="stylesheet" href="abcjs-audio.css">
 <style>
   /* The page owns its scrolling: a fixed-height flex column with the sheet
@@ -99,6 +100,10 @@
   }
   #paper { padding: 2px 0 16px; }
   #paper svg { max-width: 100%; height: auto; }
+
+  /* FONN-SHEETMODE-1: just the music. See sheetmode.js. */
+  html.ceol-sheet #topbar { display: none !important; }
+  html.ceol-sheet #scroller { overflow-x: auto; }
   /* Hidden render drives the audio; kept out of sight but laid out so abcjs
      produces real geometry (Pi approach). */
   #hidden { position: absolute; left: -99999px; top: 0; width: 800px; overflow: hidden; }
@@ -2508,6 +2513,27 @@ function renderVisible() {
   patchSvgViewBox("paper");
   rebuildMaps();
   if (fitWhole) applyFitWhole();   // FONN-FITWHOLE-1
+  if (typeof ceolSheetAfterRender === "function") ceolSheetAfterRender();   // FONN-SHEETMODE-1
+}
+
+// FONN-SHEETMODE-1: what sheetmode.js needs to scroll this tune in time.
+function ceolScrollSections() {
+  var repeatFactor = 1;
+  try {
+    if (visualObj && barMap.length) {
+      // Building the timer is what makes abcjs work out the total time.
+      if (!visualObj.__ceolTimed) { new ABCJS.TimingCallbacks(visualObj, {}); visualObj.__ceolTimed = true; }
+      var total = visualObj.getTotalTime() * 1000;
+      var perBar = visualObj.millisecondsPerMeasure();
+      if (total > 0 && perBar > 0) repeatFactor = total / (barMap.length * perBar);
+    }
+  } catch (e) {}
+  return [{
+    container: document.getElementById("paper"),
+    beats: beatsPerBarFromMeter(),
+    repeatFactor: Math.max(1, Math.min(4, repeatFactor)),
+    times: 1
+  }];
 }
 
 // Port of the Pi's _patchSvgViewBox, extended to include content that abcjs

@@ -6,6 +6,7 @@
 <script src="abcjs-basic-min.js"></script>
 <script src="voices.js"></script>
 <script src="abctools.js"></script>
+<script src="sheetmode.js"></script>
 <link rel="stylesheet" href="abcjs-audio.css">
 <style>
   /* Page owns its scrolling (see abc.html for the reasoning). */
@@ -143,6 +144,10 @@
 
   .tune-section.active .tune-hd::after { content: " ♪"; }
   .tune-section svg { max-width: 100%; height: auto; }
+
+  /* FONN-SHEETMODE-1: just the music. See sheetmode.js. */
+  html.ceol-sheet #topbar { display: none !important; }
+  html.ceol-sheet #scroller { overflow-x: auto; }
   .ceol-sel { fill: #c9a227; pointer-events: none; }
   #hiddenRender, #measureRender { position: absolute; left: -99999px; top: 0; width: 800px; overflow: hidden; }
 
@@ -816,6 +821,26 @@ function rebuildSectionMaps() {
   setData.tunes.forEach(function (t, i) { drawTapTargets(i); });
   buildTimingAndMaps();
   updateLoopShading();
+  if (typeof ceolSheetAfterRender === "function") ceolSheetAfterRender();   // FONN-SHEETMODE-1
+}
+
+// FONN-SHEETMODE-1: what sheetmode.js needs to scroll the set in time — each
+// tune's beats, how much its repeats lengthen it, and its ×1/×2/×3.
+function ceolScrollSections() {
+  if (!setData || !setData.tunes) return [];
+  return setData.tunes.map(function (t, i) {
+    var bars = visBars[i] ? visBars[i].length : 0;
+    var repeatFactor = 1;
+    if (bars && tuneMsPerBar[i] > 0 && tuneDurMs[i] > 0) {
+      repeatFactor = tuneDurMs[i] / (bars * tuneMsPerBar[i]);
+    }
+    return {
+      container: document.getElementById("tune-vis-" + i),
+      beats: tuneBeats[i] || 4,
+      repeatFactor: Math.max(1, Math.min(4, repeatFactor)),
+      times: tuneReps[i] || 1
+    };
+  });
 }
 
 // Build the note map, bar times and per-tune start times WITHOUT waiting for
@@ -2810,6 +2835,8 @@ function loadSet(data) {
       var n = Math.max(1, Math.min(3, tuneReps[i] + delta));
       if (n === tuneReps[i]) return;
       tuneReps[i] = n;
+      // FONN-SHEETMODE-1: more times through, longer before the next tune.
+      if (typeof ceolSheetRebuild === "function") setTimeout(ceolSheetRebuild, 0);
       setData.tunes[i].repeats = n;
       document.getElementById("rep-val-" + i).textContent = "×" + n;
       sections.querySelectorAll('.tune-hd .reps button[data-idx="' + i + '"]').forEach(function (b) {

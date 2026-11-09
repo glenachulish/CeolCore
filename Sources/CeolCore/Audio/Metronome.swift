@@ -295,7 +295,20 @@ public final class Metronome: ObservableObject {
 
     public func toggle() { armed.toggle() }
 
+    /// FONN-SHEETMODE-1: in Sheet music mode the click always stands on its
+    /// own — there is no playback there for it to wait for — whatever `mode`
+    /// says for the ordinary view. Not saved: leaving the mode puts `mode` back
+    /// in charge.
+    @Published public var standalone = false {
+        didSet {
+            guard standalone != oldValue else { return }
+            if standalone && armed { warmUp() }
+            sync()
+        }
+    }
+
     private var shouldSound: Bool {
+        if standalone { return armed }
         switch mode {
         case .withTheTune: return armed && musicPlaying
         case .onItsOwn:    return armed
