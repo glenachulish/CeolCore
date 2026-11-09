@@ -8,7 +8,8 @@ import SwiftUI
 /// clicks on its own here (see `Metronome.standalone`), so the switch does what
 /// it says the moment you press it — there is no tune to wait for. Hold − or +
 /// and the tempo keeps moving. Scroll follows the tempo; Slower and Faster
-/// shift it for reading ahead or catching up.
+/// shift it for reading ahead or catching up — labelled in words, as the − and +
+/// beside the tempo already mean something else.
 ///
 /// On a narrow phone the two halves stack; anywhere wider they share a row.
 public struct SheetMusicBar: View {
@@ -156,9 +157,9 @@ public struct SheetMusicBar: View {
             .buttonStyle(.borderedProminent)
             .tint(sheet.scrolling ? .red : .accentColor)
 
-            Button { sheet.slower() } label: {
-                Image(systemName: "tortoise").frame(width: 28, height: 28)
-            }
+            // Words, not − and +: those are the tempo's, just to the left, and
+            // two pairs of identical buttons doing different things is a trap.
+            Button("Slower") { sheet.slower() }
             .buttonStyle(.bordered)
             .disabled(sheet.factor <= SheetMode.slowest)
             .accessibilityLabel("Scroll slower")
@@ -171,9 +172,7 @@ public struct SheetMusicBar: View {
                 .frame(minWidth: 52)
                 .accessibilityLabel("Scroll speed \(sheet.speedLabel). Back in time")
 
-            Button { sheet.faster() } label: {
-                Image(systemName: "hare").frame(width: 28, height: 28)
-            }
+            Button("Faster") { sheet.faster() }
             .buttonStyle(.bordered)
             .disabled(sheet.factor >= SheetMode.fastest)
             .accessibilityLabel("Scroll faster")
