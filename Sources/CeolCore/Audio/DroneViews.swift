@@ -131,3 +131,64 @@ public struct DronePanel: View {
             : "Note — the tune's own is \(Drone.noteNames[home]) (dot)"
     }
 }
+
+// FONN-ACCOMP-2
+/// The drone as the third choice in the sound menu, after the melody and the
+/// accompaniment: None, or one of the sounds. Choosing a sound turns the
+/// drone on; it then plays with the tune, on the tune's home note.
+public struct DronePicker: View {
+    @ObservedObject var drone: Drone
+    var openPanel: (() -> Void)?
+
+    public init(drone: Drone, openPanel: (() -> Void)? = nil) {
+        self.drone = drone
+        self.openPanel = openPanel
+    }
+
+    private var choice: Binding<String> {
+        Binding(
+            get: { drone.armed ? drone.sound.rawValue : "none" },
+            set: { new in
+                if let sound = Drone.Sound(rawValue: new) {
+                    drone.sound = sound
+                    drone.armed = true
+                } else {
+                    drone.armed = false
+                }
+            })
+    }
+
+    public var body: some View {
+        Picker("Drone", selection: choice) {
+            Text("No drone").tag("none")
+            ForEach(Drone.Sound.allCases) { sound in
+                Text("\(sound.label) on \(Drone.noteNames[drone.note])").tag(sound.rawValue)
+            }
+        }
+        if let openPanel {
+            Button("Drone note and volume…", action: openPanel)
+        }
+    }
+}
+
+/// How the accompaniment is played (FONN-ACCOMP-2): the same three on the
+/// phone and the Mac, stored under the key the pages read.
+public enum AccompanimentStyle: String, CaseIterable, Identifiable, Sendable {
+    case picked, strummed, classic
+    public var id: String { rawValue }
+    public var label: String {
+        switch self {
+        case .picked:   return "Picked — gentle, one note at a time"
+        case .strummed: return "Strummed — light, on the off-beats"
+        case .classic:  return "Boom-chick — as before"
+        }
+    }
+    public var shortLabel: String {
+        switch self {
+        case .picked:   return "Picked"
+        case .strummed: return "Strummed"
+        case .classic:  return "Boom-chick"
+        }
+    }
+    public static let key = "ceol.accompStyle"
+}

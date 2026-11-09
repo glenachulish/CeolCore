@@ -1105,7 +1105,7 @@ function applySoundChange(full) {
   // press of play means the buffer in hand belongs to the settings you have
   // just changed away from.
   try {
-    synthControl.setTune(hiddenVisual, true, audioParams())
+    synthControl.setTune(hiddenVisual, true, audioParams(hiddenVisual))
       .then(function (result) {
         lastTuneError = "";
         var status = result && result.notesStatus;
@@ -1133,15 +1133,18 @@ function applySoundChange(full) {
 // The instrument and the chords now live in the app's ⋯ menu. They are set
 // once and left alone, and on a phone every control kept on the music costs
 // a line of sheet music you could have been reading. The app calls in here.
-function ceolApplySound(voiceId, chords, accompId, accompLevel) {
+function ceolApplySound(voiceId, chords, accompId, accompLevel, style) {
   var voiceChanged = voiceId && voiceId !== melodyVoice;
+  // FONN-ACCOMP-2: picked, strummed or classic. Undefined changes nothing.
+  var styleChanged = (typeof style === "string") && style !== accompStyle;
+  if (styleChanged) ceolSetAccompStyle(style);
   var chordsChanged = (typeof chords === "boolean") && chords !== chordsOn;
   // A string, because "" is a real value here -- it means abcjs's own default.
   // Undefined means "not mentioned", which is how the Mac goes on calling this
   // with two arguments and changing nothing it does not know about.
   var accompChanged = (typeof accompId === "string") && accompId !== accompVoice;
   var levelChanged = (typeof accompLevel === "number") && accompLevel !== accompVol;
-  if (!voiceChanged && !chordsChanged && !accompChanged && !levelChanged) return;
+  if (!voiceChanged && !chordsChanged && !accompChanged && !levelChanged && !styleChanged) return;
   if (voiceChanged) ceolSetVoice(voiceId);
   if (accompChanged) ceolSetAccomp(accompId);
   if (levelChanged) ceolSetAccompVol(accompLevel);
@@ -2900,7 +2903,7 @@ function rebuildAudio(primeNow) {
   // from no samples plays perfect silence, which is impossible to tell from a
   // broken transport by looking at it.
   ceolWhenFontReady(function () {
-    synthControl.setTune(hiddenVisual, true, audioParams())
+    synthControl.setTune(hiddenVisual, true, audioParams(hiddenVisual))
       .then(function (result) {
         setTuneMs = Date.now() - t0;
         var status = result && result.notesStatus;

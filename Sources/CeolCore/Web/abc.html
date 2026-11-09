@@ -744,15 +744,18 @@ document.getElementById("chordsBtn").addEventListener("click", function () {
 // the music cost a line of sheet music on every tune for a decision nobody
 // makes twice. Same entry point and same name as set.html, so the app drives
 // both the same way.
-function ceolApplySound(voiceId, chords, accompId, accompLevel) {
+function ceolApplySound(voiceId, chords, accompId, accompLevel, style) {
   var voiceChanged = voiceId && voiceId !== melodyVoice;
+  // FONN-ACCOMP-2: picked, strummed or classic. Undefined changes nothing.
+  var styleChanged = (typeof style === "string") && style !== accompStyle;
+  if (styleChanged) ceolSetAccompStyle(style);
   var chordsChanged = (typeof chords === "boolean") && chords !== chordsOn;
   // A string, because "" is a real value here -- it means abcjs's own default.
   // Undefined means "not mentioned", which is how the Mac goes on calling this
   // with two arguments and changing nothing it does not know about.
   var accompChanged = (typeof accompId === "string") && accompId !== accompVoice;
   var levelChanged = (typeof accompLevel === "number") && accompLevel !== accompVol;
-  if (!voiceChanged && !chordsChanged && !accompChanged && !levelChanged) return;
+  if (!voiceChanged && !chordsChanged && !accompChanged && !levelChanged && !styleChanged) return;
   if (voiceChanged) ceolSetVoice(voiceId);
   if (accompChanged) ceolSetAccomp(accompId);
   if (levelChanged) ceolSetAccompVol(accompLevel);
@@ -1456,7 +1459,7 @@ function tuneLooksEmpty() {
 /// Pressing ♭ or ♯ changed what you read and not what you heard (26 Oct 2026).
 /// midiTranspose puts the shift back, so the two agree.
 function transposedAudioParams() {
-  var params = audioParams();
+  var params = audioParams(visualObj);
   if (currentTranspose) params.midiTranspose = currentTranspose;
   return params;
 }

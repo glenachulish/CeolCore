@@ -54,8 +54,26 @@ var chordsOn = true;
 // Nothing here is written into the ABC, so nothing here travels into an export.
 // Which instrument backs you while you practise is a listening choice, not a
 // fact about the tune.
-var accompVoice = "";     // "" = abcjs's own default
+var accompVoice = "";     // "" = the default backing: a nylon-string guitar
 var accompVol = 85;       // MIDI velocity, 0-127
+
+// -- How the accompaniment is played ------------------------- FONN-ACCOMP-2 --
+//
+// Left to itself abcjs backs every chord with "boom-chick": a bass note, then
+// the whole chord struck at once, on every beat, as loud as the bass, and on a
+// piano unless told otherwise. That is what made the backing sound intrusive.
+// A guitarist backing a tune doesn't do that, so there are three styles:
+//
+//   picked   (the default) — fingerstyle: the bass on the main beats and the
+//            chord's notes one at a time between, softer than the bass.
+//   strummed — a light strum on the off-beats, the bass on the downbeats.
+//   classic  — abcjs's own boom-chick, as it always was.
+//
+// The patterns are abcjs's %%MIDI gchord language, one letter per quaver: f the
+// bass, c the whole chord, z a rest, G/H/I the chord's root, third and fifth.
+// They depend on the metre, so they're worked out per tune (ceolGchordFor).
+var accompStyle = "picked";
+var CEOL_DEFAULT_BACKING = "acoustic_guitar_nylon";
 
 (function restore() {
   try {
@@ -81,6 +99,8 @@ var accompVol = 85;       // MIDI velocity, 0-127
     chordsOn = localStorage.getItem("ceol.chords") !== "off";
     var acc = localStorage.getItem("ceol.accomp");
     if (acc && ceolVoice(acc)) accompVoice = acc;
+    var style = localStorage.getItem("ceol.accompStyle");
+    if (style === "picked" || style === "strummed" || style === "classic") accompStyle = style;
     var vol = parseInt(localStorage.getItem("ceol.accompVol"), 10);
     if (vol >= 0 && vol <= 127) accompVol = vol;
   } catch (e) {}
@@ -104,6 +124,38 @@ function ceolSetAccompVol(v) {
   if (isNaN(v)) return;
   accompVol = Math.max(0, Math.min(127, v));
   try { localStorage.setItem("ceol.accompVol", String(accompVol)); } catch (e) {}
+}
+
+function ceolSetAccompStyle(style) {
+  if (style !== "picked" && style !== "strummed" && style !== "classic") return;
+  accompStyle = style;
+  try { localStorage.setItem("ceol.accompStyle", accompStyle); } catch (e) {}
+}
+
+/// The gchord pattern for a metre and style, or null for abcjs's own.
+/// One letter per quaver of the bar (abcjs counts 8 × num / den of them).
+function ceolGchordFor(num, den, style) {
+  if (style === "classic" || !num || !den) return null;
+  var slots = Math.round(8 * num / den);
+  if (slots < 2) return null;
+  var picked = style === "picked";
+  // Waltzes and mazurkas: one bass, two light touches.
+  if (num === 3 && den === 4) return picked ? "fzIzHz" : "fzczcz";
+  var unit;
+  if (den === 8 && num % 3 === 0) {
+    unit = picked ? "fIH" : "fzc";             // jigs, slip jigs, slides: in threes
+  } else if (slots % 4 === 0) {
+    unit = picked ? "fIHI" : "fzcz";           // reels, hornpipes, polkas: in twos
+  } else if (slots % 3 === 0) {
+    unit = picked ? "fIH" : "fzc";
+  } else if (slots % 2 === 0) {
+    unit = picked ? "fI" : "fc";
+  } else {
+    return null;
+  }
+  var out = "";
+  while (out.length < slots) out += unit;
+  return out.substring(0, slots);
 }
 
 function ceolSetVoice(id) {
@@ -178,7 +230,8 @@ function _ceolFontSettled(ok) {
   } catch (e) { _ceolFontSettled(false); }
 })();
 
-function audioParams() {
+/// `visual` is the tune about to be played, for its metre (FONN-ACCOMP-2).
+function audioParams(visual) {
   var params = {
     program: melodyProgram,
     chordsOff: !chordsOn,
@@ -187,13 +240,23 @@ function audioParams() {
     chordvol: accompVol,
     bassvol: accompVol,
   };
-  // Only when an instrument has actually been chosen. Handing abcjs its own
-  // default back would be harmless, but it would also take away the one case
-  // we want left exactly as it was.
-  var backing = ceolVoice(accompVoice);
+  // Always a real instrument now: nothing chosen means a nylon-string guitar,
+  // which is what the app's menu has always said it was (abcjs's own default
+  // is a piano). A tune whose ABC names its own accompaniment still keeps it.
+  var backing = ceolVoice(accompVoice) || ceolVoice(CEOL_DEFAULT_BACKING);
   if (backing) {
     params.chordprog = backing.program;
     params.bassprog = backing.program;
+  }
+  if (accompStyle !== "classic") {
+    var m = null;
+    try { if (visual && visual.getMeterFraction) m = visual.getMeterFraction(); } catch (e) {}
+    var pattern = m ? ceolGchordFor(+m.num, +m.den, accompStyle) : null;
+    if (pattern) params.gchord = pattern;
+    // Under the tune, not beside it: the plucked notes a little softer than
+    // the bass, and both below the level chosen for the old boom-chick.
+    params.bassvol = Math.round(accompVol * 0.8);
+    params.chordvol = Math.round(accompVol * (accompStyle === "picked" ? 0.65 : 0.55));
   }
   return params;
 }
