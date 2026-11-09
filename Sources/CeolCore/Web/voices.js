@@ -262,7 +262,7 @@ function audioParams(visual) {
     // the bass, and both below the level chosen for the old boom-chick.
     params.bassvol = Math.round(accompVol * 0.8);
     // A strum is every chord note on every quaver, so it sits lower still.
-    params.chordvol = Math.round(accompVol * (accompStyle === "picked" ? 0.65 : 0.5));
+    params.chordvol = Math.round(accompVol * (accompStyle === "picked" ? 0.65 : 0.55));
   }
   // FONN-STRUM-1: abcjs strikes a chord's notes all at once, so "strummed"
   // came out as a soft three-note pluck and sounded like the picking. The
@@ -273,42 +273,98 @@ function audioParams(visual) {
   return params;
 }
 
-// -- Strumming -------------------------------------------- FONN-STRUM-1 --
+// -- Strumming -------------------------------------------- FONN-STRUM-2 --
 //
-// What a guitarist's hand does that abcjs doesn't:
-//   * every beat begins with a down-stroke, the bass string first -- the
-//     gchord pattern can only put the bass there alone;
-//   * a down-stroke crosses five strings, low to high, about 11ms apart;
-//     an up-stroke catches the top three, high to low, a little quicker;
-//   * the down-stroke on the beat is the strongest, the up-strokes lightest.
-// The hand keeps moving down-up across the quavers, counted from each bass
-// note, so it lines up with the beat whatever the pickup.
+// abcjs strikes a chord's notes all at once, softly, with the bass alone on
+// the beat -- a pluck, not a strum. So in strummed style the chord track is
+// rebuilt the way a guitarist would play it:
+//
+//   * real open-chord shapes worked out on the six strings (E A D G B E),
+//     frets 0-4, from the lowest string that has the root -- D is the
+//     familiar xx0232, G 320003, Em 022000;
+//   * a strumming pattern, not a stroke on every quaver. The hand keeps
+//     moving down-up but misses some strokes, which is where the swing of a
+//     strum comes from (reels "D . d u . u d u", jigs "D . u D . u");
+//   * down-strokes run low to high across every string, a little over a
+//     hundredth of a second apart; up-strokes catch the top three, high to
+//     low; the beat is the strongest, the up-strokes lightest;
+//   * strings ring on until the hand comes back to them, rather than being
+//     cut off after a quaver -- the ring is most of what makes it a guitar;
+//   * a steel-string guitar rather than the nylon one when the backing is
+//     the plain guitar: brighter, and what you hear strumming in a session.
+//
+// abcjs's own bass notes are dropped: the lowest string of the shape is the
+// bass, as it is on a guitar.
 
-var CEOL_STRUM_DOWN_MS = 11;
-var CEOL_STRUM_UP_MS = 8;
+var CEOL_STRUM_STRINGS = [40, 45, 50, 55, 59, 64];   // E2 A2 D3 G3 B3 E4
+var CEOL_STRUM_PATTERNS = {
+  "4/4": "D.du.udu", "2/2": "D.du.udu", "4/8": "D.du", "2/4": "D.du",
+  "6/8": "D.uD.u", "9/8": "D.uD.uD.u", "12/8": "D.uD.uD.uD.u",
+  "3/4": "D.dudu", "3/8": "D.u", "6/4": "D.duduD.dudu"
+};
+var CEOL_NYLON = 24, CEOL_STEEL = 25;
 
-/// Five guitar strings' worth of the chord: its notes and their octaves,
-/// the five nearest the middle of the guitar's range.
+/// The chord's notes on a guitar in first position: one pitch per string
+/// from the lowest string that can sound the root, or null if it can't.
+function ceolGuitarShape(pitches) {
+  if (!pitches || pitches.length < 2) return null;
+  var sorted = pitches.slice().sort(function (a, b) { return a - b; });
+  var root = ((sorted[0] % 12) + 12) % 12;
+  var tones = {};
+  sorted.forEach(function (p) { tones[((p % 12) + 12) % 12] = true; });
+  var shape = [], started = false;
+  for (var s = 0; s < CEOL_STRUM_STRINGS.length; s++) {
+    var open = CEOL_STRUM_STRINGS[s], fret;
+    if (!started) {
+      for (fret = 0; fret <= 4; fret++) {
+        if ((open + fret) % 12 === root) break;
+      }
+      if (fret > 4) continue;              // this string is left unplayed
+      started = true;
+      shape.push(open + fret);
+      continue;
+    }
+    // The lowest chord note on this string -- unless it only repeats the
+    // string below, as an open B under Bm would; then the next one up.
+    var pick = -1;
+    for (fret = 0; fret <= 4; fret++) {
+      if (!tones[(open + fret) % 12]) continue;
+      if (pick < 0) pick = open + fret;
+      if (open + fret !== shape[shape.length - 1]) { pick = open + fret; break; }
+    }
+    if (pick >= 0) shape.push(pick);
+  }
+  return shape.length >= 3 ? shape : null;
+}
+
+/// Fallback for anything the shapes can't place: the chord's notes and their
+/// octaves, the five nearest the middle of the guitar.
 function ceolStrumVoicing(pitches) {
+  var shape = ceolGuitarShape(pitches);
+  if (shape) return shape;
   var pool = {};
   pitches.forEach(function (p) {
     [-12, 0, 12].forEach(function (o) {
       var q = p + o;
-      if (q >= 45 && q <= 71) pool[q] = true;   // A2 .. B4
+      if (q >= 45 && q <= 71) pool[q] = true;
     });
   });
   var notes = Object.keys(pool).map(Number);
   notes.sort(function (a, b) { return Math.abs(a - 57) - Math.abs(b - 57) || a - b; });
-  notes = notes.slice(0, 5);
-  notes.sort(function (a, b) { return a - b; });
+  notes = notes.slice(0, 5).sort(function (a, b) { return a - b; });
   return notes.length ? notes : pitches.slice().sort(function (a, b) { return a - b; });
 }
 
-function ceolShapeStrum(flat, msPerWhole) {
+function ceolShapeStrum(flat, msPerWhole, meter) {
   if (!flat || !flat.tracks || !(msPerWhole > 0)) return;
   var QUAVER = 0.125;
-  var downGap = CEOL_STRUM_DOWN_MS / msPerWhole;
-  var upGap = CEOL_STRUM_UP_MS / msPerWhole;
+  var key = meter ? meter.num + "/" + meter.den : "";
+  var pattern = CEOL_STRUM_PATTERNS[key] || null;
+  var slots = meter ? Math.round(8 * meter.num / meter.den) : 8;
+  if (!pattern || pattern.length !== slots) pattern = null;
+  var gapMs = { D: 13, d: 10, u: 8 };
+  var level = { D: 1.15, d: 0.9, u: 0.66 };
+
   for (var t = 1; t < flat.tracks.length; t++) {
     var track = flat.tracks[t];
     var notes = [], others = [];
@@ -316,71 +372,98 @@ function ceolShapeStrum(flat, msPerWhole) {
       (e.cmd === "note" && typeof e.pitch === "number" ? notes : others).push(e);
     });
     if (!notes.length) continue;
-    // Gather the notes struck together.
     var groups = [], byStart = {};
     notes.forEach(function (n) {
-      var key = Math.round(n.start * 10000);
-      if (!byStart[key]) { byStart[key] = { start: n.start, notes: [] }; groups.push(byStart[key]); }
-      byStart[key].notes.push(n);
+      var k = Math.round(n.start * 10000);
+      if (!byStart[k]) { byStart[k] = { start: n.start, notes: [] }; groups.push(byStart[k]); }
+      byStart[k].notes.push(n);
     });
     groups.sort(function (a, b) { return a.start - b.start; });
-    // Only a chord-and-bass track looks like this: some single bass notes
-    // and some chords. A second melody voice is left alone.
-    var chordCount = groups.filter(function (g) { return g.notes.length >= 2; }).length;
-    if (chordCount < 2) continue;
+    var chordGroups = groups.filter(function (g) { return g.notes.length >= 2; });
+    if (chordGroups.length < 2) continue;      // not a chord track
 
-    var out = [];
-    var beatAt = null;
+    // Where each bar begins: abcjs's bass falls on the first quaver of it.
+    var anchor = null;
     for (var i = 0; i < groups.length; i++) {
-      var g = groups[i];
-      var template = g.notes[0];
-      var bass = null, chord = null;
-      if (g.notes.length === 1) {
-        // The bass note: the start of a beat. Strum with it, using the next
-        // chord's notes if one follows soon enough to be the same harmony.
-        bass = g.notes[0];
-        beatAt = g.start;
-        var next = groups[i + 1];
-        if (next && next.notes.length >= 2 && next.start - g.start <= QUAVER * 1.01) {
-          chord = next.notes.map(function (n) { return n.pitch; });
-        }
-      } else {
-        chord = g.notes.map(function (n) { return n.pitch; });
-      }
-      var slot = beatAt === null ? 0 : Math.round((g.start - beatAt) / QUAVER);
-      var down = slot % 2 === 0;
-      var accent = !!bass;
+      if (groups[i].notes.length === 1) { anchor = groups[i].start; break; }
+    }
+    if (anchor === null) anchor = groups[0].start;
+
+    // The harmony at each quaver, from whatever abcjs sounded there.
+    var slotChord = [];                      // [{start, pitches, template, base}]
+    groups.forEach(function (g) {
+      var idx = Math.round((g.start - anchor) / QUAVER);
+      var pitches = g.notes.length >= 2 ? g.notes.map(function (n) { return n.pitch; }) : null;
       var base = 0;
       g.notes.forEach(function (n) { base = Math.max(base, n.volume || 0); });
-      if (bass) {
-        out.push(bass);
-        var nextChord = groups[i + 1];
-        if (nextChord && nextChord.notes.length >= 2) {
-          base = 0;
-          nextChord.notes.forEach(function (n) { base = Math.max(base, n.volume || 0); });
+      var prev = slotChord[idx];
+      slotChord[idx] = {
+        start: anchor + idx * QUAVER, pitches: pitches || (prev && prev.pitches) || null,
+        template: g.notes[0], base: g.notes.length >= 2 ? base : (prev ? prev.base : 0)
+      };
+    });
+    // A bass slot takes the chord that follows it.
+    var lastIdx = slotChord.length - 1;
+    for (var j = lastIdx; j >= 0; j--) {
+      var sc = slotChord[j];
+      if (!sc) continue;
+      if (!sc.pitches || !sc.base) {
+        var nx = slotChord[j + 1];
+        if (nx && nx.pitches) {
+          if (!sc.pitches) sc.pitches = nx.pitches;
+          if (!sc.base) sc.base = nx.base;
         }
       }
-      if (!chord) continue;
-      var strings = ceolStrumVoicing(chord);
-      if (!down) strings = strings.slice(-3).reverse();
-      var gap = down ? downGap : upGap;
-      var level = accent ? 1.2 : (down ? 0.95 : 0.65);
-      var end = g.start + (template.duration || QUAVER);
-      strings.forEach(function (pitch, k) {
-        var start = g.start + (bass && down ? (k + 1) : k) * gap;
-        if (start >= end) return;
-        // In a down-stroke the lower strings sound a touch fuller.
-        var shade = down ? (1 - 0.05 * k) : (1 - 0.06 * k);
-        var n = {};
-        for (var f in template) n[f] = template[f];
-        n.pitch = pitch;
-        n.start = start;
-        n.duration = end - start;
-        n.volume = Math.max(1, Math.min(127, Math.round(base * level * shade)));
-        out.push(n);
-      });
     }
-    out.sort(function (a, b) { return a.start - b.start; });
+
+    // The strokes.
+    var strokes = [];
+    for (var q = 0; q <= lastIdx; q++) {
+      var c = slotChord[q];
+      if (!c || !c.pitches) continue;
+      var pos = ((q % slots) + slots) % slots;
+      var kind = pattern ? pattern.charAt(pos) : (pos === 0 ? "D" : (pos % 2 ? "u" : "d"));
+      if (kind === ".") continue;
+      var shape = ceolStrumVoicing(c.pitches);
+      var strings = kind === "u" ? shape.slice(-3).reverse()
+                  : kind === "d" && shape.length > 4 ? shape.slice(1) : shape;
+      strokes.push({ start: c.start, kind: kind, strings: strings,
+                     chordKey: shape.join(","), template: c.template,
+                     base: c.base || 40 });
+    }
+
+    var out = [];
+    var endOfMusic = slotChord[lastIdx] ? slotChord[lastIdx].start + QUAVER : 0;
+    strokes.forEach(function (st, si) {
+      var gap = gapMs[st.kind] / msPerWhole;
+      st.strings.forEach(function (pitch, k) {
+        // Ring until the hand next comes back to this string, or the chord
+        // changes (the fingers move), or a beat and a half has gone by.
+        var until = endOfMusic + QUAVER;
+        for (var n = si + 1; n < strokes.length; n++) {
+          var later = strokes[n];
+          if (later.chordKey !== st.chordKey || later.strings.indexOf(pitch) >= 0) {
+            until = later.start; break;
+          }
+        }
+        until = Math.min(until, st.start + QUAVER * 3);
+        var start = st.start + k * gap;
+        if (until - start < QUAVER * 0.3) until = start + QUAVER * 0.3;
+        var shade = 1 - 0.04 * k;
+        var e = {};
+        for (var f in st.template) e[f] = st.template[f];
+        e.pitch = pitch;
+        e.start = start;
+        e.duration = until - start;
+        e.volume = Math.max(1, Math.min(127, Math.round(st.base * level[st.kind] * shade)));
+        if (e.instrument === CEOL_NYLON) e.instrument = CEOL_STEEL;
+        out.push(e);
+      });
+    });
+    others.forEach(function (e) {
+      if (e.cmd === "program" && e.instrument === CEOL_NYLON) e.instrument = CEOL_STEEL;
+    });
+    out.sort(function (x, y) { return x.start - y.start; });
     flat.tracks[t] = others.concat(out);
   }
 }
@@ -398,7 +481,7 @@ function ceolHookStrum(visual) {
         var m = this.getMeterFraction ? this.getMeterFraction() : null;
         var perBar = this.millisecondsPerMeasure ? this.millisecondsPerMeasure(flat && flat.tempo) : 0;
         var barFraction = m && m.num && m.den ? m.num / m.den : 1;
-        ceolShapeStrum(flat, perBar / barFraction);
+        ceolShapeStrum(flat, perBar / barFraction, m);
       } catch (e) {}
     }
     return flat;
