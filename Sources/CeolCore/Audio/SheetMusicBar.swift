@@ -33,28 +33,47 @@ public struct SheetMusicBar: View {
     }
 
     public var body: some View {
+        // FONN-BUTTONS-2: three stages -- one row; two rows; two rows with
+        // smaller controls and tighter spacing. Everything in them is held to
+        // its natural width, so a stage that does not fit is passed over
+        // instead of squeezed until "110" breaks into "11" and "0" and
+        // "Scroll" into "Scr" and "oll" (iPhone, 10 Nov 2026).
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 16) {
-                click
+                click(compact: false)
                 Divider().frame(height: 24)
-                scroll
+                scroll(compact: false)
                 Spacer(minLength: 0)
                 zoomControls
                 done
             }
             VStack(spacing: 8) {
                 HStack {
-                    click
+                    click(compact: false)
                     Spacer(minLength: 0)
                     done
                 }
                 HStack {
-                    scroll
+                    scroll(compact: false)
+                    Spacer(minLength: 0)
+                    zoomControls
+                }
+            }
+            VStack(spacing: 6) {
+                HStack(spacing: 4) {
+                    click(compact: true)
+                    Spacer(minLength: 0)
+                    done
+                }
+                HStack {
+                    scroll(compact: true)
                     Spacer(minLength: 0)
                     zoomControls
                 }
             }
         }
+        // A music stand bar must fit whatever the phone's text size is set to.
+        .dynamicTypeSize(...DynamicTypeSize.xLarge)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
@@ -102,22 +121,22 @@ public struct SheetMusicBar: View {
 
     // MARK: Metronome
 
-    private var click: some View {
-        HStack(spacing: 10) {
+    private func click(compact: Bool) -> some View {
+        HStack(spacing: compact ? 4 : 10) {
             Button {
                 metronome.toggle()
             } label: {
                 Image(systemName: "metronome")
                     .font(.title3)
                     .foregroundStyle(metronome.armed ? Color.red : Color.secondary)
-                    .frame(width: 36, height: 32)
+                    .frame(width: compact ? 30 : 36, height: 32)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(metronome.armed ? "Metronome on" : "Metronome off")
 
             Button { metronome.setBPMByHand(max(30, metronome.bpm - 1)) } label: {
-                Image(systemName: "minus").frame(width: 28, height: 28)
+                Image(systemName: "minus").frame(width: compact ? 22 : 28, height: 28)
             }
             .buttonRepeatBehavior(.enabled)
             .accessibilityLabel("Slower tempo")
@@ -128,18 +147,20 @@ public struct SheetMusicBar: View {
                     Text("\(metronome.bpm)")
                         .font(.system(.title3, design: .rounded).weight(.semibold))
                         .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
                     Text("bpm")
                         .lineLimit(1)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-                .frame(minWidth: 44)
+                .frame(minWidth: compact ? 36 : 44)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("\(metronome.bpm) beats a minute. Metronome settings")
 
             Button { metronome.setBPMByHand(min(300, metronome.bpm + 1)) } label: {
-                Image(systemName: "plus").frame(width: 28, height: 28)
+                Image(systemName: "plus").frame(width: compact ? 22 : 28, height: 28)
             }
             .buttonRepeatBehavior(.enabled)
             .accessibilityLabel("Faster tempo")
@@ -155,12 +176,13 @@ public struct SheetMusicBar: View {
             }
         }
         .buttonStyle(.bordered)
+        .controlSize(compact ? .small : .regular)
     }
 
     // MARK: Scroll
 
-    private var scroll: some View {
-        HStack(spacing: 10) {
+    private func scroll(compact: Bool) -> some View {
+        HStack(spacing: compact ? 6 : 10) {
             Button {
                 sheet.scrolling.toggle()
             } label: {
@@ -168,15 +190,17 @@ public struct SheetMusicBar: View {
                       systemImage: sheet.scrolling ? "stop.fill" : "arrow.down.to.line")
                     .lineLimit(1)
                     .fixedSize()
-                    .frame(minWidth: 74)
+                    .frame(minWidth: compact ? 0 : 74)
             }
             .buttonStyle(.borderedProminent)
+            .controlSize(compact ? .small : .regular)
             .tint(sheet.scrolling ? .red : .accentColor)
 
             // Words, not − and +: those are the tempo's, just to the left, and
             // two pairs of identical buttons doing different things is a trap.
             Button { sheet.slower() } label: { Text("Slower").lineLimit(1).fixedSize() }
             .buttonStyle(.bordered)
+            .controlSize(compact ? .small : .regular)
             .disabled(sheet.factor <= SheetMode.slowest)
             .accessibilityLabel("Scroll slower")
 
@@ -188,11 +212,12 @@ public struct SheetMusicBar: View {
                 .buttonStyle(.plain)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(sheet.factor == 1 ? Color.secondary : Color.accentColor)
-                .frame(minWidth: 52)
+                .frame(minWidth: compact ? 0 : 52)
                 .accessibilityLabel("Scroll speed \(sheet.speedLabel). Back in time")
 
             Button { sheet.faster() } label: { Text("Faster").lineLimit(1).fixedSize() }
             .buttonStyle(.bordered)
+            .controlSize(compact ? .small : .regular)
             .disabled(sheet.factor >= SheetMode.fastest)
             .accessibilityLabel("Scroll faster")
         }
