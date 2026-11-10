@@ -10,6 +10,9 @@
 <script src="autochords.js"></script>
 <link rel="stylesheet" href="abcjs-audio.css">
 <style>
+  /* FONN-BUTTONS-1: a button label is one line. "Loop off", "Practice" and
+     "Clear" were wrapping onto two on a narrow phone. */
+  button { white-space: nowrap; }
   /* The page owns its scrolling: a fixed-height flex column with the sheet
      music in its own scroller. Relying on the web view's document scroll is
      unreliable inside SwiftUI (the host may size the view to its content, so

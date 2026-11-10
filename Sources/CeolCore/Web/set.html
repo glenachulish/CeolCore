@@ -10,6 +10,9 @@
 <script src="autochords.js"></script>
 <link rel="stylesheet" href="abcjs-audio.css">
 <style>
+  /* FONN-BUTTONS-1: a button label is one line. "Loop off", "Practice" and
+     "Clear" were wrapping onto two on a narrow phone. */
+  button { white-space: nowrap; }
   /* Page owns its scrolling (see abc.html for the reasoning). */
   html, body {
     margin: 0; padding: 0; background: transparent; -webkit-text-size-adjust: 100%;
@@ -104,7 +107,7 @@
     border-right: 2px solid white;
   }
   #loopRow {
-    display: none; align-items: center; gap: 8px;
+    display: none; flex-wrap: wrap; align-items: center; gap: 8px;
     padding: 2px 12px 6px; font: 13px -apple-system, sans-serif; color: #666;
   }
   #loopRow.visible { display: flex; }

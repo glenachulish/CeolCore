@@ -129,6 +129,7 @@ public struct SheetMusicBar: View {
                         .font(.system(.title3, design: .rounded).weight(.semibold))
                         .monospacedDigit()
                     Text("bpm")
+                        .lineLimit(1)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -143,7 +144,9 @@ public struct SheetMusicBar: View {
             .buttonRepeatBehavior(.enabled)
             .accessibilityLabel("Faster tempo")
 
-            Button("Tap") { metronome.tap() }
+            Button { metronome.tap() } label: {
+                Text("Tap").lineLimit(1).fixedSize()
+            }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
 
@@ -163,6 +166,8 @@ public struct SheetMusicBar: View {
             } label: {
                 Label(sheet.scrolling ? "Stop" : "Scroll",
                       systemImage: sheet.scrolling ? "stop.fill" : "arrow.down.to.line")
+                    .lineLimit(1)
+                    .fixedSize()
                     .frame(minWidth: 74)
             }
             .buttonStyle(.borderedProminent)
@@ -170,20 +175,23 @@ public struct SheetMusicBar: View {
 
             // Words, not − and +: those are the tempo's, just to the left, and
             // two pairs of identical buttons doing different things is a trap.
-            Button("Slower") { sheet.slower() }
+            Button { sheet.slower() } label: { Text("Slower").lineLimit(1).fixedSize() }
             .buttonStyle(.bordered)
             .disabled(sheet.factor <= SheetMode.slowest)
             .accessibilityLabel("Scroll slower")
 
             // "In time" with the metronome; press to go back to it.
-            Button(sheet.speedLabel) { sheet.inTime() }
+            // "In time" has a space in it: in 52 points it wrapped onto two lines.
+            Button { sheet.inTime() } label: {
+                Text(sheet.speedLabel).lineLimit(1).fixedSize()
+            }
                 .buttonStyle(.plain)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(sheet.factor == 1 ? Color.secondary : Color.accentColor)
                 .frame(minWidth: 52)
                 .accessibilityLabel("Scroll speed \(sheet.speedLabel). Back in time")
 
-            Button("Faster") { sheet.faster() }
+            Button { sheet.faster() } label: { Text("Faster").lineLimit(1).fixedSize() }
             .buttonStyle(.bordered)
             .disabled(sheet.factor >= SheetMode.fastest)
             .accessibilityLabel("Scroll faster")
