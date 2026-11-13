@@ -89,11 +89,11 @@ public enum Acknowledgements {
              footnote: "The accordion is carried in the app so it works with no signal."),
 
         Item(id: "ownsounds",
-             heading: "Fiddle (home) and Accordion (home)",
+             heading: "Accordion (home)",
              credit: "Recorded for Fonn",
-             terms: "Fonn's own recordings of a real fiddle and accordion, cut into one sound per note. Notes that weren't recorded are tuned from their nearest neighbour.",
+             terms: "Fonn's own recording of a real accordion, cut into one sound per note. Notes that weren't recorded are tuned from their nearest neighbour.",
              links: [],
-             footnote: "Both are carried in the app so they work with no signal."),
+             footnote: "It is carried in the app so it works with no signal."),
 
         Item(id: "musyngkite",
              heading: "Concert flute sound",
