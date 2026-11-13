@@ -24,8 +24,9 @@ var CEOL_VOICES = [
   { id: "whistle",               label: "Tin Whistle",   program: 78,  offline: true },
   { id: "violin",                label: "Fiddle",        program: 40,  offline: true },
   { id: "accordion",             label: "Accordion",     program: 21,  offline: true },
-  // FONN-OWNSOUND-4: Callum's own accordion recording, beside the library one.
-  // Its own program (22 "harmonica") so abcjs keeps them apart.
+  // FONN-OWNSOUND-4/6: Callum's own recordings, beside the library sounds. Their
+  // own programs (41 "viola", 22 "harmonica") so abcjs keeps them apart.
+  { id: "homefiddle",            label: "Fiddle (home)",    program: 41, offline: true },
   { id: "homeaccordion",         label: "Accordion (home)", program: 22, offline: true },
   { id: "banjo",                 label: "Banjo",         program: 105 },
   { id: "acoustic_guitar_nylon", label: "Guitar",        program: 24,  offline: true },

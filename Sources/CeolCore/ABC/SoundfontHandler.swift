@@ -44,7 +44,8 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
     /// Irish Flute (73); the voice baked into the URL says which folder is meant.
     private static let voiceOverrides: [String: (abcName: String, folder: String)] = [
         "mflute": (abcName: "piccolo", folder: "mflute"),
-        // FONN-OWNSOUND-4: Callum's own accordion recording.
+        // FONN-OWNSOUND-4/6: Callum's own fiddle and accordion recordings.
+        "homefiddle": (abcName: "viola", folder: "homefiddle"),
         "homeaccordion": (abcName: "harmonica", folder: "homeaccordion"),
     ]
 
@@ -182,6 +183,7 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
         switch request.folder {
         case "mflute": return "flute"
         case "whistle": return "whistle"
+        case "homefiddle": return "violin"
         case "homeaccordion": return "accordion"
         default: return request.folder
         }
