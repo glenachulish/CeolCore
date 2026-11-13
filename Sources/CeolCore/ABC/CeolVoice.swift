@@ -29,12 +29,12 @@ public struct CeolVoice: Identifiable, Hashable, Sendable {
         CeolVoice(id: "whistle",               label: "Tin Whistle",   offline: true,  program: 78),
         CeolVoice(id: "violin",                label: "Fiddle",        offline: true,  program: 40),
         CeolVoice(id: "accordion",             label: "Accordion",     offline: true,  program: 21),
-        // FONN-OWNSOUND-4: Callum's own recordings, alongside the library
-        // sounds above until he has chosen between them. Programs 41 and 22
-        // are abcjs's "viola" and "harmonica": each voice needs a name of its
-        // own, or abcjs plays it with the samples of whichever came first
-        // (FONN-LIVESOUND-2). SoundfontHandler serves the home folders.
-        CeolVoice(id: "homefiddle",            label: "Fiddle (home)",    offline: true, program: 41),
+        // FONN-OWNSOUND-4: Callum's own accordion recording, alongside the
+        // library one. Program 22 is abcjs's "harmonica": each voice needs a
+        // name of its own, or abcjs plays it with the samples of whichever came
+        // first (FONN-LIVESOUND-2). SoundfontHandler serves the home folder.
+        // Fiddle (home) was removed on 13 Nov (FONN-OWNSOUND-5); a better
+        // recording can return as program 41, "viola".
         CeolVoice(id: "homeaccordion",         label: "Accordion (home)", offline: true, program: 22),
         CeolVoice(id: "banjo",                 label: "Banjo",         offline: false, program: 105),
         CeolVoice(id: "acoustic_guitar_nylon", label: "Guitar",        offline: true,  program: 24),
