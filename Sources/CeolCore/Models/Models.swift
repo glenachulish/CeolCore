@@ -45,6 +45,12 @@ public final class Tune {
     /// TestFlight build ships it.**
     public var droneSound: String = ""
     public var droneNote: Int = -1
+    /// FONN-MARKS-1: the highlighter's marks on this tune's music, as the
+    /// page writes them (see `MusicMarks`). Empty for none. On the version
+    /// they were drawn on, since they count that version's notes. Defaulted,
+    /// as CloudKit needs — **a new attribute needs Deploy Schema Changes to
+    /// Production before a TestFlight build ships it.**
+    public var marks: String = ""
     public var sourceURL: String = ""
     public var theSessionID: Int? = nil       // thesession.org tune id
     public var theSessionSettingID: String = ""
