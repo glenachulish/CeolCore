@@ -218,6 +218,12 @@ public final class SetEntry {
     /// set page are there for the ones you do want doubled.
     public var repeats: Int = 1
     public var keyOverride: String = ""
+    /// FONN-MARKS-3: what you have marked on this tune *in this set* — the
+    /// highlighter, text and drawing (see `MusicMarks`). A set starts with the
+    /// music clean, whatever is marked on the tune's own page, and keeps its
+    /// own marks here. Defaulted, as CloudKit needs — **a new attribute needs
+    /// Deploy Schema Changes to Production before a TestFlight build ships it.**
+    public var marks: String = ""
     public var tune: Tune? = nil
     public var tuneSet: TuneSet? = nil
 

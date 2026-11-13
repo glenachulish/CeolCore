@@ -240,6 +240,31 @@ public enum VersionTools {
         return copy
     }
 
+    // FONN-MARKS-3
+    /// Keep the marked music as a version of its own, and leave this one clean.
+    ///
+    /// The highlights, text and drawing on `source` move onto a copy of it —
+    /// same notes, so they sit where they did — named "Marked" (then "Marked
+    /// 2", …). `source` is left unmarked. The copy is not the default, so the
+    /// library and your sets go on showing the clean music. Nil when there is
+    /// nothing marked.
+    @discardableResult
+    public static func saveMarkedCopy(of source: Tune, in context: ModelContext) -> Tune? {
+        guard !source.marks.isEmpty else { return nil }
+        let taken = versions(of: source, in: context).map(\.versionLabel)
+        var label = "Marked"
+        var number = 2
+        while taken.contains(label) {
+            label = "Marked \(number)"
+            number += 1
+        }
+        let copy = duplicate(source, named: label, in: context)
+        copy.marks = source.marks
+        source.marks = ""
+        try? context.save()
+        return copy
+    }
+
     /// A brand-new version of a tune from notation you supply — pasted ABC,
     /// typically. The title, type and key come from the tune it joins unless
     /// the notation says otherwise.
