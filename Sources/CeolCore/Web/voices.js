@@ -260,7 +260,12 @@ function audioParams(visual) {
     params.chordprog = backing.program;
     params.bassprog = backing.program;
   }
-  if (accompStyle !== "classic") {
+  // FONN-ACCOMP-4: only while the backing is on. With it off abcjs still
+  // works through a picked pattern's single-note letters (I, H), finds no
+  // chord to take them from, and writes a track of notes with no pitch -- a
+  // sample it then can't name ("acoustic_guitar_nylon:undefined" in the
+  // diagnostics, on every chorded tune played with the backing off).
+  if (accompStyle !== "classic" && chordsOn) {
     var m = null;
     try { if (visual && visual.getMeterFraction) m = visual.getMeterFraction(); } catch (e) {}
     var pattern = m ? ceolGchordFor(+m.num, +m.den, accompStyle) : null;
@@ -531,6 +536,19 @@ function ceolHookStrum(visual) {
   var original = visual.setUpAudio;
   visual.setUpAudio = function (options) {
     var flat = original.apply(this, arguments);
+    // FONN-ACCOMP-4: a note with no pitch can't be played or fetched; drop
+    // any, and any track left with nothing to sound.
+    try {
+      if (flat && flat.tracks) {
+        flat.tracks = flat.tracks.map(function (track) {
+          return track.filter(function (e) {
+            return !(e.cmd === "note" && !(typeof e.pitch === "number" && isFinite(e.pitch)));
+          });
+        }).filter(function (track, index) {
+          return index === 0 || track.some(function (e) { return e.cmd === "note"; });
+        });
+      }
+    } catch (e) {}
     if (options && options.ceolStrum) {
       try {
         var m = this.getMeterFraction ? this.getMeterFraction() : null;
