@@ -18,8 +18,9 @@
 // of each line's own drawing (its SVG), so zooming and fitting scale them with
 // the music for nothing.
 //
-// How you mark. Turn the highlighter on with the button at the bottom right of
-// the music, pick a colour, then either drag along the notes, or tap the first
+// How you mark. "Mark the music" in the page's menu brings up the tools at
+// the bottom right (FONN-MARKS-5: they are not on the page until asked for,
+// and Done puts them away again). Pick a colour, then either drag along the notes, or tap the first
 // note and then the last (which is the way across several lines on a phone,
 // where dragging down the page scrolls it). The rubber takes out what you drag
 // over, or the whole mark you tap. While the highlighter is on, a tap on the
@@ -188,8 +189,19 @@ function ceolMarkSave(t) {
   } catch (e) {}
 }
 
+// FONN-MARKS-5
+/// From the app's menu: bring the marking tools up, or put them away.
+function ceolMarkOpen(on) {
+  if (!ceolMarks.enabled) return;
+  on = !!on;
+  if (!on) { ceolMarkEndEntry(true); ceolMarkStrokeEnd(false); }
+  ceolMarks.on = on;
+  ceolMarks.pending = null; ceolMarks.drag = null; ceolMarks.confirmClear = 0;
+  ceolMarkToolbar(); ceolMarkDraw();
+}
+
 /// From the app: each shown tune's marks, as the text it stores. Calling this
-/// at all is what puts the highlighter button on the page.
+/// at all is what lets this page be marked.
 function ceolSetMarks(texts) {
   ceolMarks.enabled = true;
   var changed = false;
@@ -757,8 +769,19 @@ function ceolMarkStyle() {
     "#ceolMarkBar .ceol-mark-dot.sel { border-color: currentColor; }",
     "#ceolMarkBar .ceol-mark-dot i { display: block; width: 20px; height: 20px; border-radius: 10px; }",
     "#ceolMarkBar .ceol-mark-tool.sel { background: rgba(120,120,128,0.3); }",
-    "#ceolMarkBar .ceol-mark-main.on { background: #2f6b4f; color: #fff; }",
     "#ceolMarkBar svg { width: 20px; height: 20px; }",
+    "#ceolMarkBar button.ceol-mark-main { width: auto; padding: 0 14px; background: #2f6b4f; color: #fff;",
+    "  font: 600 14px -apple-system, system-ui, sans-serif; }",
+    // FONN-MARKS-5: finger-sized on a phone or an iPad.
+    "@media (pointer: coarse) {",
+    "  #ceolMarkBar { gap: 8px; padding: 7px; border-radius: 30px; }",
+    "  #ceolMarkBar button { width: 46px; height: 46px; border-radius: 23px; }",
+    "  #ceolMarkBar button.ceol-mark-main { padding: 0 18px; font-size: 17px; }",
+    "  #ceolMarkBar button.ceol-mark-wide { padding: 0 14px; font-size: 15px; }",
+    "  #ceolMarkBar .ceol-mark-dot i { width: 30px; height: 30px; border-radius: 15px; }",
+    "  #ceolMarkBar svg { width: 27px; height: 27px; }",
+    "  #ceolMarkHint { font-size: 14px; }",
+    "}",
     "#ceolMarkHint { position: fixed; right: 10px; bottom: 58px; z-index: 60; max-width: 240px;",
     "  padding: 6px 10px; border-radius: 10px; background: rgba(28,28,30,0.86); color: #fff;",
     "  font: 500 12px -apple-system, system-ui, sans-serif; }",
@@ -812,6 +835,15 @@ function ceolMarkToolbar() {
   if (!ceolMarks.enabled || ceolMarkPrinting()) return;
   ceolMarkStyle();
   var bar = document.getElementById("ceolMarkBar");
+  if (!ceolMarks.on) {
+    // Put away: nothing of the tools is left on the page.
+    if (bar && bar.parentNode) bar.parentNode.removeChild(bar);
+    var oldHint = document.getElementById("ceolMarkHint");
+    if (oldHint && oldHint.parentNode) oldHint.parentNode.removeChild(oldHint);
+    var html = document.documentElement;
+    html.classList.remove("ceol-marking", "ceol-marking-pen", "ceol-marking-text");
+    return;
+  }
   if (!bar) {
     bar = document.createElement("div");
     bar.id = "ceolMarkBar";
@@ -869,16 +901,9 @@ function ceolMarkToolbar() {
       }
     }
   }
-  bar.appendChild(ceolMarkButton(
-    "ceol-mark-main" + (ceolMarks.on ? " on" : ""),
-    ceolMarks.on ? "Finish marking" : "Mark the music", CEOL_MARK_ICONS.pen,
-    function () {
-      ceolMarkEndEntry(true);
-      ceolMarkStrokeEnd(false);
-      ceolMarks.on = !ceolMarks.on;
-      ceolMarks.pending = null; ceolMarks.drag = null; ceolMarks.confirmClear = 0;
-      ceolMarkToolbar(); ceolMarkDraw();
-    }));
+  bar.appendChild(ceolMarkButton("ceol-mark-main", "Finish marking", "Done", function () {
+    ceolMarkOpen(false);
+  }));
 
   // One line of help, only while it's needed.
   var hint = document.getElementById("ceolMarkHint");
@@ -897,6 +922,7 @@ function ceolMarkToolbar() {
       document.body.appendChild(hint);
     }
     hint.textContent = text;
+    hint.style.bottom = (bar.offsetHeight + 18) + "px";
   } else if (hint && hint.parentNode) {
     hint.parentNode.removeChild(hint);
   }

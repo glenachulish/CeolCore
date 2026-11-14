@@ -24,6 +24,12 @@ public enum MusicMarks {
         return "if (typeof ceolSetMarks === 'function') ceolSetMarks(\(json));"
     }
 
+    /// FONN-MARKS-5: the JavaScript that brings the marking tools up on the
+    /// page. They aren't there until asked for (the app's "Mark the music"
+    /// menu item), and the page's own Done puts them away.
+    public static let openScript =
+        "if (typeof ceolMarkOpen === 'function') ceolMarkOpen(true);"
+
     /// What the page says when the marks on one of its tunes change: which
     /// tune (its place among those shown) and its marks, ready to store.
     public static func receive(_ body: Any) -> (index: Int, marks: String)? {
