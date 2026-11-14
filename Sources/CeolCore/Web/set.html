@@ -2325,11 +2325,13 @@ var tuneDurMs = [];
 // takes at the tune's written tempo, and how many beats a musician counts in it.
 var tuneMsPerBar = [];
 var tuneBeats = [];
+var tuneMeters = [];   // FONN-BEAT-2: each tune's time signature, as written
 
 function measureTuneDurations() {
   tuneDurMs = [];
   tuneMsPerBar = [];
   tuneBeats = [];
+  tuneMeters = [];
   if (!setData || !setData.tunes) return;
   var host = document.getElementById("measureRender");
   setData.tunes.forEach(function (t) {
@@ -2349,6 +2351,7 @@ function measureTuneDurations() {
     tuneDurMs.push(ms);
     tuneMsPerBar.push(msPerBar);
     tuneBeats.push(beatsPerBarFor(t.abc));
+    tuneMeters.push((((t.abc || "").match(/^M:\s*(\S+)/m) || [])[1]) || "4/4");
   });
   host.innerHTML = "";
 }
@@ -2377,11 +2380,12 @@ function postTempoForTune(idx) {
   var pct = speedPct || 100;
   var bpm = Math.round(beats * 60000 / (msPerBar * 100 / pct));
   if (!isFinite(bpm) || bpm < 20 || bpm > 400) return;
-  var signature = bpm + "/" + beats;
+  var meter = tuneMeters[idx] || "";
+  var signature = bpm + "/" + beats + "/" + meter;
   if (signature === lastPostedTempo) return;
   lastPostedTempo = signature;
   try {
-    window.webkit.messageHandlers.tempo.postMessage({ bpm: bpm, beatsPerBar: beats });
+    window.webkit.messageHandlers.tempo.postMessage({ bpm: bpm, beatsPerBar: beats, meter: meter });
   } catch (e) {}
 }
 
@@ -3134,7 +3138,7 @@ var CLICK_RATES = [0.5, 0.5, 1, 2];
 function syncClickButton() {
   var b = document.getElementById("clickBtn");
   if (!b) return;
-  b.textContent = CLICK_LABELS[clickState];
+  b.textContent = clickCounted ? "Click" : CLICK_LABELS[clickState];
   b.classList.toggle("on", clickState > 0);
 }
 
@@ -3145,10 +3149,15 @@ function syncClickButton() {
 // same two-copies pattern that made the play/pause symbol lie. The app owns
 // the metronome, so the app says; this only draws what it is told and never
 // posts back, which is what stops the two of them talking in circles.
+// FONN-BEAT-2: a rate above 3 means the app is counting the bar out, where
+// half and double mean nothing — so the button is a plain on and off.
+var clickCounted = false;
 function ceolSetClick(on, rate) {
+  var counted = rate > 3;
   var state = 0;
-  if (on) state = (rate < 0.75) ? 1 : (rate > 1.5 ? 3 : 2);
-  if (state === clickState) return;
+  if (on) state = counted ? 3 : ((rate < 0.75) ? 1 : (rate > 1.5 ? 3 : 2));
+  if (state === clickState && counted === clickCounted) return;
+  clickCounted = counted;
   clickState = state;
   syncClickButton();
 }
@@ -3165,7 +3174,7 @@ function postMetronome() {
   var b = document.getElementById("clickBtn");
   if (!b) return;
   b.addEventListener("click", function () {
-    clickState = (clickState + 1) % 4;
+    clickState = clickCounted ? (clickState ? 0 : 3) : (clickState + 1) % 4;
     syncClickButton();
     postMetronome();
     try { window.webkit.messageHandlers.haptic.postMessage({}); } catch (e) {}

@@ -144,20 +144,27 @@ public final class Metronome: ObservableObject {
     // FONN-BEAT-1
     /// The shape of the bar the click counts out.
     ///
-    /// "From the tune" is the click as it has always been: one sound a beat,
-    /// with the downbeat accented when the bar's length is known. The others
-    /// count a bar properly — a strong click on one, a plain one where each
-    /// group of the bar starts, and a quiet one on what lies between — so 6/8
-    /// is ONE-two-three FOUR-five-six and 7/8 is ONE-two THREE-four
+    /// FONN-BEAT-2: "From the tune" counts the bar out from the tune's own
+    /// time signature, which is what a player expects a metronome on a page
+    /// of music to do — a jig gets ONE-two-three FOUR-five-six without being
+    /// asked. It was, until this, one sound a beat; that is now "Main beats
+    /// only", kept for a reel you don't want a click on every crotchet of.
+    /// The named signatures override the tune, for practising against a
+    /// different count or with no tune at all.
+    ///
+    /// A counted bar is a strong click on one, a plain one where each group
+    /// of the bar starts, and a quiet one on what lies between — so 6/8 is
+    /// ONE-two-three FOUR-five-six and 7/8 is ONE-two THREE-four
     /// FIVE-six-seven.
     ///
     /// The tempo keeps its usual meaning in each: crotchets in 2/4 to 5/4 and
     /// in 5/8 and 7/8 (which click in quavers, two to the beat), and dotted
     /// crotchets in 6/8, 9/8 and 12/8 (three quavers to the beat), which is
-    /// how a jig's tempo is given. "Clicks" (½, 1×, 2×) applies only to "From
-    /// the tune"; a pattern says for itself where its clicks fall.
+    /// how a jig's tempo is given. "Clicks" (½, 1×, 2×) applies only to "Main
+    /// beats only"; a counted bar says for itself where its clicks fall.
     public enum Beat: String, CaseIterable, Identifiable, Sendable {
         case fromTune = "tune"
+        case mainBeats = "beats"
         case two4 = "2/4"
         case three4 = "3/4"
         case four4 = "4/4"
@@ -170,12 +177,18 @@ public final class Metronome: ObservableObject {
 
         public var id: String { rawValue }
 
-        public var label: String { self == .fromTune ? "From the tune" : rawValue }
+        public var label: String {
+            switch self {
+            case .fromTune:  return "From the tune"
+            case .mainBeats: return "Main beats only"
+            default:         return rawValue
+            }
+        }
 
         /// The bar as groups of clicks. Each group starts with an accent.
         var groups: [Int] {
             switch self {
-            case .fromTune: return []
+            case .fromTune, .mainBeats: return []
             case .two4:     return [1, 1]
             case .three4:   return [1, 1, 1]
             case .four4:    return [1, 1, 1, 1]
@@ -191,7 +204,7 @@ public final class Metronome: ObservableObject {
         /// How many clicks make one beat of the tempo.
         var clicksPerBeat: Int {
             switch self {
-            case .fromTune, .two4, .three4, .four4, .five4: return 1
+            case .fromTune, .mainBeats, .two4, .three4, .four4, .five4: return 1
             case .five8, .seven8:                           return 2
             case .six8, .nine8, .twelve8:                   return 3
             }
@@ -200,7 +213,8 @@ public final class Metronome: ObservableObject {
         /// How the bar is counted, for the settings screen.
         public var counting: String {
             switch self {
-            case .fromTune: return "One click a beat, as the tune is written."
+            case .fromTune: return "The bar counted out from the tune's time signature."
+            case .mainBeats: return "One click a beat. Clicks and Accent apply."
             case .two4:     return "ONE two"
             case .three4:   return "ONE two three"
             case .four4:    return "ONE two three four"
@@ -212,6 +226,76 @@ public final class Metronome: ObservableObject {
             case .twelve8:  return "ONE-two-three, four times"
             }
         }
+    }
+
+    // FONN-BEAT-2
+    /// The tune's time signature as written — "6/8", "C|" — or nil when no
+    /// page of music has said. What "From the tune" counts from.
+    @Published public private(set) var tuneMeter: String? = nil {
+        didSet { if tuneMeter != oldValue { scheduleRebuild() } }
+    }
+
+    /// A bar of `meter` as groups of clicks, and how many clicks make one
+    /// beat of the tempo the page reports.
+    ///
+    /// The page counts beats as a player does — two to a bar of 6/8, seven to
+    /// a bar of 7/8 — and its tempo is in those beats. So the compound times
+    /// click three to the beat, and everything else one.
+    static func counted(meter: String?, beats: Int) -> (groups: [Int], clicksPerBeat: Int) {
+        let plain = (groups: Array(repeating: 1, count: max(1, beats)), clicksPerBeat: 1)
+        guard var text = meter?.trimmingCharacters(in: .whitespaces), !text.isEmpty else {
+            return plain
+        }
+        if text == "C" { text = "4/4" }
+        if text == "C|" { text = "2/2" }
+        let parts = text.split(separator: "/")
+        guard parts.count == 2, let top = Int(parts[0]), let bottom = Int(parts[1]),
+              top > 0, top <= 24, bottom > 0 else { return plain }
+        guard bottom == 8 else {
+            return (Array(repeating: 1, count: top), 1)
+        }
+        if top % 3 == 0 {
+            return (Array(repeating: 3, count: top / 3), 3)      // 6/8, 9/8, 12/8
+        }
+        // 5/8, 7/8 and their kin: twos, with the three at the end.
+        if top < 4 { return (Array(repeating: 1, count: top), 1) }
+        var groups = Array(repeating: 2, count: top / 2)
+        if top % 2 == 1 { groups[groups.count - 1] = 3 }
+        return (groups, 1)
+    }
+
+    /// The bar being counted now: the tune's, or the one picked.
+    private var countedBar: (groups: [Int], clicksPerBeat: Int) {
+        beat == .fromTune
+            ? Self.counted(meter: tuneMeter, beats: beatsPerBar)
+            : (beat.groups, beat.clicksPerBeat)
+    }
+
+    /// Whether the click is one sound a beat — picked, or because there is no
+    /// tune and no bar length to count from (the metronome in Settings).
+    private var plainBeats: Bool {
+        beat == .mainBeats || (beat == .fromTune && tuneMeter == nil && beatsPerBar <= 0)
+    }
+
+    /// What is being counted, for the settings screen.
+    public var countingNow: String {
+        guard beat == .fromTune, let tuneMeter else {
+            let text = beat.counting
+            return text.hasSuffix(".") ? text : text + "."
+        }
+        return "The bar counted out from the tune's time signature, \(tuneMeter)."
+    }
+
+    /// The rate to show on the music's click button: its own, or 4 for a
+    /// counted bar, which the page draws as a plain on and off.
+    public var pageClickRate: Double {
+        beat == .mainBeats ? clickRate.rawValue : 4
+    }
+
+    /// The click button on the music was pressed.
+    public func fromPage(on: Bool, rate: Double, fallback: ClickRate = .normal) {
+        if beat == .mainBeats { clickRate = ClickRate(rawValue: rate) ?? fallback }
+        armed = on
     }
 
     /// Kept the moment it changes, as the click mode is, and for the same
@@ -288,6 +372,11 @@ public final class Metronome: ObservableObject {
     public func tempoFromTune(bpm newBPM: Int, beatsPerBar bars: Int) {
         let clamped = min(300, max(30, newBPM))
         tuneBPM = clamped
+        // FONN-BEAT-2: the time signature rides along — see TuneMeterReport.
+        if let meter = TuneMeterReport.latest {
+            TuneMeterReport.latest = nil
+            if meter != tuneMeter { tuneMeter = meter }
+        }
         guard followsTune else { return }
         if bars > 0, bars != beatsPerBar { beatsPerBar = bars }
         if clamped != bpm { bpm = clamped }
@@ -547,11 +636,11 @@ public final class Metronome: ObservableObject {
     /// FONN-BEAT-1: one bar of a counted pattern, to loop.
     private func makePatternBuffer() -> AVAudioPCMBuffer? {
         let sampleRate = format.sampleRate
-        let groups = beat.groups
+        let (groups, clicksPerBeat) = countedBar
         let clicks = groups.reduce(0, +)
         guard clicks > 0 else { return nil }
         let framesPerClick = AVAudioFrameCount(
-            (sampleRate * 60.0 / Double(bpm) / Double(beat.clicksPerBeat)).rounded())
+            (sampleRate * 60.0 / Double(bpm) / Double(clicksPerBeat)).rounded())
         guard framesPerClick > 64 else { return nil }
 
         let total = framesPerClick * AVAudioFrameCount(clicks)
@@ -598,7 +687,7 @@ public final class Metronome: ObservableObject {
     }
 
     private func makeLoopBuffer() -> AVAudioPCMBuffer? {
-        if beat != .fromTune { return makePatternBuffer() }
+        if !plainBeats { return makePatternBuffer() }
         let sampleRate = format.sampleRate
         let beats = max(1, beatsPerBar)
         let framesPerBeat = AVAudioFrameCount((sampleRate * 60.0 / Double(bpm)).rounded())

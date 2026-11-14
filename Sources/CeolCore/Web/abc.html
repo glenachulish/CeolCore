@@ -1883,8 +1883,11 @@ function refreshTiming(then) {
 
 /// Beats in a bar, as a musician counts them: 6/8 is two dotted crotchets,
 /// not six quavers, and a metronome clicking six to a jig bar is useless.
+function meterText() {
+  return (currentABC.match(/^M:\s*(\S+)/m) || [])[1] || "4/4";
+}
 function beatsPerBarFromMeter() {
-  var m = (currentABC.match(/^M:\s*(\S+)/m) || [])[1] || "4/4";
+  var m = meterText();
   if (m === "C") return 4;
   if (m === "C|") return 2;
   var parts = m.split("/");
@@ -1905,7 +1908,8 @@ function postTempo() {
   var bpm = Math.round(beats * 60000 / msPerMeasure);
   if (!isFinite(bpm) || bpm < 20 || bpm > 400) return;
   try {
-    window.webkit.messageHandlers.tempo.postMessage({ bpm: bpm, beatsPerBar: beats });
+    // FONN-BEAT-2: the time signature too, so the click can count the bar.
+    window.webkit.messageHandlers.tempo.postMessage({ bpm: bpm, beatsPerBar: beats, meter: meterText() });
   } catch (e) {}
 }
 
@@ -2966,7 +2970,7 @@ var CLICK_RATES = [0.5, 0.5, 1, 2];
 function syncClickButton() {
   var b = document.getElementById("clickBtn");
   if (!b) return;
-  var rate = CLICK_LABELS[clickState];
+  var rate = clickCounted ? "" : CLICK_LABELS[clickState];
   b.innerHTML = METRONOME_SVG + (rate ? ' <span style="font-size:12px">' + rate + '</span>' : '');
   b.classList.toggle("on", clickState > 0);
 }
@@ -2978,10 +2982,15 @@ function syncClickButton() {
 // same two-copies pattern that made the play/pause symbol lie. The app owns
 // the metronome, so the app says; this only draws what it is told and never
 // posts back, which is what stops the two of them talking in circles.
+// FONN-BEAT-2: a rate above 3 means the app is counting the bar out, where
+// half and double mean nothing — so the button is a plain on and off.
+var clickCounted = false;
 function ceolSetClick(on, rate) {
+  var counted = rate > 3;
   var state = 0;
-  if (on) state = (rate < 0.75) ? 1 : (rate > 1.5 ? 3 : 2);
-  if (state === clickState) return;
+  if (on) state = counted ? 3 : ((rate < 0.75) ? 1 : (rate > 1.5 ? 3 : 2));
+  if (state === clickState && counted === clickCounted) return;
+  clickCounted = counted;
   clickState = state;
   syncClickButton();
 }
@@ -2998,7 +3007,7 @@ function postMetronome() {
   var b = document.getElementById("clickBtn");
   if (!b) return;
   b.addEventListener("click", function () {
-    clickState = (clickState + 1) % 4;
+    clickState = clickCounted ? (clickState ? 0 : 3) : (clickState + 1) % 4;
     syncClickButton();
     postMetronome();
     try { window.webkit.messageHandlers.haptic.postMessage({}); } catch (e) {}
