@@ -351,7 +351,9 @@ function ceolMarkInkEl(anchor, colour) {
   path.setAttribute("class", "ceol-mark");
   path.setAttribute("fill", "none");
   path.setAttribute("stroke", colour);
-  path.setAttribute("stroke-width", (anchor.height * 0.06).toFixed(2));
+  // FONN-MARKS-7: a tenth of the stave (was 0.06): the pen was hard to see
+  // beside a highlight.
+  path.setAttribute("stroke-width", (anchor.height * 0.1).toFixed(2));
   path.setAttribute("stroke-linecap", "round");
   path.setAttribute("stroke-linejoin", "round");
   path.setAttribute("pointer-events", "none");
@@ -768,7 +770,11 @@ function ceolMarkStyle() {
     "#ceolMarkBar .ceol-mark-dot { border: 2px solid transparent; }",
     "#ceolMarkBar .ceol-mark-dot.sel { border-color: currentColor; }",
     "#ceolMarkBar .ceol-mark-dot i { display: block; width: 20px; height: 20px; border-radius: 10px; }",
-    "#ceolMarkBar .ceol-mark-tool.sel { background: rgba(120,120,128,0.3); }",
+    // FONN-MARKS-7: the tool in hand is unmistakable, and each says what it is.
+    "#ceolMarkBar .ceol-mark-tool.sel { background: #1c1c1e; color: #fff; }",
+    "html.dark #ceolMarkBar .ceol-mark-tool.sel { background: #f2f2f7; color: #1c1c1e; }",
+    "#ceolMarkBar button.ceol-mark-tool { flex-direction: column; gap: 1px; width: 48px; height: 44px; border-radius: 12px; }",
+    "#ceolMarkBar .ceol-mark-tool span { font: 600 9px -apple-system, system-ui, sans-serif; letter-spacing: 0.1px; }",
     "#ceolMarkBar svg { width: 20px; height: 20px; }",
     "#ceolMarkBar button.ceol-mark-main { width: auto; padding: 0 14px; background: #2f6b4f; color: #fff;",
     "  font: 600 14px -apple-system, system-ui, sans-serif; }",
@@ -776,6 +782,8 @@ function ceolMarkStyle() {
     "@media (pointer: coarse) {",
     "  #ceolMarkBar { gap: 8px; padding: 7px; border-radius: 30px; }",
     "  #ceolMarkBar button { width: 46px; height: 46px; border-radius: 23px; }",
+    "  #ceolMarkBar button.ceol-mark-tool { width: 58px; height: 54px; border-radius: 14px; }",
+    "  #ceolMarkBar .ceol-mark-tool span { font-size: 11px; }",
     "  #ceolMarkBar button.ceol-mark-main { padding: 0 18px; font-size: 17px; }",
     "  #ceolMarkBar button.ceol-mark-wide { padding: 0 14px; font-size: 15px; }",
     "  #ceolMarkBar .ceol-mark-dot i { width: 30px; height: 30px; border-radius: 15px; }",
@@ -869,12 +877,13 @@ function ceolMarkToolbar() {
           ceolMarks.confirmClear = 0; ceolMarkToolbar(); ceolMarkDraw();
         }));
     });
-    [["h", "Highlighter", CEOL_MARK_ICONS.marker],
-     ["d", "Draw", CEOL_MARK_ICONS.draw],
-     ["t", "Text", CEOL_MARK_ICONS.text],
-     ["x", "Rub out", CEOL_MARK_ICONS.rubber]].forEach(function (tool) {
+    [["h", "Highlighter", CEOL_MARK_ICONS.marker, "Highlight"],
+     ["d", "Pen", CEOL_MARK_ICONS.draw, "Pen"],
+     ["t", "Text", CEOL_MARK_ICONS.text, "Text"],
+     ["x", "Rub out", CEOL_MARK_ICONS.rubber, "Rub out"]].forEach(function (tool) {
       bar.appendChild(ceolMarkButton(
-        "ceol-mark-tool" + (ceolMarks.tool === tool[0] ? " sel" : ""), tool[1], tool[2],
+        "ceol-mark-tool" + (ceolMarks.tool === tool[0] ? " sel" : ""), tool[1],
+        tool[2] + "<span>" + tool[3] + "</span>",
         function () {
           ceolMarkEndEntry(true);
           ceolMarks.tool = tool[0]; ceolMarks.pending = null; ceolMarks.confirmClear = 0;
@@ -894,7 +903,7 @@ function ceolMarkToolbar() {
           ceolMarkToolbar(); ceolMarkDraw();
         }));
       } else {
-        bar.appendChild(ceolMarkButton("ceol-mark-tool", "Clear every mark", CEOL_MARK_ICONS.bin, function () {
+        bar.appendChild(ceolMarkButton("ceol-mark-tool", "Clear every mark", CEOL_MARK_ICONS.bin + "<span>Clear</span>", function () {
           ceolMarks.confirmClear = 1;
           ceolMarkToolbar();
         }));

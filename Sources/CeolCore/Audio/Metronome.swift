@@ -141,6 +141,89 @@ public final class Metronome: ObservableObject {
         didSet { if beatsPerBar != oldValue { scheduleRebuild() } }
     }
 
+    // FONN-BEAT-1
+    /// The shape of the bar the click counts out.
+    ///
+    /// "From the tune" is the click as it has always been: one sound a beat,
+    /// with the downbeat accented when the bar's length is known. The others
+    /// count a bar properly — a strong click on one, a plain one where each
+    /// group of the bar starts, and a quiet one on what lies between — so 6/8
+    /// is ONE-two-three FOUR-five-six and 7/8 is ONE-two THREE-four
+    /// FIVE-six-seven.
+    ///
+    /// The tempo keeps its usual meaning in each: crotchets in 2/4 to 5/4 and
+    /// in 5/8 and 7/8 (which click in quavers, two to the beat), and dotted
+    /// crotchets in 6/8, 9/8 and 12/8 (three quavers to the beat), which is
+    /// how a jig's tempo is given. "Clicks" (½, 1×, 2×) applies only to "From
+    /// the tune"; a pattern says for itself where its clicks fall.
+    public enum Beat: String, CaseIterable, Identifiable, Sendable {
+        case fromTune = "tune"
+        case two4 = "2/4"
+        case three4 = "3/4"
+        case four4 = "4/4"
+        case five4 = "5/4"
+        case five8 = "5/8"
+        case six8 = "6/8"
+        case seven8 = "7/8"
+        case nine8 = "9/8"
+        case twelve8 = "12/8"
+
+        public var id: String { rawValue }
+
+        public var label: String { self == .fromTune ? "From the tune" : rawValue }
+
+        /// The bar as groups of clicks. Each group starts with an accent.
+        var groups: [Int] {
+            switch self {
+            case .fromTune: return []
+            case .two4:     return [1, 1]
+            case .three4:   return [1, 1, 1]
+            case .four4:    return [1, 1, 1, 1]
+            case .five4:    return [1, 1, 1, 1, 1]
+            case .five8:    return [2, 3]
+            case .six8:     return [3, 3]
+            case .seven8:   return [2, 2, 3]
+            case .nine8:    return [3, 3, 3]
+            case .twelve8:  return [3, 3, 3, 3]
+            }
+        }
+
+        /// How many clicks make one beat of the tempo.
+        var clicksPerBeat: Int {
+            switch self {
+            case .fromTune, .two4, .three4, .four4, .five4: return 1
+            case .five8, .seven8:                           return 2
+            case .six8, .nine8, .twelve8:                   return 3
+            }
+        }
+
+        /// How the bar is counted, for the settings screen.
+        public var counting: String {
+            switch self {
+            case .fromTune: return "One click a beat, as the tune is written."
+            case .two4:     return "ONE two"
+            case .three4:   return "ONE two three"
+            case .four4:    return "ONE two three four"
+            case .five4:    return "ONE two three four five"
+            case .five8:    return "ONE-two THREE-four-five"
+            case .six8:     return "ONE-two-three FOUR-five-six"
+            case .seven8:   return "ONE-two THREE-four FIVE-six-seven"
+            case .nine8:    return "ONE-two-three FOUR-five-six SEVEN-eight-nine"
+            case .twelve8:  return "ONE-two-three, four times"
+            }
+        }
+    }
+
+    /// Kept the moment it changes, as the click mode is, and for the same
+    /// reason: a fresh Metronome is built for every tune page.
+    @Published public var beat: Beat = Metronome.savedBeat {
+        didSet {
+            guard beat != oldValue else { return }
+            UserDefaults.standard.set(beat.rawValue, forKey: Self.beatKey)
+            scheduleRebuild()
+        }
+    }
+
     @Published public var volume: Double = Metronome.savedVolume {
         didSet { engine.mainMixerNode.outputVolume = Float(volume) }
     }
@@ -242,6 +325,10 @@ public final class Metronome: ObservableObject {
     private static let volumeKey = "ceol.metronome.volume"
     private static let nudgeKey = "ceol.metronome.nudge"
     private static let modeKey = "ceol.metronome.mode"
+    private static let beatKey = "ceol.metronome.beat"
+    private static var savedBeat: Beat {
+        Beat(rawValue: UserDefaults.standard.string(forKey: beatKey) ?? "") ?? .fromTune
+    }
 
     public static var savedRate: Double {
         let v = UserDefaults.standard.double(forKey: rateKey)
@@ -288,6 +375,8 @@ public final class Metronome: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Self.nudgeKey)
         mode = .withTheTune
         UserDefaults.standard.removeObject(forKey: Self.modeKey)
+        beat = .fromTune
+        UserDefaults.standard.removeObject(forKey: Self.beatKey)
         matchTheTune()
     }
 
@@ -455,7 +544,61 @@ public final class Metronome: ObservableObject {
 
     // MARK: - The click
 
+    /// FONN-BEAT-1: one bar of a counted pattern, to loop.
+    private func makePatternBuffer() -> AVAudioPCMBuffer? {
+        let sampleRate = format.sampleRate
+        let groups = beat.groups
+        let clicks = groups.reduce(0, +)
+        guard clicks > 0 else { return nil }
+        let framesPerClick = AVAudioFrameCount(
+            (sampleRate * 60.0 / Double(bpm) / Double(beat.clicksPerBeat)).rounded())
+        guard framesPerClick > 64 else { return nil }
+
+        let total = framesPerClick * AVAudioFrameCount(clicks)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: total),
+              let data = buffer.floatChannelData?[0] else { return nil }
+        buffer.frameLength = total
+        for frame in 0..<Int(total) { data[frame] = 0 }
+
+        let clickFrames = Int(min(Double(framesPerClick) * 0.4, sampleRate * 0.012))
+        guard clickFrames > 1 else { return nil }
+        // Early by what the output path costs, as the plain click is.
+        let lead = leadFrames(sampleRate: sampleRate, framesPerBeat: framesPerClick)
+
+        // Where each group starts, counted in clicks from the bar line.
+        var groupStarts: Set<Int> = []
+        var count = 0
+        for group in groups {
+            groupStarts.insert(count)
+            count += group
+        }
+
+        for click in 0..<clicks {
+            var start = Int(framesPerClick) * click - lead
+            if start < 0 { start += Int(total) }
+            guard start >= 0, start + clickFrames <= Int(total) else { continue }
+            // One: high and full. The start of a group: the usual click.
+            // Between: lower and quiet, so the groups are what you hear.
+            let frequency: Double
+            let level: Double
+            if click == 0 {
+                frequency = 1800; level = 0.9
+            } else if groupStarts.contains(click) {
+                frequency = 1200; level = 0.8
+            } else {
+                frequency = 900; level = 0.32
+            }
+            for frame in 0..<clickFrames {
+                let t = Double(frame) / sampleRate
+                let envelope = exp(-Double(frame) / (Double(clickFrames) * 0.30))
+                data[start + frame] = Float(sin(2 * .pi * frequency * t) * envelope * level)
+            }
+        }
+        return buffer
+    }
+
     private func makeLoopBuffer() -> AVAudioPCMBuffer? {
+        if beat != .fromTune { return makePatternBuffer() }
         let sampleRate = format.sampleRate
         let beats = max(1, beatsPerBar)
         let framesPerBeat = AVAudioFrameCount((sampleRate * 60.0 / Double(bpm)).rounded())
