@@ -567,3 +567,67 @@ function ceolApplyDefaultTempo(visual, abc, type) {
   visual.metaText = visual.metaText || {};
   if (!visual.metaText.tempo) visual.metaText.tempo = t;
 }
+
+// FONN-ABCFOLLOW-1 -----------------------------------------------------------
+// The bars as played, for the metronome to click with the tune's own beats.
+
+/// Clicks to a beat when a bar of `meter` is counted out: three in compound
+/// time, one otherwise.
+function ceolBeatSub(meter) {
+  var p = (meter || "").split("/");
+  var top = parseInt(p[0], 10), bottom = parseInt(p[1], 10);
+  return (bottom === 8 && top % 3 === 0) ? 3 : 1;
+}
+
+/// From abcjs's note timings (playing order: repeats, endings, a set's tunes
+/// in turn): each bar as [startMs, fullBarMs, beats, sub], and when the music
+/// ends. `countFor(event)` gives { beats, sub, seg } for the bar an event
+/// begins; `seg` separates a set's tunes, whose bars are different lengths.
+///
+/// A full bar's length is measured, not asked for: the commonest bar length in
+/// each tune. abcjs's own figure ignores tempo changes inside a set.
+function ceolBarsFromTimings(events, countFor) {
+  var starts = [], endMs = 0;
+  (events || []).forEach(function (ev) {
+    if (!ev || typeof ev.milliseconds !== "number") return;
+    if (ev.milliseconds > endMs) endMs = ev.milliseconds;
+    if (!ev.measureStart || ev.type === "end") return;
+    if (starts.length && Math.abs(starts[starts.length - 1].ms - ev.milliseconds) < 1) return;
+    var c = countFor(ev) || {};
+    starts.push({ ms: ev.milliseconds, beats: c.beats || 4, sub: c.sub || 1, seg: c.seg || 0 });
+  });
+  var counts = {};
+  starts.forEach(function (s, i) {
+    var next = i + 1 < starts.length ? starts[i + 1].ms : endMs;
+    var dur = Math.round((next - s.ms) / 5) * 5;
+    if (dur <= 0) return;
+    var seg = counts[s.seg] || (counts[s.seg] = {});
+    var bucket = seg[dur] || (seg[dur] = { n: 0, sum: 0 });
+    bucket.n += 1;
+    bucket.sum += next - s.ms;
+  });
+  var full = {};
+  Object.keys(counts).forEach(function (seg) {
+    var best = 0, bestN = 0, bestMean = 0;
+    Object.keys(counts[seg]).forEach(function (d) {
+      var b = counts[seg][d], dur = +d;
+      if (b.n > bestN || (b.n === bestN && dur > best)) { best = dur; bestN = b.n; bestMean = b.sum / b.n; }
+    });
+    full[seg] = Math.round(bestMean * 1000) / 1000;
+  });
+  var bars = [];
+  starts.forEach(function (s) {
+    var f = full[s.seg];
+    if (f > 0) bars.push([Math.round(s.ms * 10) / 10, f, s.beats, s.sub]);
+  });
+  return { bars: bars, end: Math.round(endMs) };
+}
+
+/// Where abcjs's own audio is, in ms of its timings. Its timer runs 16 ms
+/// ahead of the sound on purpose (to light notes in time); this takes it off.
+function ceolTimerMs(synthControl) {
+  try {
+    var ms = synthControl.timer.currentMillisecond();
+    return typeof ms === "number" && isFinite(ms) ? Math.max(0, ms - 16) : null;
+  } catch (e) { return null; }
+}

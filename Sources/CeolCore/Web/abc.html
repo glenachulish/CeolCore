@@ -3012,6 +3012,52 @@ function postMetronome() {
   syncClickButton();
 })();
 
+
+// FONN-ABCFOLLOW-1: the bars as played, for the metronome to click with the
+// tune's own beats, and (when abcjs is playing it here) where it has got to.
+var ceolBeatsSig = "", ceolBeatsNative = null, ceolClockWasPlaying = false;
+function ceolPostBeats() {
+  if (!synthControl || !synthControl.timer || !synthControl.timer.noteTimings) return;
+  var meter = meterText(), beats = beatsPerBarFromMeter(), sub = ceolBeatSub(meter);
+  var out = ceolBarsFromTimings(synthControl.timer.noteTimings, function () {
+    return { beats: beats, sub: sub, seg: 0 };
+  });
+  if (!out.bars.length) return;
+  out.native = !!nativeMode;
+  ceolBeatsNative = nativeMode;
+  var sig = JSON.stringify(out);
+  if (sig === ceolBeatsSig) return;
+  ceolBeatsSig = sig;
+  post("beats", out);
+}
+var ceolBuildBarTimingMapAlone = buildBarTimingMap;
+buildBarTimingMap = function () {
+  var result = ceolBuildBarTimingMapAlone.apply(this, arguments);
+  ceolPostBeats();
+  return result;
+};
+var ceolClockTick = 0;
+setInterval(function () {
+  if (!synthControl) return;
+  var playing = !!synthControl.isStarted;
+  // Play and pause reach the app within a 20th of a second, not the 0.4 s of
+  // the poll below, so the click is following before the first beat goes by.
+  if (playing !== lastPlayingState) {
+    lastPlayingState = playing;
+    postPlayState(playing);
+  }
+  if (ceolBeatsNative !== null && ceolBeatsNative !== nativeMode) ceolPostBeats();
+  // The app's own player reports its position to the app directly.
+  if (nativeMode) { ceolClockWasPlaying = false; return; }
+  if (!playing && !ceolClockWasPlaying) return;
+  var changed = playing !== ceolClockWasPlaying;
+  ceolClockWasPlaying = playing;
+  if (!changed && (ceolClockTick++ % 2)) return;   // ten a second while playing
+  var ms = ceolTimerMs(synthControl);
+  if (ms === null) return;
+  post("beatClock", { ms: ms, playing: playing });
+}, 50);
+
 </script>
 </body>
 </html>

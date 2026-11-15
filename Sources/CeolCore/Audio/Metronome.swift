@@ -88,7 +88,12 @@ public final class Metronome: ObservableObject {
             // why the first click came in a hair behind the first note however
             // the timing nudge was set. By the time the music starts there is
             // now nothing left to do but re-phase, which is cheap.
-            if armed && !oldValue { warmUp() }
+            if armed && !oldValue {
+                warmUp()
+                // FONN-ABCFOLLOW-1: switched on again while the tune is
+                // stopped: click on its own until play is pressed.
+                if followingTune && !musicPlaying { dropTuneFollow(); return }
+            }
             sync()
         }
     }
@@ -111,6 +116,12 @@ public final class Metronome: ObservableObject {
     @Published public var musicPlaying = false {
         didSet {
             guard musicPlaying != oldValue else { return }
+            // FONN-ABCFOLLOW-1: playing the ABC, the click follows the tune's
+            // own beats — "one" on the real first beat after any pickup,
+            // through repeats, loops, jumps and changes of speed. Paused, it
+            // stays with the tune and is silent.
+            if musicPlaying, followsTune, tuneBeats.hasBars { followTheTune(); return }
+            if !musicPlaying, followingTune { return }
             // Whether it was ALREADY going, read before sync() changes it.
             // Testing isRunning afterwards meant that starting the click and
             // re-phasing it happened in the same breath: sync() started the
@@ -304,7 +315,10 @@ public final class Metronome: ObservableObject {
     /// unpredictable. Every tune starts on "From the tune"; a different count
     /// is kept only by "Save for this tune" (`practiceBeat`).
     @Published public var beat: Beat = .fromTune {
-        didSet { if beat != oldValue { scheduleRebuild() } }
+        didSet {
+            guard beat != oldValue else { return }
+            if followingTune { followTheTune() } else { scheduleRebuild() }   // FONN-ABCFOLLOW-1
+        }
     }
 
     @Published public var volume: Double = Metronome.savedVolume {
@@ -422,6 +436,7 @@ public final class Metronome: ObservableObject {
     /// (a seek, the loop jumping back, a change of speed) the schedule is
     /// thrown away and started again from there.
     public func follow(_ grid: BeatGrid?, clock: (@MainActor () -> RecordingClock?)?) {
+        followingTune = false   // FONN-ABCFOLLOW-1: set again by followTheTune
         if isRunning { stop() }
         followGrid = grid
         followClock = grid == nil ? nil : clock
@@ -488,10 +503,13 @@ public final class Metronome: ObservableObject {
             anchorHost = now
             anchorTrack = clock.seconds
             anchorRate = clock.rate
-            scheduledUntil = clock.seconds + 0.02 * clock.rate
+            // FONN-ABCFOLLOW-1: from the top of a tune, include its first beat.
+            scheduledUntil = clock.seconds < 0.05 ? -0.001 : clock.seconds + 0.02 * clock.rate
             followPrimed = true
             let shown = min(300, max(30, Int((grid.bpm * clock.rate).rounded())))
-            if shown != bpm {
+            // FONN-ABCFOLLOW-1: following the ABC, the tempo shown is the
+            // tune's own, from the page; the grid may count three to a beat.
+            if shown != bpm && !followingTune {
                 followsTune = false
                 bpm = shown
             }
@@ -500,8 +518,15 @@ public final class Metronome: ObservableObject {
         let horizon = clock.seconds + 0.6 * clock.rate
         let lead = leadSeconds()
         for beat in grid.beats(from: scheduledUntil, to: horizon) {
-            let delay = (beat.time - anchorTrack) / anchorRate - lead
-            guard delay > sinceAnchor + 0.005 else { continue }   // already gone
+            var delay = (beat.time - anchorTrack) / anchorRate - lead
+            if delay <= sinceAnchor + 0.005 {
+                // Already gone — except a tune's first beat, missed only by
+                // the output's latency at the moment play was pressed: a
+                // click a few milliseconds late beats no "one" at all.
+                // FONN-ABCFOLLOW-1
+                guard beat.time < 0.05, sinceAnchor + 0.005 - delay < 0.06 else { continue }
+                delay = sinceAnchor + 0.006
+            }
             let host = anchorHost &+ AVAudioTime.hostTime(forSeconds: delay)
             let sound = beat.inBar == 0 ? followSounds[0] : followSounds[1]
             player.scheduleBuffer(sound, at: AVAudioTime(hostTime: host), options: [],
@@ -528,6 +553,52 @@ public final class Metronome: ObservableObject {
         }
     }
 
+    // MARK: - Following the ABC (FONN-ABCFOLLOW-1)
+
+    /// The tune's bars as played, and where the playing is. The screen hands
+    /// it to the sheet view, which fills it from the page.
+    public private(set) lazy var tuneBeats: TuneBeats = {
+        let beats = TuneBeats()
+        beats.metronome = self
+        return beats
+    }()
+
+    /// Whether the click is following the ABC tune's own beats.
+    @Published public private(set) var followingTune = false
+
+    /// The page sent new bars: a new tune, a set moving on, or (in the page's
+    /// own audio) a change of speed.
+    func tuneBeatsChanged() {
+        guard followingTune || musicPlaying, followsTune else { return }
+        followTheTune()
+    }
+
+    private func followTheTune() {
+        let beats = tuneBeats
+        guard followsTune,
+              let grid = TuneBeats.grid(bars: beats.bars, end: beats.end,
+                                        clicks: { self.followClicks($0) })
+        else { dropTuneFollow(); return }
+        if followingTune, isFollowing, followGrid == grid { return }
+        follow(grid, clock: { beats.clock })
+        followingTune = true
+    }
+
+    private func dropTuneFollow() {
+        guard followingTune else { return }
+        follow(nil, clock: nil)
+    }
+
+    /// Clicks in a bar as the beat is chosen: the bar counted out (three to a
+    /// beat in a jig), its main beats, or a bar picked by name.
+    private func followClicks(_ bar: TuneBeats.Bar) -> Int {
+        switch beat {
+        case .fromTune: return bar.beats * bar.sub
+        case .mainBeats: return bar.beats
+        default: return max(1, beat.groups.reduce(0, +))
+        }
+    }
+
     // MARK: - This tune (FONN-METRO-3)
 
     /// What "Save for this tune" kept: a tempo (nil: follow the music) and a
@@ -545,6 +616,7 @@ public final class Metronome: ObservableObject {
     /// `M:` if there is notation, otherwise the usual one for the tune's type,
     /// and a moderate tempo for that type.
     public func loadTune(abc: String, type: String, practiceBPM: Int?, practiceBeat: String) {
+        dropTuneFollow()   // FONN-ABCFOLLOW-1
         let written = Self.meter(in: abc).map { TuneTypeDefaults.countingMeter($0, type: type) }   // FONN-TEMPO-1
         let meter = written ?? TuneTypeDefaults.meter(for: type)
         tuneMeter = meter
@@ -634,12 +706,15 @@ public final class Metronome: ObservableObject {
     /// Manual change — stop following the tune, or the next report overwrites it.
     public func setBPMByHand(_ value: Int) {
         followsTune = false
+        dropTuneFollow()   // FONN-ABCFOLLOW-1: your tempo, your own time
         bpm = value
+        if musicPlaying && isRunning && !isFollowing { rebuildNow() }
     }
 
     public func matchTheTune() {
         followsTune = true
         if let tuneBPM { bpm = tuneBPM }
+        if musicPlaying && tuneBeats.hasBars { followTheTune() }   // FONN-ABCFOLLOW-1
     }
 
 

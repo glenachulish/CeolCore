@@ -20,6 +20,10 @@ public struct BeatGrid: Sendable, Equatable {
     public let anchor: Double
     public let firstDownbeat: Int
     public let beatsPerBar: Int
+    /// FONN-ABCFOLLOW-1: where each of `times` falls in its bar, when that is
+    /// known rather than counted (an ABC tune, with pickups and short bars).
+    /// Empty: counted from `firstDownbeat`.
+    public let places: [Int]
 
     /// Tempo at normal speed, in the beats the tune is counted in.
     public var bpm: Double { 60 / period }
@@ -31,6 +35,20 @@ public struct BeatGrid: Sendable, Equatable {
         anchor = downbeat
         firstDownbeat = 0
         self.beatsPerBar = max(1, beatsPerBar)
+        places = []
+    }
+
+    /// FONN-ABCFOLLOW-1: beats whose place in the bar is known, one for each
+    /// time. `beatsPerBar` is the most to a bar, for carrying on past the end.
+    public init(times: [Double], places: [Int], beatsPerBar: Int) {
+        self.times = times
+        let span = (times.last ?? 0) - (times.first ?? 0)
+        period = times.count > 1 ? span / Double(times.count - 1) : 0.5
+        let first = places.firstIndex(of: 0) ?? 0
+        anchor = times.isEmpty ? 0 : times[min(first, times.count - 1)]
+        firstDownbeat = first
+        self.beatsPerBar = max(1, beatsPerBar)
+        self.places = places.count == times.count ? places : []
     }
 
     /// A grid found in the recording.
@@ -41,6 +59,7 @@ public struct BeatGrid: Sendable, Equatable {
         anchor = times.isEmpty ? 0 : times[max(0, min(firstDownbeat, times.count - 1))]
         self.firstDownbeat = max(0, firstDownbeat)
         self.beatsPerBar = max(1, beatsPerBar)
+        places = []
     }
 
     /// The same beats with the bar starting on the beat nearest `moment` —
@@ -103,7 +122,7 @@ public struct BeatGrid: Sendable, Equatable {
         }
         var index = lo
         while index < times.count, times[index] < end {
-            out.append((times[index], place(index - firstDownbeat)))
+            out.append((times[index], places.isEmpty ? place(index - firstDownbeat) : places[index]))
             index += 1
         }
         // After the last.

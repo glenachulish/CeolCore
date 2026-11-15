@@ -3178,6 +3178,55 @@ function postMetronome() {
   syncClickButton();
 })();
 
+
+// FONN-ABCFOLLOW-1: the bars as played, for the metronome to click with the
+// set's own beats (each tune its own time signature), and (when abcjs is
+// playing it here) where it has got to.
+var ceolBeatsSig = "", ceolBeatsNative = null, ceolClockWasPlaying = false;
+function ceolPostBeats() {
+  if (!synthControl || !synthControl.timer || !synthControl.timer.noteTimings || !combined) return;
+  var out = ceolBarsFromTimings(synthControl.timer.noteTimings, function (ev) {
+    var idx = tuneIdxForChar(ev.startChar);
+    if (idx < 0) idx = 0;
+    var meter = tuneMeters[idx] || "4/4";
+    return { beats: tuneBeats[idx] || ceolBeatsPerBar(meter), sub: ceolBeatSub(meter), seg: idx };
+  });
+  if (!out.bars.length) return;
+  out.native = !!nativeMode;
+  ceolBeatsNative = nativeMode;
+  var sig = JSON.stringify(out);
+  if (sig === ceolBeatsSig) return;
+  ceolBeatsSig = sig;
+  post("beats", out);
+}
+var ceolBuildTimingAndMapsAlone = buildTimingAndMaps;
+buildTimingAndMaps = function () {
+  var result = ceolBuildTimingAndMapsAlone.apply(this, arguments);
+  ceolPostBeats();
+  return result;
+};
+var ceolClockTick = 0;
+setInterval(function () {
+  if (!synthControl) return;
+  var playing = !!synthControl.isStarted;
+  // Play and pause reach the app within a 20th of a second, not the 0.4 s of
+  // the poll below, so the click is following before the first beat goes by.
+  if (playing !== lastPlayingState) {
+    lastPlayingState = playing;
+    postPlayState(playing);
+  }
+  if (ceolBeatsNative !== null && ceolBeatsNative !== nativeMode) ceolPostBeats();
+  // The app's own player reports its position to the app directly.
+  if (nativeMode) { ceolClockWasPlaying = false; return; }
+  if (!playing && !ceolClockWasPlaying) return;
+  var changed = playing !== ceolClockWasPlaying;
+  ceolClockWasPlaying = playing;
+  if (!changed && (ceolClockTick++ % 2)) return;   // ten a second while playing
+  var ms = ceolTimerMs(synthControl);
+  if (ms === null) return;
+  post("beatClock", { ms: ms, playing: playing });
+}, 50);
+
 </script>
 </body>
 </html>
