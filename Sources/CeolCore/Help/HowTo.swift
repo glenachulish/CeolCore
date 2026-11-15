@@ -80,8 +80,11 @@ public enum HowToTopic: String, CaseIterable, Identifiable, Sendable {
 public final class HowToVideos: ObservableObject {
     public static let shared = HowToVideos()
 
-    /// The online list. Nil until there is one; see the type's notes.
-    public static let listURL: URL? = nil
+    /// The online list: `_data/howto.json` in the public fonn-docs repository,
+    /// which also drives the site's How-to page (glenachulish.github.io/
+    /// fonn-docs/howto). Edit it on GitHub and every copy of Fonn has the
+    /// new link within a few hours.
+    public static let listURL = URL(string: "https://raw.githubusercontent.com/glenachulish/fonn-docs/main/_data/howto.json")
 
     /// Videos that exist when this version ships, by topic.
     private static let builtIn: [HowToTopic: String] = [:]
