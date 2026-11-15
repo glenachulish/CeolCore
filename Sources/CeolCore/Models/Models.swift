@@ -88,6 +88,15 @@ public final class Tune {
     @Relationship(deleteRule: .cascade)
     public var media: [MediaItem]? = []
 
+    /// FONN-RESOURCES-1: links in Resources filed against this tune. Not the
+    /// same as a link in `media`: those belong to the tune and go with it;
+    /// these live in Resources, in folders, and only point here. Deleting the
+    /// tune leaves the link in Resources. Optional with a default, as CloudKit
+    /// needs — **a new relationship needs Deploy Schema Changes to Production
+    /// before a TestFlight build ships it.**
+    @Relationship(inverse: \SavedLink.tunes)
+    public var savedLinks: [SavedLink]? = []
+
     public init(title: String = "", type: String = "", key: String = "", mode: String = "", abc: String = "") {
         self.title = title
         self.type = type
@@ -205,6 +214,11 @@ public final class TuneSet {
     /// constraints.
     @Relationship(inverse: \TuneCollection.sets)
     public var collections: [TuneCollection]? = []
+
+    /// FONN-RESOURCES-1: links in Resources filed against this set (see
+    /// `Tune.savedLinks`).
+    @Relationship(inverse: \SavedLink.sets)
+    public var savedLinks: [SavedLink]? = []
 
     public init(name: String = "") {
         self.name = name

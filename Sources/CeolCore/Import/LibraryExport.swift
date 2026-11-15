@@ -130,7 +130,7 @@ public enum LibraryExport {
             return dict
         }
 
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "ceol": 1,
             "type": "library",
             "exported_at": ISO8601DateFormatter().string(from: .now).prefix(10).description,
@@ -139,6 +139,11 @@ public enum LibraryExport {
             "sets": setDicts,
             "collections": collectionDicts,
         ]
+        // FONN-RESOURCES-1: written only when there are any, so older readers
+        // (the Pi) see exactly what they did before.
+        if let resources = ResourceShare.backup(context: context) {
+            payload["resources"] = resources
+        }
         return try JSONSerialization.data(withJSONObject: payload,
                                           options: [.prettyPrinted, .sortedKeys])
     }

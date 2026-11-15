@@ -19,6 +19,12 @@ public enum FileImports {
         public var collectionsCreated = 0
         public var versionGroups = 0
         public var mediaAttached = 0
+        /// FONN-RESOURCES-1: links taken into Resources.
+        public var linksAdded = 0
+        public var linksAlreadyThere = 0
+        public var linkFoldersCreated = 0
+        /// A shared links file, so the message talks about links, not tunes.
+        public var linksOnly = false
         /// Why the rest did not attach.
         ///
         /// `attachMedia` had five silent `continue`s and returned a bare count,
@@ -35,6 +41,7 @@ public enum FileImports {
         public var mediaExpected = 0
 
         public var message: String {
+            if linksOnly { return linksMessage }
             var parts = ["Imported \(tunesImported) tune\(tunesImported == 1 ? "" : "s")"]
             if tunesSkipped > 0 { parts.append("skipped \(tunesSkipped) duplicate\(tunesSkipped == 1 ? "" : "s")") }
             if versionGroups > 0 { parts.append("\(versionGroups) version group\(versionGroups == 1 ? "" : "s")") }
@@ -55,6 +62,17 @@ public enum FileImports {
             }
             if setsCreated > 0 { parts.append("\(setsCreated) set\(setsCreated == 1 ? "" : "s")") }
             if collectionsCreated > 0 { parts.append("\(collectionsCreated) collection\(collectionsCreated == 1 ? "" : "s")") }
+            if linksAdded > 0 { parts.append("\(linksAdded) link\(linksAdded == 1 ? "" : "s") in Resources") }
+            return parts.joined(separator: ", ")
+        }
+
+        /// FONN-RESOURCES-1
+        var linksMessage: String {
+            var parts = ["Added \(linksAdded) link\(linksAdded == 1 ? "" : "s") to Resources"]
+            if linkFoldersCreated > 0 {
+                parts.append("\(linkFoldersCreated) new folder\(linkFoldersCreated == 1 ? "" : "s")")
+            }
+            if linksAlreadyThere > 0 { parts.append("\(linksAlreadyThere) already there") }
             return parts.joined(separator: ", ")
         }
     }
@@ -127,6 +145,10 @@ public enum FileImports {
         let ftype = json["type"] as? String ?? "tunes"
         if ftype == "library" {
             return try importLibrary(json: json, context: context)
+        }
+        // FONN-RESOURCES-1: a folder of links someone sent.
+        if ftype == "links" {
+            return ResourceShare.importFile(json: json, context: context)
         }
         let tuneList = (json["tunes"] as? [[String: Any]]) ?? []
         let existingTunes = try context.fetch(FetchDescriptor<Tune>())
@@ -479,6 +501,12 @@ public enum FileImports {
                     collection.sets?.append(set)
                 }
             }
+        }
+
+        // FONN-RESOURCES-1: the backup's Resources, after the tunes so links
+        // find the tunes they were filed against. Absent from older backups.
+        if let resources = json["resources"] as? [String: Any] {
+            ResourceShare.take(resources, into: context, summary: &summary)
         }
 
         return summary
