@@ -182,6 +182,7 @@ public enum FileImports {
             tune.theSessionID = sessionID
             tune.sourceURL = td["source_url"] as? String ?? ""
             tune.practiceBPM = td["practice_bpm"] as? Int
+            tune.practiceBeat = td["practice_beat"] as? String ?? ""
             tune.aliases = (td["aliases"] as? [String]) ?? []
             context.insert(tune)
             titleToTune[titleKey] = tune
@@ -376,6 +377,7 @@ public enum FileImports {
             // Absent means no practice tempo, which is different from zero —
             // hence the optional rather than `?? 0`.
             tune.practiceBPM = td["practice_bpm"] as? Int
+            tune.practiceBeat = td["practice_beat"] as? String ?? ""
             tune.aliases = (td["aliases"] as? [String]) ?? []
             context.insert(tune)
             byDupKey[dupKey] = tune

@@ -74,6 +74,7 @@ public enum LibraryExport {
             // existing reader is unaffected. Absent means "no practice tempo
             // set", not "something went wrong" — the same rule as set_indexes.
             if let practice = tune.practiceBPM { dict["practice_bpm"] = practice }
+            if !tune.practiceBeat.isEmpty { dict["practice_beat"] = tune.practiceBeat }
 
             let media = (tune.media ?? []).map { item -> [String: Any] in
                 var m: [String: Any] = ["kind": item.kindRaw, "filename": item.filename,

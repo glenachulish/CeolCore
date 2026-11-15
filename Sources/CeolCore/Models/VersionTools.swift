@@ -229,6 +229,7 @@ public enum VersionTools {
         copy.theSessionSettingID = source.theSessionSettingID
         copy.transpose = source.transpose
         copy.practiceBPM = source.practiceBPM
+        copy.practiceBeat = source.practiceBeat
         carryMarks(from: marksHolder(of: source, in: context), to: copy)
 
         let base = source.versionName.isEmpty ? (source.displayKey.isEmpty ? "Version" : source.displayKey)

@@ -116,9 +116,8 @@ public final class Metronome: ObservableObject {
             // re-phasing it happened in the same breath: sync() started the
             // player, then rebuildNow() immediately stopped and restarted it,
             // which is a good way to lose the first click of the tune.
-            // On its own, the click owns its own phase: a tune starting is
-            // not a reason to interrupt a metronome somebody is playing to.
-            guard mode == .withTheTune else { return }
+            // FONN-METRO-3: the click is already going if it is on; the tune
+            // starting re-phases it so the two agree on where one is.
             let wasRunning = isRunning
             sync()                              // starts with play, stops with pause
             if musicPlaying && wasRunning { rebuildNow() }   // come in on the beat
@@ -288,24 +287,24 @@ public final class Metronome: ObservableObject {
 
     /// The rate to show on the music's click button: its own, or 4 for a
     /// counted bar, which the page draws as a plain on and off.
-    public var pageClickRate: Double {
-        beat == .mainBeats ? clickRate.rawValue : 4
-    }
+    ///
+    /// FONN-METRO-3: always 4, so the button is a plain on and off. It used
+    /// to cycle off, ½, 1×, 2×, which made "on" a matter of counting taps.
+    /// How often it clicks is in the panel, under Fine tuning.
+    public var pageClickRate: Double { 4 }
 
     /// The click button on the music was pressed.
     public func fromPage(on: Bool, rate: Double, fallback: ClickRate = .normal) {
-        if beat == .mainBeats { clickRate = ClickRate(rawValue: rate) ?? fallback }
         armed = on
     }
 
-    /// Kept the moment it changes, as the click mode is, and for the same
-    /// reason: a fresh Metronome is built for every tune page.
-    @Published public var beat: Beat = Metronome.savedBeat {
-        didSet {
-            guard beat != oldValue else { return }
-            UserDefaults.standard.set(beat.rawValue, forKey: Self.beatKey)
-            scheduleRebuild()
-        }
+    /// FONN-METRO-3: belongs to the tune now, not to the app. It was kept
+    /// as a preference, so picking 7/8 for one tune left every tune after it
+    /// counting seven — which is a good part of why the metronome felt
+    /// unpredictable. Every tune starts on "From the tune"; a different count
+    /// is kept only by "Save for this tune" (`practiceBeat`).
+    @Published public var beat: Beat = .fromTune {
+        didSet { if beat != oldValue { scheduleRebuild() } }
     }
 
     @Published public var volume: Double = Metronome.savedVolume {
@@ -377,9 +376,114 @@ public final class Metronome: ObservableObject {
             TuneMeterReport.latest = nil
             if meter != tuneMeter { tuneMeter = meter }
         }
-        guard followsTune else { return }
+        // The bar's length is the music's whatever the tempo, so it is taken
+        // even when you have set a tempo of your own.
         if bars > 0, bars != beatsPerBar { beatsPerBar = bars }
+        guard followsTune else { return }
         if clamped != bpm { bpm = clamped }
+    }
+
+    // MARK: - This tune (FONN-METRO-3)
+
+    /// What "Save for this tune" kept: a tempo (nil: follow the music) and a
+    /// beat (nil: count the tune's own time signature).
+    @Published public private(set) var savedBPM: Int?
+    @Published public private(set) var savedBeat: Beat?
+
+    /// Start on a tune: its time signature, a tempo to begin with, and
+    /// whatever you saved for it.
+    ///
+    /// The music page reports the real tempo and time signature as soon as it
+    /// has drawn the tune, and that report wins. This is for the moments
+    /// before it, and for a tune that is only a PDF or a photograph, where
+    /// there is no page to report: the time signature from the notation's
+    /// `M:` if there is notation, otherwise the usual one for the tune's type,
+    /// and a moderate tempo for that type.
+    public func loadTune(abc: String, type: String, practiceBPM: Int?, practiceBeat: String) {
+        let written = Self.meter(in: abc)
+        let meter = written ?? TuneTypeDefaults.meter(for: type)
+        tuneMeter = meter
+        beatsPerBar = meter.map { Metronome.beatsPerBar(meter: $0) } ?? 0
+        tuneBPM = TuneTypeDefaults.tempo(for: type)
+        followsTune = true
+        bpm = tuneBPM ?? bpm
+        beat = .fromTune
+        savedBPM = practiceBPM
+        savedBeat = practiceBeat.isEmpty ? nil : Beat(rawValue: practiceBeat)
+        if let savedBPM { setBPMByHand(savedBPM) }
+        if let savedBeat { beat = savedBeat }
+    }
+
+    /// Whether the tempo or the beat has been moved from the tune's.
+    public var isTweaked: Bool { !followsTune || beat != .fromTune }
+
+    /// Whether anything is saved on this tune.
+    public var hasSaved: Bool { savedBPM != nil || savedBeat != nil }
+
+    /// Whether "Save for this tune" would change anything.
+    public var canSaveForTune: Bool {
+        let tempo: Int? = followsTune ? nil : bpm
+        let count: Beat? = beat == .fromTune ? nil : beat
+        return tempo != savedBPM || count != savedBeat
+    }
+
+    /// Keep the tempo and beat showing as this tune's. Returns what to store
+    /// on it: `practiceBPM` (nil while following the music, so the Slow/Fast
+    /// setting still moves the click) and `practiceBeat` ("" for the tune's
+    /// own count).
+    @discardableResult
+    public func saveForTune() -> (bpm: Int?, beat: String) {
+        savedBPM = followsTune ? nil : bpm
+        savedBeat = beat == .fromTune ? nil : beat
+        return (savedBPM, savedBeat?.rawValue ?? "")
+    }
+
+    /// The tune's own tempo and count again. What is saved stays saved.
+    public func backToTheTune() {
+        beat = .fromTune
+        matchTheTune()
+    }
+
+    /// Forget what was saved, and go back to the tune's own tempo and count.
+    public func forgetSaved() {
+        savedBPM = nil
+        savedBeat = nil
+        backToTheTune()
+    }
+
+    /// The tune's time signature as written in its `M:` line, or nil.
+    static func meter(in abc: String) -> String? {
+        guard let range = abc.range(of: #"(?m)^M:\s*(\S+)"#, options: .regularExpression) else {
+            return nil
+        }
+        let text = abc[range].dropFirst(2).trimmingCharacters(in: .whitespaces)
+        return text.isEmpty || text.lowercased() == "none" ? nil : text
+    }
+
+    /// Beats in a bar as a player counts them, as the music page does: two in
+    /// 6/8, seven in 7/8.
+    static func beatsPerBar(meter: String) -> Int {
+        if meter == "C" { return 4 }
+        if meter == "C|" { return 2 }
+        let parts = meter.split(separator: "/")
+        guard parts.count == 2, let top = Int(parts[0]), let bottom = Int(parts[1]),
+              top > 0, bottom > 0 else { return 4 }
+        if bottom == 8 && top % 3 == 0 { return top / 3 }
+        return top
+    }
+
+    /// The name the beat goes by in a picker. "From the tune" says which.
+    public func label(for choice: Beat) -> String {
+        guard choice == .fromTune, let tuneMeter else { return choice.label }
+        return "From the tune (\(tuneMeter))"
+    }
+
+    /// One line on where the tempo comes from, for under the number.
+    public var tempoSource: String {
+        if !followsTune {
+            return savedBPM == bpm ? "saved for this tune" : "your tempo"
+        }
+        return tuneBPM == nil ? "bpm" : "from the tune"
     }
 
     /// Manual change — stop following the tune, or the next report overwrites it.
@@ -415,9 +519,6 @@ public final class Metronome: ObservableObject {
     private static let nudgeKey = "ceol.metronome.nudge"
     private static let modeKey = "ceol.metronome.mode"
     private static let beatKey = "ceol.metronome.beat"
-    private static var savedBeat: Beat {
-        Beat(rawValue: UserDefaults.standard.string(forKey: beatKey) ?? "") ?? .fromTune
-    }
 
     public static var savedRate: Double {
         let v = UserDefaults.standard.double(forKey: rateKey)
@@ -464,9 +565,7 @@ public final class Metronome: ObservableObject {
         UserDefaults.standard.removeObject(forKey: Self.nudgeKey)
         mode = .withTheTune
         UserDefaults.standard.removeObject(forKey: Self.modeKey)
-        beat = .fromTune
         UserDefaults.standard.removeObject(forKey: Self.beatKey)
-        matchTheTune()
     }
 
     // MARK: - Running
@@ -485,13 +584,14 @@ public final class Metronome: ObservableObject {
         }
     }
 
-    private var shouldSound: Bool {
-        if standalone { return armed }
-        switch mode {
-        case .withTheTune: return armed && musicPlaying
-        case .onItsOwn:    return armed
-        }
-    }
+    /// FONN-METRO-3: on means clicking. Full stop.
+    ///
+    /// It used to depend on `mode`: "With the tune" switched on and then
+    /// waited, silently, for the play button — so the button on a PDF, or on
+    /// a tune you were reading, or under a recording, seemed to do nothing.
+    /// Now the switch is the switch. Pressing play still re-phases the click
+    /// so it comes in on the tune's beat (see `musicPlaying`).
+    private var shouldSound: Bool { armed }
 
     /// What the metronome believes about itself, in one line.
     ///
@@ -501,9 +601,6 @@ public final class Metronome: ObservableObject {
     /// volume is down. Rather than guess again, it says so.
     public var stateSummary: String {
         var parts: [String] = [armed ? "on" : "off"]
-        if armed && !musicPlaying && mode == .withTheTune {
-            parts.append("waiting for the music")
-        }
         parts.append(isRunning ? "sounding" : "silent")
         if let problem = lastEngineProblem { parts.append("engine: \(problem)") }
         parts.append("\(bpm) bpm")

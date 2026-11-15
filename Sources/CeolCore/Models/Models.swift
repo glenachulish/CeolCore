@@ -38,6 +38,12 @@ public final class Tune {
     /// the tune is. Optional with a default, so an existing library migrates
     /// unasked and CloudKit can carry it.
     public var practiceBPM: Int? = nil
+    /// FONN-METRO-3: the metronome's count you saved for this tune — "7/8",
+    /// "beats" for main beats only — beside `practiceBPM`. Empty for the
+    /// tune's own time signature. Defaulted, as CloudKit needs — **a new
+    /// attribute needs Deploy Schema Changes to Production before a
+    /// TestFlight build ships it** (`CD_Tune.CD_practiceBeat`, String).
+    public var practiceBeat: String = ""
     /// FONN-DRONE-2: the drone you chose for this tune, kept here so it
     /// syncs to your other devices. Empty / -1 means "the default sound, on
     /// the home note of the key". Defaulted, as CloudKit needs — **a new
