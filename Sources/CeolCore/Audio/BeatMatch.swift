@@ -278,7 +278,7 @@ public struct BeatMatchPanel: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
-            Text("Tap a few times with the beat, then once on the first beat of a bar while it plays.")
+            Text("While it plays, press Tap with the beat four or more times, steadily, where your foot taps: twice a bar in a reel or a jig. Then press Tap on “one” once, on the first beat of a bar.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

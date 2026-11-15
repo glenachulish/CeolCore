@@ -252,6 +252,7 @@ var audioReady = false;
 var baseMsPerMeasure = null;
 var msPerMeasure = null;
 var currentABC = "";
+var ceolTuneType = "";   // FONN-TEMPO-1: the tune's type, from the app
 var currentTranspose = 0;
 var playbackEnabled = true;
 
@@ -896,6 +897,8 @@ function renderHidden() {
       linearRefused = false;
     }
   }
+  // FONN-TEMPO-1: a tune with no Q: plays at its type's speed, not abcjs's 180.
+  ceolApplyDefaultTempo(visualObj, currentABC, ceolTuneType);
 }
 
 /// Swap the synth between the written tune and the repeat-free one, and only
@@ -1883,19 +1886,12 @@ function refreshTiming(then) {
 
 /// Beats in a bar, as a musician counts them: 6/8 is two dotted crotchets,
 /// not six quavers, and a metronome clicking six to a jig bar is useless.
+// FONN-TEMPO-1: a reel and its kin are counted two to the bar.
 function meterText() {
-  return (currentABC.match(/^M:\s*(\S+)/m) || [])[1] || "4/4";
+  return ceolCountingMeter(currentABC, ceolTuneType);
 }
 function beatsPerBarFromMeter() {
-  var m = meterText();
-  if (m === "C") return 4;
-  if (m === "C|") return 2;
-  var parts = m.split("/");
-  var top = parseInt(parts[0], 10);
-  var bottom = parseInt(parts[1], 10);
-  if (!top || !bottom) return 4;
-  if (bottom === 8 && top % 3 === 0) return top / 3;   // 6/8, 9/8, 12/8
-  return top;
+  return ceolBeatsPerBar(meterText());
 }
 
 /// Tell the app the tempo actually being played, so the metronome can click
@@ -2859,6 +2855,7 @@ function renderABC(opts) {
   // the map goes back through them too, so a click on a note still finds the
   // note in the stored tune.
   ceolLastRenderOpts = opts;
+  if (opts.type !== undefined) ceolTuneType = opts.type || "";
   var ceolSource = opts.abc || "";
   ceolAutoResult = ceolAutoChordsOn ? ceolAutoChords(ceolSource) : null;
   var ceolTidied = ceolTidyRepeatsMapped(ceolAutoResult ? ceolAutoResult.text : ceolSource);

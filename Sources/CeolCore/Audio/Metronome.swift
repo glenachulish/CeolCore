@@ -545,7 +545,7 @@ public final class Metronome: ObservableObject {
     /// `M:` if there is notation, otherwise the usual one for the tune's type,
     /// and a moderate tempo for that type.
     public func loadTune(abc: String, type: String, practiceBPM: Int?, practiceBeat: String) {
-        let written = Self.meter(in: abc)
+        let written = Self.meter(in: abc).map { TuneTypeDefaults.countingMeter($0, type: type) }   // FONN-TEMPO-1
         let meter = written ?? TuneTypeDefaults.meter(for: type)
         tuneMeter = meter
         beatsPerBar = meter.map { Metronome.beatsPerBar(meter: $0) } ?? 0

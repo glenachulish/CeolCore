@@ -1321,7 +1321,8 @@ function buildCombined(tunes) {
   var meter = field(first, "M") || "4/4";
   var len = field(first, "L") || "1/8";
   var key = field(first, "K") || "C";
-  var tempo = field(first, "Q") || "";
+  // FONN-TEMPO-1: no Q: means the tune type's speed, tune by tune.
+  var tempo = field(first, "Q") || ceolDefaultQ(first, withAbc[0].type) || "";
   var header = "X:1\nT:" + (setData.name || "Set") + "\nM:" + meter + "\nL:" + len
     + (tempo ? "\nQ:" + tempo : "") + "\nK:" + key + "\n";
   var combinedBody = "";
@@ -1337,7 +1338,7 @@ function buildCombined(tunes) {
       // timing and in the audio, so the set now changes gear the way a band
       // would. Sixteen sets in the library have tunes marked at different
       // tempos; before this they were all played at the first tune's.
-      var q = field(t.abc, "Q") || tempo;
+      var q = field(t.abc, "Q") || ceolDefaultQ(t.abc, t.type) || tempo;
       if (m && m !== meter) prefix += "[M:" + m + "]";
       if (l && l !== len) prefix += "[L:" + l + "]";
       if (q && q !== tempo) prefix += "[Q:" + q + "]";
@@ -2342,6 +2343,7 @@ function measureTuneDurations() {
       if (vo) {
         // Constructing the timer is what fills in the tune's total time;
         // there's no lighter way to ask for it.
+        ceolApplyDefaultTempo(vo, t.abc, t.type);   // FONN-TEMPO-1
         new ABCJS.TimingCallbacks(vo, {});
         var secs = vo.getTotalTime();
         if (secs > 0) ms = secs * 1000;
@@ -2350,23 +2352,17 @@ function measureTuneDurations() {
     } catch (e) {}
     tuneDurMs.push(ms);
     tuneMsPerBar.push(msPerBar);
-    tuneBeats.push(beatsPerBarFor(t.abc));
-    tuneMeters.push((((t.abc || "").match(/^M:\s*(\S+)/m) || [])[1]) || "4/4");
+    tuneBeats.push(beatsPerBarFor(t.abc, t.type));
+    tuneMeters.push(ceolCountingMeter(t.abc, t.type));   // FONN-TEMPO-1
   });
   host.innerHTML = "";
 }
 
 /// Beats in a bar as a musician counts them: a jig is two dotted crotchets,
 /// not six quavers, and a metronome clicking six to a jig bar is no use.
-function beatsPerBarFor(abc) {
-  var m = ((abc || "").match(/^M:\s*(\S+)/m) || [])[1] || "4/4";
-  if (m === "C") return 4;
-  if (m === "C|") return 2;
-  var parts = m.split("/");
-  var top = parseInt(parts[0], 10), bottom = parseInt(parts[1], 10);
-  if (!top || !bottom) return 4;
-  if (bottom === 8 && top % 3 === 0) return top / 3;   // 6/8, 9/8, 12/8
-  return top;
+// FONN-TEMPO-1: a reel and its kin are counted two to the bar.
+function beatsPerBarFor(abc, type) {
+  return ceolBeatsPerBar(ceolCountingMeter(abc, type));
 }
 
 /// Tell the app the tempo of the tune now sounding, adjusted for the Slow /

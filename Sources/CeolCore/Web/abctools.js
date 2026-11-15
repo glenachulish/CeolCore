@@ -475,3 +475,95 @@ function ceolTidyRepeatsMapped(abc) {
   if (!abc) return { text: abc, mapBack: function (n) { return n; } };
   return ceolBuildOffsetMap(abc, /:\|\s*\|:/g, function () { return "::"; });
 }
+
+// FONN-TEMPO-1 ---------------------------------------------------------------
+// How fast a tune goes, and how its bar is counted, when the notation doesn't
+// say. Mirrors CeolCore/Audio/TuneTypeDefaults.swift; keep the two in step.
+//
+// Nine tunes in ten carry no Q:, and abcjs then plays everything at 180 a beat
+// (120 in 6/8, 9/8, 12/8): a waltz, a strathspey and a reel all at the same
+// speed. The tune's type gives a sensible one instead.
+//
+// Reels, hornpipes, strathspeys, barndances and their kin are counted two to
+// the bar, the way a foot taps them, so the number reads as a player would
+// say it and tapping along to a recording gives the same number back.
+// Tempos are in the beats counted: minims for those, dotted crotchets in
+// compound time, crotchets otherwise.
+var CEOL_TYPE_TEMPO = {
+  "reel": 90, "shetland reel": 90,
+  "jig": 100, "double jig": 100, "slip jig": 100, "single jig": 105, "hop jig": 100,
+  "slide": 115, "hornpipe": 70, "polka": 130, "waltz": 140, "vals": 140,
+  "mazurka": 130, "barndance": 75, "barn dance": 75, "fling": 70,
+  "highland": 70, "strathspey": 60, "march": 100, "pipe march": 90,
+  "three-two": 120, "schottische": 70, "air": 70, "slow air": 70, "song air": 70
+};
+var CEOL_IN_TWO = ["reel", "shetland reel", "hornpipe", "strathspey", "barndance",
+                   "barn dance", "fling", "highland", "schottische"];
+
+function ceolTypeKey(abc, type) {
+  var t = (type || "").trim().toLowerCase();
+  if (!t) t = ((((abc || "").match(/^R:\s*(.+)$/m) || [])[1]) || "").trim().toLowerCase();
+  if (!t) return "";
+  if (CEOL_TYPE_TEMPO.hasOwnProperty(t)) return t;
+  var simple = t.slice(-1) === "s" ? t.slice(0, -1) : t;
+  if (CEOL_TYPE_TEMPO.hasOwnProperty(simple)) return simple;
+  var best = "";
+  Object.keys(CEOL_TYPE_TEMPO).forEach(function (k) {
+    if (t.indexOf(k) === 0 && k.length > best.length) best = k;
+  });
+  return best;
+}
+
+/// The time signature as it is counted: the written one, except that a reel
+/// and its kin in 4/4 are counted as 2/2.
+function ceolCountingMeter(abc, type) {
+  var m = (((abc || "").match(/^M:\s*(\S+)/m) || [])[1]) || "4/4";
+  if ((m === "4/4" || m === "C") && CEOL_IN_TWO.indexOf(ceolTypeKey(abc, type)) >= 0) return "2/2";
+  return m;
+}
+
+/// Beats in a bar as a player counts them: two in 6/8 and in a reel.
+function ceolBeatsPerBar(meter) {
+  if (meter === "C") return 4;
+  if (meter === "C|") return 2;
+  var parts = (meter || "").split("/");
+  var top = parseInt(parts[0], 10), bottom = parseInt(parts[1], 10);
+  if (!top || !bottom) return 4;
+  if (bottom === 8 && top % 3 === 0) return top / 3;
+  return top;
+}
+
+/// The tempo to play a tune at when it has no Q:, as abcjs holds a tempo
+/// ({ duration: [beat length], bpm }), or null to leave abcjs's own.
+function ceolDefaultTempo(abc, type) {
+  if (/^Q:/m.test(abc || "")) return null;
+  var key = ceolTypeKey(abc, type);
+  if (!key) return null;
+  var meter = ceolCountingMeter(abc, type);
+  if (meter === "C") meter = "4/4";
+  if (meter === "C|") meter = "2/2";
+  var parts = meter.split("/");
+  var top = parseInt(parts[0], 10), bottom = parseInt(parts[1], 10);
+  if (!top || !bottom) return null;
+  var beat = (bottom === 8 && top % 3 === 0) ? 3 / 8 : 1 / bottom;
+  return { duration: [beat], bpm: CEOL_TYPE_TEMPO[key] };
+}
+
+/// The same, as the text of a Q: field, for ABC that is built rather than
+/// rendered straight (a set's joined-up tune).
+function ceolDefaultQ(abc, type) {
+  var t = ceolDefaultTempo(abc, type);
+  if (!t) return "";
+  var d = t.duration[0];
+  var frac = d === 3 / 8 ? "3/8" : "1/" + Math.round(1 / d);
+  return frac + "=" + t.bpm;
+}
+
+/// Give a rendered tune its default tempo, if it has none of its own.
+function ceolApplyDefaultTempo(visual, abc, type) {
+  if (!visual) return;
+  var t = ceolDefaultTempo(abc, type);
+  if (!t) return;
+  visual.metaText = visual.metaText || {};
+  if (!visual.metaText.tempo) visual.metaText.tempo = t;
+}
