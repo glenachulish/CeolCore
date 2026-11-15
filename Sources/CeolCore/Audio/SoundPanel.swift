@@ -110,6 +110,11 @@ public struct SoundPanel: View {
                     Text("On the tune's home note unless you choose another. Sounds with the tune, or on its own in Sheet music mode.")
                 }
             }
+
+            // FONN-HOWTO-1: nothing shows until there is a video.
+            if HowToVideos.shared.url(for: .sound) != nil {
+                Section { HowToLink(.sound) }
+            }
         }
         .formStyle(.grouped)
         .toolbar {

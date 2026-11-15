@@ -68,6 +68,10 @@ public struct DronePanel: View {
                 } footer: {
                     Text("Sounds with the tune when it plays, or on its own in Sheet music mode. A different sound or note is kept for this tune, on all your devices.")
                 }
+                // FONN-HOWTO-1
+                if HowToVideos.shared.url(for: .sound) != nil {
+                    Section { HowToLink(.sound) }
+                }
             }
             .formStyle(.grouped)
             .navigationTitle("Drone")

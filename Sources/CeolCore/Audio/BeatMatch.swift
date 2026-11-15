@@ -325,6 +325,8 @@ public struct BeatMatchPanel: View {
                 }
                 .controlSize(.small)
             }
+
+            HowToLink(.metronome)   // FONN-HOWTO-1
         }
         .padding(16)
         .frame(minWidth: 300, idealWidth: 340)
