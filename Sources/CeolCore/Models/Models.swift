@@ -295,6 +295,16 @@ public final class MediaItem {
     /// needs — **and a new attribute needs Deploy Schema Changes to Production
     /// before a TestFlight build ships it.**
     public var position: Int = 0
+    /// FONN-BEATS-1: the recording's beat, kept so the metronome can match
+    /// it next time — tapped or found. `beatBPM` is at normal speed, in the
+    /// beats the tune is counted in (dotted crotchets in a jig); nil for
+    /// none. `beatOffset` is a moment, in seconds from the start, where a
+    /// bar begins; -1 when not known. Defaulted, as CloudKit needs — **new
+    /// attributes need Deploy Schema Changes to Production before a
+    /// TestFlight build ships them** (`CD_MediaItem.CD_beatBPM`, Int64;
+    /// `CD_MediaItem.CD_beatOffset`, Double).
+    public var beatBPM: Int? = nil
+    public var beatOffset: Double = -1
 
     @Relationship(inverse: \Tune.media) public var tune: Tune?
     @Relationship(inverse: \TuneSet.media) public var tuneSet: TuneSet?

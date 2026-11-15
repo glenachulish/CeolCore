@@ -383,6 +383,151 @@ public final class Metronome: ObservableObject {
         if clamped != bpm { bpm = clamped }
     }
 
+    // MARK: - Following a recording (FONN-BEATS-1)
+
+    /// Where a recording is: seconds from its start, the speed it is playing
+    /// at, and whether it is playing.
+    public struct RecordingClock: Sendable {
+        public var seconds: Double
+        public var rate: Double
+        public var playing: Bool
+        public init(seconds: Double, rate: Double, playing: Bool) {
+            self.seconds = seconds
+            self.rate = rate
+            self.playing = playing
+        }
+    }
+
+    /// Whether the click is following a recording's beat rather than keeping
+    /// its own time.
+    @Published public private(set) var isFollowing = false
+
+    private var followGrid: BeatGrid?
+    private var followClock: (@MainActor () -> RecordingClock?)?
+    private var followTimer: Timer?
+    private var followPrimed = false
+    private var anchorHost: UInt64 = 0
+    private var anchorTrack: Double = 0
+    private var anchorRate: Double = 1
+    private var scheduledUntil: Double = 0
+    private lazy var followSounds: [AVAudioPCMBuffer] = makeFollowSounds()
+
+    /// Follow a recording: click on its beats — found or tapped — wherever it
+    /// is playing, at whatever speed, through A–B loops and jumps. Nil goes
+    /// back to the metronome's own steady click.
+    ///
+    /// The beats are scheduled a little ahead, each at the moment it will be
+    /// heard, worked out from where the recording says it is. Twenty times a
+    /// second that is checked against where it should be; if it has moved
+    /// (a seek, the loop jumping back, a change of speed) the schedule is
+    /// thrown away and started again from there.
+    public func follow(_ grid: BeatGrid?, clock: (@MainActor () -> RecordingClock?)?) {
+        if isRunning { stop() }
+        followGrid = grid
+        followClock = grid == nil ? nil : clock
+        isFollowing = followGrid != nil && followClock != nil
+        followPrimed = false
+        sync()
+    }
+
+    /// Restart the steady click with its bar beginning now — "Tap on one",
+    /// for a recording Fonn can't see the position of (YouTube, another app).
+    public func alignNow() {
+        guard !isFollowing else { return }
+        if !armed {
+            armed = true
+        } else if isRunning {
+            rebuildNow()
+        } else {
+            sync()
+        }
+    }
+
+    /// Three in a jig's beat, two otherwise — from the tune's time signature.
+    public var subdivision: Int {
+        guard let meter = tuneMeter else { return 2 }
+        let parts = meter.split(separator: "/")
+        guard parts.count == 2, let top = Int(parts[0]), let bottom = Int(parts[1]) else { return 2 }
+        return (bottom == 8 && top % 3 == 0) ? 3 : 2
+    }
+
+    private func startFollowing() {
+        guard followTimer == nil else { return }
+        warmUp()
+        guard engine.isRunning else { return }
+        player.stop()
+        player.play()
+        followPrimed = false
+        isRunning = true
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated { self?.followTick() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        followTimer = timer
+        followTick()
+    }
+
+    private func followTick() {
+        guard isFollowing, armed, let grid = followGrid, followSounds.count == 2 else { return }
+        guard let clock = followClock?(), clock.playing, clock.rate > 0.05 else {
+            // Paused: drop whatever was scheduled, so nothing clicks on.
+            if followPrimed {
+                player.stop()
+                player.play()
+                followPrimed = false
+            }
+            return
+        }
+        let now = mach_absolute_time()
+        let elapsed = followPrimed ? AVAudioTime.seconds(forHostTime: now &- anchorHost) : 0
+        let expected = anchorTrack + elapsed * anchorRate
+        if !followPrimed || abs(expected - clock.seconds) > 0.04
+            || abs(clock.rate - anchorRate) > 0.001 {
+            player.stop()
+            player.play()
+            anchorHost = now
+            anchorTrack = clock.seconds
+            anchorRate = clock.rate
+            scheduledUntil = clock.seconds + 0.02 * clock.rate
+            followPrimed = true
+            let shown = min(300, max(30, Int((grid.bpm * clock.rate).rounded())))
+            if shown != bpm {
+                followsTune = false
+                bpm = shown
+            }
+        }
+        let sinceAnchor = AVAudioTime.seconds(forHostTime: now &- anchorHost)
+        let horizon = clock.seconds + 0.6 * clock.rate
+        let lead = leadSeconds()
+        for beat in grid.beats(from: scheduledUntil, to: horizon) {
+            let delay = (beat.time - anchorTrack) / anchorRate - lead
+            guard delay > sinceAnchor + 0.005 else { continue }   // already gone
+            let host = anchorHost &+ AVAudioTime.hostTime(forSeconds: delay)
+            let sound = beat.inBar == 0 ? followSounds[0] : followSounds[1]
+            player.scheduleBuffer(sound, at: AVAudioTime(hostTime: host), options: [],
+                                  completionHandler: nil)
+        }
+        scheduledUntil = max(scheduledUntil, horizon)
+    }
+
+    /// One click for one, a plainer one for the other beats — the same two
+    /// sounds as the counted bar.
+    private func makeFollowSounds() -> [AVAudioPCMBuffer] {
+        let rate = format.sampleRate
+        let frames = AVAudioFrameCount(rate * 0.012)
+        return [(1800.0, 0.9), (1200.0, 0.7)].compactMap { pair in
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
+                  let data = buffer.floatChannelData?[0] else { return nil }
+            buffer.frameLength = frames
+            for frame in 0..<Int(frames) {
+                let t = Double(frame) / rate
+                let envelope = exp(-Double(frame) / (Double(frames) * 0.30))
+                data[frame] = Float(sin(2 * .pi * pair.0 * t) * envelope * pair.1)
+            }
+            return buffer
+        }
+    }
+
     // MARK: - This tune (FONN-METRO-3)
 
     /// What "Save for this tune" kept: a tempo (nil: follow the music) and a
@@ -611,6 +756,12 @@ public final class Metronome: ObservableObject {
     public private(set) var lastEngineProblem: String?
 
     private func sync() {
+        // FONN-BEATS-1: following a recording, the click is scheduled beat by
+        // beat against where the recording is, not looped.
+        if isFollowing {
+            if armed { startFollowing() } else if isRunning { stop() }
+            return
+        }
         if shouldSound {
             if !isRunning { start() }
         } else if isRunning {
@@ -619,6 +770,7 @@ public final class Metronome: ObservableObject {
     }
 
     private func start() {
+        guard !isFollowing else { return }
         prepareSession?()
         do {
             if !engine.isRunning { try engine.start() }
@@ -638,6 +790,9 @@ public final class Metronome: ObservableObject {
     public func stop() {
         rebuildTask?.cancel()
         rebuildTask = nil
+        followTimer?.invalidate()
+        followTimer = nil
+        followPrimed = false
         player.stop()
         // Leave the engine running while the click is still switched on, so the
         // next start doesn't pay for bringing it up again — see `warmUp`. It is
@@ -659,7 +814,7 @@ public final class Metronome: ObservableObject {
     }
 
     private func rebuildNow() {
-        guard isRunning, let buffer = makeLoopBuffer() else { return }
+        guard isRunning, !isFollowing, let buffer = makeLoopBuffer() else { return }
         player.stop()
         player.scheduleBuffer(buffer, at: nil, options: [.loops], completionHandler: nil)
         player.play()
@@ -672,19 +827,22 @@ public final class Metronome: ObservableObject {
     /// worth of frames — the same figures the player uses. Clamped to a quarter
     /// of a beat so a very slow tempo can't shift the click onto the previous
     /// one, and to a sane ceiling in case the session reports something odd.
-    private func leadFrames(sampleRate: Double, framesPerBeat: AVAudioFrameCount) -> Int {
-        // What the output path costs, asked of whichever platform this is.
-        // iOS knows it as the session's latency plus one buffer; a Mac has no
-        // audio session, and the equivalent figure is the output node's own
-        // presentation latency. Both are a floor, which is what `nudge` is for.
+    /// What the output path costs, asked of whichever platform this is.
+    /// iOS knows it as the session's latency plus one buffer; a Mac has no
+    /// audio session, and the equivalent figure is the output node's own
+    /// presentation latency. Both are a floor, which is what `nudge` is for.
+    private func leadSeconds() -> Double {
         #if os(iOS)
         let session = AVAudioSession.sharedInstance()
-        var seconds = session.outputLatency + session.ioBufferDuration + nudge
+        let seconds = session.outputLatency + session.ioBufferDuration + nudge
         #else
-        var seconds = engine.outputNode.presentationLatency + nudge
+        let seconds = engine.outputNode.presentationLatency + nudge
         #endif
-        seconds = max(0, min(seconds, 0.25))
-        let frames = Int(seconds * sampleRate)
+        return max(0, min(seconds, 0.25))
+    }
+
+    private func leadFrames(sampleRate: Double, framesPerBeat: AVAudioFrameCount) -> Int {
+        let frames = Int(leadSeconds() * sampleRate)
         return min(frames, Int(Double(framesPerBeat) * 0.25))
     }
 
