@@ -116,7 +116,9 @@ public final class HowToVideos: ObservableObject {
     public func refresh(force: Bool = false) async {
         guard let listURL = Self.listURL else { return }
         let last = UserDefaults.standard.double(forKey: Self.fetchedKey)
-        if !force, Date().timeIntervalSince1970 - last < Self.refreshEvery { return }
+        // FONN-HOWTO-3: while there is nothing to show, look every launch, so
+        // the first videos appear the next time Fonn opens, not hours later.
+        if !force, hasAny, Date().timeIntervalSince1970 - last < Self.refreshEvery { return }
         var request = URLRequest(url: listURL)
         request.cachePolicy = .reloadIgnoringLocalCacheData
         request.timeoutInterval = 15
