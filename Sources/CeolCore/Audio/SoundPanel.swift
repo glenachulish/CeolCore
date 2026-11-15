@@ -30,9 +30,29 @@ public struct SoundPanel: View {
 
     public static let defaultBacking = "acoustic_guitar_nylon"
 
+    /// FONN-QUIETER-1: Quiet and Soft lowered (were 40 and 65): Callum
+    /// found them not quiet enough under the melody. MIDI velocities; the
+    /// page scales them again for chords and bass (voices.js).
     public static let levels: [(label: String, velocity: Int)] = [
-        ("Quiet", 40), ("Soft", 65), ("Medium", 85), ("Strong", 110),
+        ("Quiet", 20), ("Soft", 40), ("Medium", 85), ("Strong", 110),
     ]
+
+    /// FONN-QUIETER-1: someone who had picked Quiet (40) or Soft (65) keeps
+    /// the same choice at its new, quieter level, rather than being left on
+    /// a number the picker no longer shows. Once per device; called from
+    /// each app's init.
+    public static func updateLevelsOnce() {
+        let defaults = UserDefaults.standard
+        let doneKey = "ceol.accompVol.quieter1"
+        guard !defaults.bool(forKey: doneKey) else { return }
+        defaults.set(true, forKey: doneKey)
+        guard defaults.object(forKey: "ceol.accompVol") != nil else { return }
+        switch defaults.integer(forKey: "ceol.accompVol") {
+        case 40: defaults.set(20, forKey: "ceol.accompVol")
+        case 65: defaults.set(40, forKey: "ceol.accompVol")
+        default: break
+        }
+    }
 
     /// Off, or an instrument. "Off" turns the chords off rather than choosing
     /// a silent instrument, so the instrument is still there when they're on.

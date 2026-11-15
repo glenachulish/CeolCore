@@ -156,8 +156,8 @@ public final class Metronome: ObservableObject {
     ///
     /// FONN-BEAT-2: "From the tune" counts the bar out from the tune's own
     /// time signature, which is what a player expects a metronome on a page
-    /// of music to do — a jig gets ONE-two-three FOUR-five-six without being
-    /// asked. It was, until this, one sound a beat; that is now "Main beats
+    /// of music to do. (FONN-JIGBEAT-1: a jig now gets its two main beats,
+    /// ONE … FOUR, rather than ONE-two-three FOUR-five-six; pick 6/8 for that.) It was, until this, one sound a beat; that is now "Main beats
     /// only", kept for a reel you don't want a click on every crotchet of.
     /// The named signatures override the tune, for practising against a
     /// different count or with no tune at all.
@@ -249,8 +249,11 @@ public final class Metronome: ObservableObject {
     /// beat of the tempo the page reports.
     ///
     /// The page counts beats as a player does — two to a bar of 6/8, seven to
-    /// a bar of 7/8 — and its tempo is in those beats. So the compound times
-    /// click three to the beat, and everything else one.
+    /// a bar of 7/8 — and its tempo is in those beats. Everything clicks once
+    /// a beat. FONN-JIGBEAT-1: the compound times (jigs, slip jigs, slides)
+    /// used to click three to the beat, six to a bar of 6/8; Callum found
+    /// that too busy and chose the main beats, ONE … FOUR. The full count is
+    /// still there by picking 6/8, 9/8 or 12/8.
     static func counted(meter: String?, beats: Int) -> (groups: [Int], clicksPerBeat: Int) {
         let plain = (groups: Array(repeating: 1, count: max(1, beats)), clicksPerBeat: 1)
         guard var text = meter?.trimmingCharacters(in: .whitespaces), !text.isEmpty else {
@@ -265,7 +268,7 @@ public final class Metronome: ObservableObject {
             return (Array(repeating: 1, count: top), 1)
         }
         if top % 3 == 0 {
-            return (Array(repeating: 3, count: top / 3), 3)      // 6/8, 9/8, 12/8
+            return (Array(repeating: 1, count: top / 3), 1)      // 6/8, 9/8, 12/8: FONN-JIGBEAT-1
         }
         // 5/8, 7/8 and their kin: twos, with the three at the end.
         if top < 4 { return (Array(repeating: 1, count: top), 1) }
@@ -593,7 +596,9 @@ public final class Metronome: ObservableObject {
     /// beat in a jig), its main beats, or a bar picked by name.
     private func followClicks(_ bar: TuneBeats.Bar) -> Int {
         switch beat {
-        case .fromTune: return bar.beats * bar.sub
+        // FONN-JIGBEAT-1: a jig's two main beats, not six; a three counted
+        // out is still there by picking 6/8.
+        case .fromTune: return bar.sub == 3 ? bar.beats : bar.beats * bar.sub
         case .mainBeats: return bar.beats
         default: return max(1, beat.groups.reduce(0, +))
         }
