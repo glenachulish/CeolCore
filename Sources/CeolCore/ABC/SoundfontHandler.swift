@@ -46,6 +46,8 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
         "mflute": (abcName: "piccolo", folder: "mflute"),
         // FONN-OWNSOUND-4: Callum's own accordion recording.
         "homeaccordion": (abcName: "harmonica", folder: "homeaccordion"),
+        // FONN-MTGFIDDLE-1: the studio violin.
+        "mtgfiddle": (abcName: "viola", folder: "mtgfiddle"),
     ]
 
 
@@ -183,6 +185,7 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
         case "mflute": return "flute"
         case "whistle": return "whistle"
         case "homeaccordion": return "accordion"
+        case "mtgfiddle": return "violin"
         default: return request.folder
         }
     }

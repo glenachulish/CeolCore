@@ -36,6 +36,10 @@ public struct CeolVoice: Identifiable, Hashable, Sendable {
         // Fiddle (home) was removed on 13 Nov (FONN-OWNSOUND-5); a better
         // recording can return as program 41, "viola".
         CeolVoice(id: "homeaccordion",         label: "Accordion (home)", offline: true, program: 22),
+        // FONN-MTGFIDDLE-1: a studio violin, every semitone G3 to G6 played
+        // and held (MTG, Freesound pack 20224, CC BY 3.0). Program 41 is
+        // abcjs's "viola", free since Fiddle (home) went.
+        CeolVoice(id: "mtgfiddle",             label: "Fiddle (studio)",  offline: true, program: 41),
         CeolVoice(id: "banjo",                 label: "Banjo",         offline: false, program: 105),
         CeolVoice(id: "acoustic_guitar_nylon", label: "Guitar",        offline: true,  program: 24),
         CeolVoice(id: "orchestral_harp",       label: "Harp",          offline: false, program: 46),

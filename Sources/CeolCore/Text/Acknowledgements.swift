@@ -95,6 +95,18 @@ public enum Acknowledgements {
              links: [],
              footnote: "It is carried in the app so it works with no signal."),
 
+        // FONN-MTGFIDDLE-1: CC BY 3.0 asks for the author, the source, the
+        // licence and a note of what was changed. All four are here.
+        Item(id: "mtgfiddle",
+             heading: "Fiddle (studio)",
+             credit: "“Violin single notes” by MTG (Music Technology Group, Universitat Pompeu Fabra), from Freesound",
+             terms: "Used under the Creative Commons Attribution 3.0 licence. Trimmed, retuned, looped to three seconds, levelled and converted to MP3 for Fonn; notes above G6 are retuned from G6.",
+             links: [.init("freesound.org/people/MTG/packs/20224",
+                           "https://freesound.org/people/MTG/packs/20224/"),
+                     .init("creativecommons.org/licenses/by/3.0",
+                           "https://creativecommons.org/licenses/by/3.0/")],
+             footnote: "The fiddle is carried in the app so it works with no signal."),
+
         Item(id: "musyngkite",
              heading: "Concert flute sound",
              credit: "Musyng Kite soundfont — Sarcyan",

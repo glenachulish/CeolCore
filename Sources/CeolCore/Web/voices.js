@@ -27,6 +27,8 @@ var CEOL_VOICES = [
   // FONN-OWNSOUND-4: Callum's own accordion recording, beside the library one.
   // Its own program (22 "harmonica") so abcjs keeps them apart.
   { id: "homeaccordion",         label: "Accordion (home)", program: 22, offline: true },
+  // FONN-MTGFIDDLE-1: a studio violin (MTG, CC BY 3.0). Program 41, "viola".
+  { id: "mtgfiddle",             label: "Fiddle (studio)",  program: 41, offline: true },
   { id: "banjo",                 label: "Banjo",         program: 105 },
   { id: "acoustic_guitar_nylon", label: "Guitar",        program: 24,  offline: true },
   { id: "orchestral_harp",       label: "Harp",          program: 46 },
