@@ -197,6 +197,14 @@ public final class TuneSet {
     /// TestFlight build ships it.**
     public var droneSound: String = ""
     public var droneNote: Int = -1
+    /// FONN-SETTEMPO-1: the metronome's tempo and count saved for this set,
+    /// as `Tune.practiceBPM` / `practiceBeat` are for a tune. Nil / "" means
+    /// the music's own. Never written into the tunes' notation. Defaulted, as
+    /// CloudKit needs — **Deploy Schema Changes to Production before a
+    /// TestFlight build ships it** (`CD_TuneSet.CD_practiceBPM`, Int64;
+    /// `CD_TuneSet.CD_practiceBeat`, String).
+    public var practiceBPM: Int? = nil
+    public var practiceBeat: String = ""
 
     @Relationship(deleteRule: .cascade, inverse: \SetEntry.tuneSet)
     public var entries: [SetEntry]? = []

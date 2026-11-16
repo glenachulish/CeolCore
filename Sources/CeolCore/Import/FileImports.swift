@@ -454,6 +454,8 @@ public enum FileImports {
             set.isFavourite = (sd["is_favourite"] as? Int ?? 0) != 0
             set.rating = sd["rating"] as? Int ?? 0
             set.onHitlist = (sd["on_hitlist"] as? Int ?? 0) != 0
+            set.practiceBPM = sd["practice_bpm"] as? Int   // FONN-SETTEMPO-1
+            set.practiceBeat = sd["practice_beat"] as? String ?? ""
             var position = 0
             let entries = ((sd["entries"] as? [[String: Any]]) ?? [])
                 .sorted { (($0["position"] as? Int) ?? 0) < (($1["position"] as? Int) ?? 0) }

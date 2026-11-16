@@ -104,7 +104,7 @@ public enum LibraryExport {
                 return ["tune_id": tuneID, "position": index,
                         "repeats": entry.repeats, "key_override": entry.keyOverride]
             }
-            return [
+            var dict: [String: Any] = [
                 "name": set.name,
                 "notes": set.notes,
                 "rating": set.rating,
@@ -112,6 +112,10 @@ public enum LibraryExport {
                 "on_hitlist": set.onHitlist ? 1 : 0,
                 "entries": entries,
             ]
+            // FONN-SETTEMPO-1: as for a tune, only when there is one.
+            if let practice = set.practiceBPM { dict["practice_bpm"] = practice }
+            if !set.practiceBeat.isEmpty { dict["practice_beat"] = set.practiceBeat }
+            return dict
         }
 
         let collectionDicts: [[String: Any]] = collections.map { collection in
