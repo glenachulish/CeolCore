@@ -559,6 +559,53 @@ function flushPendingPlay() {
   if (fn) { resumeAudioContext(); fn(); }
 }
 
+// ── FONN-AMSILENT-1: sound back after another player ────────────────────────
+// On the Mac, once an Apple Music song (or a recording) had played in the
+// strip, the next press of play here was silent: the cursor moved, the context
+// said "running", the samples were loaded, and nothing was heard, even with
+// the strip closed again. Only opening another tune brought the sound back,
+// and what that does to the audio is re-prime it. So that is what happens
+// here. The app says when another player has taken over (MacABCSheetView's
+// stop-all observer); the next play asks the context to resume whatever state
+// it claims to be in, re-primes the tune, and plays from where it was. Until
+// another player has played nothing changes, and iOS never says so.
+var ceolOtherPlayerHadSound = false;
+function ceolOtherPlayerStarted() { ceolOtherPlayerHadSound = true; }
+
+function ceolReviveAfterOtherPlayer(sc) {
+  if (!sc || sc._ceolRevive) return;
+  sc._ceolRevive = true;
+  function revived(play) {
+    return function (arg) {
+      if (!ceolOtherPlayerHadSound || nativeMode || !visualObj
+          || sc !== synthControl || sc.isStarted) {
+        return play(arg);
+      }
+      ceolOtherPlayerHadSound = false;
+      try {
+        var ctx = ABCJS.synth.activeAudioContext && ABCJS.synth.activeAudioContext();
+        if (ctx && typeof ctx.resume === "function") ctx.resume();
+      } catch (e) {}
+      var at = sc.percent || 0;
+      primeTune(function () {
+        applySpeed();
+        buildBarTimingMap();
+        if (at > 0) { try { sc.seek(at); } catch (e) {} }
+        try { play(arg); } catch (e) {}
+      });
+      return Promise.resolve();
+    };
+  }
+  // Our own paths (bar taps, the loop coming round, waking) call the
+  // controller; the play button reads options.playPromiseHandler at the click.
+  var originalPlay = sc.play.bind(sc);
+  sc.play = revived(function () { return originalPlay(); });
+  var options = sc.control && sc.control.options;
+  if (options && typeof options.playPromiseHandler === "function") {
+    options.playPromiseHandler = revived(options.playPromiseHandler);
+  }
+}
+
 // Sound options — instruments, saved choice and audioParams() all live in
 // voices.js, shared with the set player.
 
@@ -1630,6 +1677,7 @@ function reloadAudio(full) {
       displayWarp: false
     });
     ceolGuardTransport(synthControl);
+    ceolReviveAfterOtherPlayer(synthControl);   // FONN-AMSILENT-1
   }
 
   setAudioReady(false);
@@ -2899,6 +2947,7 @@ function renderABC(opts) {
         displayWarp: false
       });
       ceolGuardTransport(synthControl);
+      ceolReviveAfterOtherPlayer(synthControl);   // FONN-AMSILENT-1
     }
     // Wait for the soundfont check before priming — see voices.js. Priming
     // against an unverified URL is how a tune ends up playing silently.
