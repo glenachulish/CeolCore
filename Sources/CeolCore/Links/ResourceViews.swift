@@ -20,6 +20,8 @@ public struct ResourcesBrowser: View {
     @Environment(\.modelContext) private var context
     @Query private var folders: [LinkFolder]
     @Query(sort: \SavedLink.createdAt, order: .reverse) private var links: [SavedLink]
+    /// FONN-TOLEARN-1: for the Tunes to Learn row's count.
+    @Query private var toLearn: [TuneToLearn]
 
     @State private var search = ""
     @State private var editing: LinkEditTarget?
@@ -56,7 +58,6 @@ public struct ResourcesBrowser: View {
                 .navigationTitle("Resources")
                 .searchable(text: $search, prompt: "Search links")
                 .toolbar { toolbar }
-                .overlay { emptyState }
                 .dropDestination(for: URL.self) { urls, _ in
                     save(urls, into: nil)
                     return true
@@ -108,6 +109,15 @@ public struct ResourcesBrowser: View {
             }
         } else {
             List {
+                // FONN-TOLEARN-1: names you mean to learn, typed in.
+                Section {
+                    NavigationLink {
+                        TunesToLearnList()
+                    } label: {
+                        countedLabel("Tunes to Learn", "checklist",
+                                     toLearn.filter { !$0.isLearnt }.count)
+                    }
+                }
                 Section {
                     NavigationLink {
                         ResourceLinkList(scope: .all)
@@ -118,6 +128,12 @@ public struct ResourcesBrowser: View {
                         ResourceLinkList(scope: .unfiled)
                     } label: {
                         countedLabel("Not in a folder", "tray", unfiledCount)
+                    }
+                } footer: {
+                    // FONN-TOLEARN-1: was a full-screen overlay, which would now
+                    // cover the Tunes to Learn row.
+                    if links.isEmpty && folders.isEmpty {
+                        Text("Keep articles, videos and recordings here, in folders of your own. Share a page to Fonn from Safari or YouTube, paste a link, or tap +.")
                     }
                 }
                 if !sortedFolders.isEmpty {

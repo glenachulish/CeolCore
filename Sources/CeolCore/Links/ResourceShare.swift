@@ -136,6 +136,10 @@ public enum ResourceShare {
             for ld in (fd["links"] as? [[String: Any]]) ?? [] { takeLink(ld, folder: folder) }
         }
         for ld in (json["links"] as? [[String: Any]]) ?? [] { takeLink(ld, folder: nil) }
+        // FONN-TOLEARN-1: present only in a library backup.
+        if let list = json["to_learn"] as? [[String: Any]] {
+            _ = TunesToLearn.take(list, into: context)
+        }
         try? context.save()
     }
 
@@ -154,8 +158,12 @@ public enum ResourceShare {
         let loose = ((try? context.fetch(FetchDescriptor<SavedLink>())) ?? [])
             .filter { ($0.folders ?? []).isEmpty }
             .sorted { $0.createdAt > $1.createdAt }
-        guard !folders.isEmpty || !loose.isEmpty else { return nil }
-        return payload(folders: folders, loose: loose, name: "Resources")
+        // FONN-TOLEARN-1: Tunes to Learn goes with Resources in a backup.
+        let toLearn = TunesToLearn.backup(context: context)
+        guard !folders.isEmpty || !loose.isEmpty || !toLearn.isEmpty else { return nil }
+        var out = payload(folders: folders, loose: loose, name: "Resources")
+        if !toLearn.isEmpty { out["to_learn"] = toLearn }
+        return out
     }
 }
 
