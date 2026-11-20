@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 
 // FONN-SOUNDPANEL-1
 /// Everything about how the music sounds, in one panel with three sections,
@@ -22,6 +23,11 @@ public struct SoundPanel: View {
 
     let drone: Drone?
     var onClose: (() -> Void)?
+    /// FONN-VOLUME-1: where the backing slider is while it's being dragged;
+    /// the level itself is set when you let go, as each change rebuilds the
+    /// backing.
+    @State private var backingSlider: Double?
+    @State private var backingDragging = false
 
     public init(drone: Drone?, onClose: (() -> Void)? = nil) {
         self.drone = drone
@@ -107,12 +113,25 @@ public struct SoundPanel: View {
                         }
                         .pickerStyle(.segmented)
                     }
-                    Picker("Volume", selection: $accompLevel) {
-                        ForEach(Self.levels, id: \.velocity) { level in
-                            Text(level.label).tag(level.velocity)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                    // FONN-VOLUME-1: a slider, from far quieter than Quiet
+                    // up to a little louder than Strong.
+                    LoudnessSlider(value: Binding(
+                        get: { backingSlider ?? Loudness.backingSlider(accompLevel) },
+                        set: { v in
+                            backingSlider = v
+                            if !backingDragging {
+                                accompLevel = Loudness.backingVelocity(v)
+                                backingSlider = nil
+                            }
+                        }),
+                        label: "Volume",
+                        onEditingChanged: { editing in
+                            backingDragging = editing
+                            if !editing, let v = backingSlider {
+                                accompLevel = Loudness.backingVelocity(v)
+                                backingSlider = nil
+                            }
+                        })
                     Toggle("Suggest chords when a tune has none", isOn: $autoChords)
                 }
             } header: {
@@ -172,6 +191,53 @@ public struct SoundPanel: View {
     }
 }
 
+// MARK: - FONN-VOLUME-1
+
+/// The volume sliders' scale. Even steps in decibels rather than in raw
+/// level, so the quiet end has room to move: on a plain level slider the
+/// bottom quarter was all "too loud or silent". The top is where the loudest
+/// was before (the drone) or a little above Strong (the backing).
+public enum Loudness {
+    /// The backing, as a MIDI velocity (what the music pages read): 120 at
+    /// the top, falling 32 dB to 3 at the bottom. Quiet (20) sits about
+    /// halfway, Strong (110) near the top.
+    public static func backingVelocity(_ slider: Double) -> Int {
+        let s = min(1, max(0, slider))
+        return max(2, Int((120 * pow(10, (s - 1) * 32 / 20)).rounded()))
+    }
+    public static func backingSlider(_ velocity: Int) -> Double {
+        let v = Double(max(2, min(120, velocity)))
+        return min(1, max(0, 1 + 20 * log10(v / 120) / 32))
+    }
+    /// The drone, as a gain (`Drone.volume`): 1 at the top, as before,
+    /// falling 36 dB at the bottom. The old default, 0.5, is about 5/6 up.
+    public static func droneGain(_ slider: Double) -> Double {
+        let s = min(1, max(0, slider))
+        return pow(10, (s - 1) * 36 / 20)
+    }
+    public static func droneSlider(_ gain: Double) -> Double {
+        guard gain > 0 else { return 0 }
+        return min(1, max(0, 1 + 20 * log10(gain) / 36))
+    }
+}
+
+/// A volume slider with a quiet speaker at one end and a loud one at the other.
+struct LoudnessSlider: View {
+    @Binding var value: Double
+    let label: String
+    var onEditingChanged: (Bool) -> Void = { _ in }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text(label)
+            Image(systemName: "speaker.fill").foregroundStyle(.secondary).font(.caption)
+            Slider(value: $value, in: 0...1, onEditingChanged: onEditingChanged)
+                .accessibilityLabel(label)
+            Image(systemName: "speaker.wave.3.fill").foregroundStyle(.secondary).font(.caption)
+        }
+    }
+}
+
 /// The drone's choices — Off or a sound, the note, the volume — for the Sound
 /// panel and the drone's own panel alike.
 public struct DroneControls: View {
@@ -225,10 +291,12 @@ public struct DroneControls: View {
                     }
                 }
             }
-            HStack {
-                Text("Volume")
-                Slider(value: $drone.volume, in: 0...1)
-            }
+            // FONN-VOLUME-1: the same decibel scale as the backing's, so it
+            // goes much quieter than it did; the top is unchanged.
+            LoudnessSlider(value: Binding(
+                get: { Loudness.droneSlider(drone.volume) },
+                set: { drone.volume = Loudness.droneGain($0) }),
+                label: "Volume")
             // FONN-CHORDDRONE-1
             if drone.canFollowChords {
                 Toggle(isOn: $drone.followChords) {
