@@ -4,6 +4,8 @@ import SwiftData
 import AVFoundation
 // @Published and ObservableObject are Combine's (Member Import Visibility).
 import Combine
+// FONN-IDHELP-1: saving the recording to a folder (fileExporter).
+import UniformTypeIdentifiers
 
 // FONN-UNKNOWN-1
 // A tune you don't know, heard at a session: record it, and it goes into the
@@ -29,6 +31,13 @@ public enum UnknownTunes {
     }
 
     public static func isUnknown(_ tune: Tune) -> Bool { number(of: tune.title) != nil }
+
+    /// FONN-IDHELP-1: still unknown, or renamed but with no music yet. The
+    /// help says to rename first, so a renamed session recording keeps its
+    /// way back to Identify until it has notation.
+    public static func needsMusic(_ tune: Tune) -> Bool {
+        isUnknown(tune) || (!tune.hasNotation && tune.notes.contains("Recorded at a session"))
+    }
 
     /// The lowest number not already taken, so deleting Unknown Tune 2 makes
     /// 2 free again.
@@ -70,12 +79,20 @@ public enum UnknownTunes {
     public static func adopt(_ tune: Tune, detail: TheSessionAPI.TuneDetail,
                              setting: TheSessionAPI.Setting, in context: ModelContext) {
         let was = tune.title
-        tune.title = detail.name
+        // FONN-IDHELP-1: a name you gave it yourself is kept; thesession's
+        // name, if different, goes in as another name for it.
+        if isUnknown(tune) {
+            tune.title = detail.name
+            tune.aliases = detail.aliases
+        } else {
+            var names = detail.aliases
+            if TunesToLearn.key(detail.name) != TunesToLearn.key(tune.title) { names.insert(detail.name, at: 0) }
+            tune.aliases = names
+        }
         tune.type = detail.type
         tune.key = setting.key
         tune.mode = setting.mode
         tune.abc = setting.abc
-        tune.aliases = detail.aliases
         tune.theSessionID = detail.id
         tune.theSessionSettingID = String(setting.id)
         tune.sourceURL = "https://thesession.org/tunes/\(detail.id)"
@@ -89,7 +106,9 @@ public enum UnknownTunes {
     public static func adopt(_ tune: Tune, abc: String, in context: ModelContext) {
         let parsed = ABCParser.parse(abc)
         let was = tune.title
-        if !parsed.title.isEmpty && parsed.title != "Untitled" { tune.title = parsed.title }
+        // FONN-IDHELP-1: only while it is still "Unknown Tune n"; a name you
+        // gave it yourself is kept.
+        if isUnknown(tune), !parsed.title.isEmpty && parsed.title != "Untitled" { tune.title = parsed.title }
         if !parsed.type.isEmpty { tune.type = parsed.type }
         if !parsed.key.isEmpty { tune.key = parsed.key; tune.mode = parsed.mode }
         if !parsed.composer.isEmpty { tune.composer = parsed.composer }
@@ -364,6 +383,19 @@ public struct RecordUnknownTuneSheet: View {
 
 // MARK: - Identifying
 
+/// FONN-IDHELP-1: a recording's bytes, for `.fileExporter`.
+struct RecordingFile: FileDocument {
+    static var readableContentTypes: [UTType] { [.mpeg4Audio] }
+    var data: Data
+    init(data: Data) { self.data = data }
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
 /// Shown at the top of an unknown tune's page: what it is, and the way to
 /// say what it really is.
 public struct UnknownTuneBanner: View {
@@ -379,17 +411,21 @@ public struct UnknownTuneBanner: View {
     }
 
     public var body: some View {
-        if UnknownTunes.isUnknown(tune) {
+        if UnknownTunes.needsMusic(tune) {
+            let unknown = UnknownTunes.isUnknown(tune)
             HStack(spacing: 10) {
                 Image(systemName: "questionmark.circle.fill")
                     .font(.title2).foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Not identified yet").font(.subheadline.weight(.semibold))
-                    Text("Ask FolkFriend or a friend what it is, then choose the music.")
+                    Text(unknown ? "Not identified yet" : "No music yet")
+                        .font(.subheadline.weight(.semibold))
+                    Text(unknown
+                         ? "Ask FolkFriend or a friend what it is, rename it, then add the music."
+                         : "Add the music from FolkFriend, thesession.org or anywhere else.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 8)
-                Button("Identify\u{2026}") { identifying = true }
+                Button(unknown ? "Identify\u{2026}" : "Add the Music\u{2026}") { identifying = true }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
             }
@@ -423,6 +459,10 @@ public struct IdentifyTuneSheet: View {
     @State private var problem: String?
     @State private var opened: OpenedLink?
     @State private var alreadyHave: AlreadyHave?
+    /// FONN-IDHELP-1
+    @State private var name = ""
+    @State private var saving: RecordingFile?
+    @State private var savedNote: String?
 
     private struct AlreadyHave: Identifiable {
         let existing: Tune
@@ -440,6 +480,7 @@ public struct IdentifyTuneSheet: View {
     public var body: some View {
         NavigationStack {
             Form {
+                nameSection
                 askSection
                 if let detail { settingsSection(detail) } else { chooseSection }
                 if detail == nil, !libraryMatches.isEmpty { librarySection }
@@ -460,6 +501,19 @@ public struct IdentifyTuneSheet: View {
                 }
             }
             .opensResourceLinks($opened)
+            .onAppear { name = tune.title }
+            // FONN-IDHELP-1: the recording saved where FolkFriend can open it,
+            // under the tune's name rather than the store's long id.
+            .fileExporter(isPresented: Binding(get: { saving != nil },
+                                               set: { if !$0 { saving = nil } }),
+                          document: saving,
+                          contentType: .mpeg4Audio,
+                          defaultFilename: tune.title) { result in
+                if case .success(let url) = result {
+                    savedNote = "Saved as \(url.lastPathComponent) in \(url.deletingLastPathComponent().lastPathComponent)."
+                }
+                saving = nil
+            }
             .confirmationDialog(
                 "“\(TitleDisplay.spoken(alreadyHave?.existing.title ?? ""))” is already in your library",
                 isPresented: Binding(get: { alreadyHave != nil }, set: { if !$0 { alreadyHave = nil } }),
@@ -480,22 +534,56 @@ public struct IdentifyTuneSheet: View {
 
     // MARK: Sections
 
+    private var nameSection: some View {
+        Section {
+            TextField("Name", text: $name)
+                .onSubmit(rename)
+                // Kept when the sheet closes too, so Return isn't needed.
+                .onDisappear(perform: rename)
+        } header: {
+            Text("Name")
+        } footer: {
+            Text("Once you know what it is, give it its proper name here.")
+        }
+    }
+
+    private func rename() {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed != tune.title else { return }
+        tune.title = trimmed
+        try? context.save()
+    }
+
     private var askSection: some View {
         Section {
+            // FONN-IDHELP-1: the steps, with FolkFriend's own screens.
+            NavigationLink {
+                IdentifyHelpView()
+            } label: {
+                Label("How to Use FolkFriend", systemImage: "questionmark.circle")
+            }
             Button { opened = OpenedLink(url: UnknownTunes.folkFriend) } label: {
                 Label("Open FolkFriend", systemImage: "ear")
             }
             let recordings = UnknownTunes.recordingURLs(of: tune)
-            if !recordings.isEmpty {
+            if let first = recordings.first {
+                Button {
+                    if let data = try? Data(contentsOf: first) { saving = RecordingFile(data: data) }
+                } label: {
+                    Label("Save the Recording to a Folder\u{2026}", systemImage: "folder.badge.plus")
+                }
                 ShareLink(items: recordings) {
-                    Label(recordings.count == 1 ? "Send the Recording…" : "Send the Recordings…",
+                    Label(recordings.count == 1 ? "Send the Recording\u{2026}" : "Send the Recordings\u{2026}",
                           systemImage: "square.and.arrow.up")
                 }
+            }
+            if let savedNote {
+                Text(savedNote).font(.caption).foregroundStyle(.secondary)
             }
         } header: {
             Text("1 · Find out what it is")
         } footer: {
-            Text("FolkFriend listens to a tune and suggests matches from thesession.org. Play the recording to it from another phone or speaker, or give it the file if it offers to open one (Send the Recording ▸ Save to Files). Or send the recording to a friend who might know it.")
+            Text("Easiest: play the recording here with FolkFriend listening on another device. Or save the recording to a FolkFriend folder in iCloud Drive and give FolkFriend the file. How to Use FolkFriend shows each step. You can also send the recording to a friend who might know it.")
         }
     }
 
@@ -534,7 +622,7 @@ public struct IdentifyTuneSheet: View {
             if loadingDetail { ProgressView("Getting the settings…") }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Or paste a thesession.org link (FolkFriend gives these) or ABC:")
+                Text("Or paste ABC (from FolkFriend, with “Show ABC as text” on in its Settings, or anywhere else) or a thesession.org link:")
                     .font(.caption).foregroundStyle(.secondary)
                 TextEditor(text: $pasted)
                     .font(.system(.footnote, design: .monospaced))

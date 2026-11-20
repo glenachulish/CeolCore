@@ -41,6 +41,10 @@ public final class TuneBeats {
     }
 
     public private(set) var bars: [Bar] = []
+    /// FONN-CHORDDRONE-1: each chord change as played — when, and the chord's
+    /// root in semitones above the tune's home note. Empty for a tune with no
+    /// chords (or on a set page, which doesn't send them).
+    public private(set) var chords: [(start: Double, interval: Int)] = []
     /// When the last bar ends.
     public private(set) var end: Double = 0
     /// Whether the app's player, not the page, is playing the tune.
@@ -64,6 +68,14 @@ public final class TuneBeats {
     /// end: ms, native: bool }.
     public func receive(_ body: [String: Any]) {
         guard let raw = body["bars"] as? [[Any]] else { return }
+        // FONN-CHORDDRONE-1: read before the bars' own early return, which
+        // is about the metronome and knows nothing of chords.
+        chords = ((body["chords"] as? [[Any]]) ?? []).compactMap { row in
+            guard row.count >= 2,
+                  let ms = (row[0] as? NSNumber)?.doubleValue,
+                  let interval = (row[1] as? NSNumber)?.intValue else { return nil }
+            return (ms / 1000, ((interval % 12) + 12) % 12)
+        }
         var out: [Bar] = []
         for row in raw where row.count >= 4 {
             guard let start = (row[0] as? NSNumber)?.doubleValue,

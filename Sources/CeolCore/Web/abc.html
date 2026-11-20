@@ -180,7 +180,7 @@
          line of sheet music. The elements stay because syncCtlUI() and the
          voices.js helpers still read and write them. -->
     <select id="instSelect" title="Melody instrument" style="display:none">
-      <option value="flute">Irish Flute</option>
+      <option value="flute">Wooden Flute</option>
       <option value="mflute">Concert Flute</option>
       <option value="whistle">Tin Whistle</option>
       <option value="violin">Fiddle</option>
@@ -3072,6 +3072,8 @@ function ceolPostBeats() {
     return { beats: beats, sub: sub, seg: 0 };
   });
   if (!out.bars.length) return;
+  // FONN-CHORDDRONE-1: and the chords, for the drone to follow.
+  out.chords = ceolChordsFromTimings(synthControl.timer.noteTimings, visualObj);
   out.native = !!nativeMode;
   ceolBeatsNative = nativeMode;
   var sig = JSON.stringify(out);

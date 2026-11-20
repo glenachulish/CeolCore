@@ -19,7 +19,7 @@
 // "piccolo", and the handler serves the mflute folder for that name.
 
 var CEOL_VOICES = [
-  { id: "flute",                 label: "Irish Flute",   program: 73,  offline: true },
+  { id: "flute",                 label: "Wooden Flute",  program: 73,  offline: true },
   { id: "mflute",                label: "Concert Flute", program: 72,  offline: true },
   { id: "whistle",               label: "Tin Whistle",   program: 78,  offline: true },
   { id: "violin",                label: "Fiddle",        program: 40,  offline: true },

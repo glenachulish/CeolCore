@@ -103,6 +103,30 @@ public final class Drone: ObservableObject {
 
     @Published public private(set) var isRunning = false
 
+    // FONN-CHORDDRONE-1
+    /// Follow the chords: while the tune plays, the drone moves to the root
+    /// of each chord as it comes (D, then G, then A …), rather than holding
+    /// the home note throughout. Kept per device, like the sound.
+    @Published public var followChords: Bool {
+        didSet {
+            guard followChords != oldValue else { return }
+            UserDefaults.standard.set(followChords, forKey: Self.followKey)
+            chordNote = nil
+            retune()
+            syncChordTimer()
+        }
+    }
+    /// Where the tune is and what its chords are: the metronome's
+    /// `tuneBeats`, handed in by the tune page. Nil on pages that don't send
+    /// chords (sets), where the drone holds its note as before.
+    public var beats: TuneBeats?
+    /// Whether this page can follow chords at all, for the panel.
+    public var canFollowChords: Bool { beats != nil }
+    /// The chord's root now sounding, while following; nil for the note.
+    @Published public private(set) var chordNote: Int?
+    private var chordTimer: Timer?
+    private static let followKey = "fonn.drone.followChords"
+
     /// The phone hands in a way to make its audio session ready, as it does
     /// for the metronome. Nothing on a Mac.
     public var prepareSession: (() -> Void)?
@@ -126,6 +150,7 @@ public final class Drone: ObservableObject {
         sound = Sound(rawValue: UserDefaults.standard.string(forKey: Self.soundKey) ?? "") ?? .smallPipes
         note = 2   // D, until a tune says otherwise
         volume = UserDefaults.standard.object(forKey: Self.volumeKey) as? Double ?? 0.5
+        followChords = UserDefaults.standard.bool(forKey: Self.followKey)
         engine.attach(mixer)
         engine.connect(mixer, to: engine.mainMixerNode, format: nil)
         mixer.outputVolume = Float(volume)
@@ -221,6 +246,7 @@ public final class Drone: ObservableObject {
             player.scheduleBuffer(buffer, at: nil, options: .loops)
             players.append((player, speed, layer))
         }
+        chordNote = nil
         retune()
         do {
             if !engine.isRunning { try engine.start() }
@@ -232,11 +258,13 @@ public final class Drone: ObservableObject {
         } catch {
             isRunning = false
         }
+        syncChordTimer()
     }
 
     public func stop() {
         guard isRunning else { return }
         isRunning = false
+        syncChordTimer()
         fade(to: 0, over: 0.3) { [weak self] in
             guard let self, !self.isRunning else { return }
             self.players.forEach { $0.player.stop() }
@@ -248,12 +276,49 @@ public final class Drone: ObservableObject {
     /// Each pipe to the note, moving it the short way round (never more than
     /// six semitones), and corrected for how it was tuned when recorded.
     private func retune() {
+        let sounding = chordNote ?? note
         for entry in players {
-            var shift = ((note - entry.layer.pitchClass) % 12 + 12) % 12
+            var shift = ((sounding - entry.layer.pitchClass) % 12 + 12) % 12
             if shift > 6 { shift -= 12 }
             let correction = entry.layer.equalHz / entry.layer.measuredHz
             entry.speed.rate = Float(pow(2, Double(shift) / 12) * correction)
         }
+    }
+
+    // FONN-CHORDDRONE-1
+    /// Twenty times a second while sounding and following: where the tune
+    /// is, which chord that is, and the drone onto its root if it has moved.
+    /// A fiftieth of a second early, so the change lands with the chord
+    /// rather than just after it.
+    private func syncChordTimer() {
+        let want = isRunning && followChords && beats != nil
+        if want, chordTimer == nil {
+            chordTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+                MainActor.assumeIsolated { self?.followTick() }
+            }
+        } else if !want {
+            chordTimer?.invalidate()
+            chordTimer = nil
+            if chordNote != nil { chordNote = nil; retune() }
+        }
+    }
+
+    private func followTick() {
+        guard let beats, let home = tuneNote, !beats.chords.isEmpty,
+              let clock = beats.clock, clock.playing else { return }
+        let at = clock.seconds + 0.02
+        var interval = 0
+        // The last change at or before now; before the first, the home note.
+        var lo = 0, hi = beats.chords.count - 1, found = -1
+        while lo <= hi {
+            let mid = (lo + hi) / 2
+            if beats.chords[mid].start <= at { found = mid; lo = mid + 1 } else { hi = mid - 1 }
+        }
+        if found >= 0 { interval = beats.chords[found].interval }
+        let target = (home + interval) % 12
+        guard target != chordNote else { return }
+        chordNote = target
+        retune()
     }
 
     private var fadeTimer: Timer?

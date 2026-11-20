@@ -157,7 +157,7 @@ public struct SoundPanel: View {
         return text
     }
 
-    /// For the button that opens the panel: "Irish Flute · Guitar · Drone D",
+    /// For the button that opens the panel: "Wooden Flute · Guitar · Drone D",
     /// so you can see all three at a glance.
     public static func summary(voice: String, chordsOn: Bool, accompaniment: String,
                                drone: Drone?) -> String {
@@ -228,6 +228,16 @@ public struct DroneControls: View {
             HStack {
                 Text("Volume")
                 Slider(value: $drone.volume, in: 0...1)
+            }
+            // FONN-CHORDDRONE-1
+            if drone.canFollowChords {
+                Toggle(isOn: $drone.followChords) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Follow the chords")
+                        Text("The drone moves to each chord's note as the tune plays, using the chords written in the tune or the ones Fonn suggests.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
         }
     }

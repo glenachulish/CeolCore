@@ -623,6 +623,55 @@ function ceolBarsFromTimings(events, countFor) {
   return { bars: bars, end: Math.round(endMs) };
 }
 
+// FONN-CHORDDRONE-1: the chords as played, for the drone to follow.
+// Each change as [ms, interval]: the chord's root in semitones above the
+// tune's home note, both read from the same render, so a transposition
+// (which abcjs applies to the key and the chord symbols alike, or to
+// neither) cannot put them out of step. Chord symbols only ("D", "Em7",
+// "G/B"), not text annotations; the chords Fonn suggests for a tune with
+// none count, as they are in the ABC that is played.
+function ceolChordRoot(name) {
+  var m = /^\s*([A-Ga-g])([#b♯♭]?)/.exec(name || "");
+  if (!m) return null;
+  var pc = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 }[m[1].toUpperCase()];
+  if (m[2] === "#" || m[2] === "♯") pc += 1;
+  if (m[2] === "b" || m[2] === "♭") pc -= 1;
+  return (pc + 12) % 12;
+}
+
+function ceolKeyRoot(obj) {
+  try {
+    var k = obj.getKeySignature();
+    if (!k || !k.root || k.root === "none") return null;
+    var acc = k.acc === "#" || k.acc === "sharp" ? "#" : (k.acc === "b" || k.acc === "flat" ? "b" : "");
+    if (k.root === "HP" || k.root === "Hp") return 9;
+    return ceolChordRoot(k.root + acc);
+  } catch (e) { return null; }
+}
+
+function ceolChordsFromTimings(events, obj) {
+  if (!obj || typeof obj.getElementFromChar !== "function") return [];
+  var home = ceolKeyRoot(obj);
+  if (home === null) return [];
+  var out = [], last = null;
+  (events || []).forEach(function (ev) {
+    if (!ev || typeof ev.milliseconds !== "number" || typeof ev.startChar !== "number") return;
+    var el = null;
+    try { el = obj.getElementFromChar(ev.startChar); } catch (e) {}
+    if (!el || !el.chord || !el.chord.length) return;
+    for (var i = 0; i < el.chord.length; i++) {
+      var c = el.chord[i];
+      if (c.position && c.position !== "default") continue;
+      var root = ceolChordRoot(c.name);
+      if (root === null) continue;
+      var interval = (root - home + 12) % 12;
+      if (interval !== last) { out.push([Math.round(ev.milliseconds), interval]); last = interval; }
+      break;
+    }
+  });
+  return out;
+}
+
 /// Where abcjs's own audio is, in ms of its timings. Its timer runs 16 ms
 /// ahead of the sound on purpose (to light notes in time); this takes it off.
 function ceolTimerMs(synthControl) {
