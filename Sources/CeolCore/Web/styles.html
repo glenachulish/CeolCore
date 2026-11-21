@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- FONN-STYLE-1: swing and ornaments, tried out before anything is kept. -->
+<script src="abcjs-basic-min.js"></script>
+<script>var chordsOn = false;</script>
+<script src="voices.js"></script>
+<script src="edittools.js"></script>
+<script src="editpreview.js"></script>
+<link rel="stylesheet" href="editpages.css">
+<style>
+  .section { padding: 8px 16px; border-bottom: 1px solid #e2e2e7; }
+  .section h3 { margin: 0 0 6px; font: 600 12px -apple-system, sans-serif; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #888; }
+  .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+  .style { text-align: left; font-weight: 600; padding: 8px 10px; }
+  .style small { display: block; font: 400 11px/1.3 -apple-system, sans-serif; opacity: 0.75; margin-top: 3px; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .region { grid-column: 1 / -1; font: 600 13px -apple-system, sans-serif; margin: 6px 0 0; }
+  .caveat { font-size: 11px; color: #888; margin-top: 6px; }
+  #render { padding-bottom: 60px; }
+  @media (prefers-color-scheme: dark) { .section { border-bottom-color: #3a3a3f; } }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span id="hint" class="hint">Try a rhythm or a style; nothing is kept until you save.</span>
+  <button id="undo" class="small" disabled>&#8617;</button>
+  <button id="reset" class="small" disabled>Reset</button>
+</div>
+<div class="section">
+  <h3>Rhythm</h3>
+  <div class="row">
+    <button id="lilt" class="small" title="Even pairs of quavers become dotted: A>B">Hornpipe swing</button>
+    <button id="snap" class="small" title="Scotch snaps on the 2nd and 4th beats: A&lt;B">Strathspey snaps</button>
+    <button id="straight" class="small" title="Dotted and snapped pairs back to even quavers">Straighten</button>
+  </div>
+</div>
+<div class="section">
+  <h3>Ornaments</h3>
+  <div id="styles" class="styles"></div>
+  <div class="caveat">Each style is a rule of thumb from how that tradition is usually described: a starting point to play and edit, not any one player's way.</div>
+  <div class="row" style="margin-top:8px">
+    <span class="label">How much</span>
+    <span class="seg"><button class="dens small" data-d="1">A little</button><button class="dens small" data-d="2">Some</button><button class="dens small" data-d="3">Lots</button></span>
+    <button id="none" class="small">No ornaments</button>
+    <button id="strip" class="small" title="Take out the grace notes and rolls the tune already has">Remove existing ornaments</button>
+  </div>
+</div>
+<div class="tools">
+  <button id="compare" class="small">Original</button>
+  <button id="sizeDown" class="small">A&#8722;</button>
+  <button id="sizeUp" class="small">A&#43;</button>
+  <button id="play" class="small">&#9654;</button>
+</div>
+<div id="msg" class="msg"></div>
+<div id="render" class="render"></div>
+<div id="audio" style="display:none"></div>
+<script>
+// Two layers, so choices can be changed freely: `base` is the tune with any
+// rhythm changes, and the ornament style (if one is chosen) is laid over a
+// fresh copy of `base` every time. Choosing another style, or less of it,
+// never stacks ornaments on ornaments.
+var original = "", base = "", style = "", density = 2, undoStack = [], zoom = 1, showOriginal = false;
+var visual = null, lastNote = "";
+
+function $(id) { return document.getElementById(id); }
+function say(text, warn) { var m = $("msg"); m.textContent = text || ""; m.className = "msg" + (warn ? " warn" : ""); }
+
+function working() {
+  if (!style) return base;
+  var r = ceolOrnament(base, style, density);
+  lastNote = r.note || (r.changed ? r.changed + (r.changed === 1 ? " ornament added." : " ornaments added.") : "");
+  return r.abc;
+}
+
+function push() { undoStack.push({ base: base, style: style, density: density }); if (undoStack.length > 200) undoStack.shift(); }
+
+function draw() {
+  ceolPreviewStop();
+  lastNote = "";
+  var shown = showOriginal ? original : working();
+  visual = ceolRenderInto($("render"), shown, zoom);
+  if (!showOriginal && style) say(lastNote, /Nothing/.test(lastNote));
+  sync(shown);
+}
+
+function sync(shown) {
+  $("undo").disabled = undoStack.length === 0;
+  $("reset").disabled = base === original && !style;
+  $("compare").classList.toggle("on", showOriginal);
+  var btns = document.querySelectorAll(".style");
+  for (var i = 0; i < btns.length; i++) btns[i].classList.toggle("on", btns[i].getAttribute("data-id") === style);
+  var ds = document.querySelectorAll(".dens");
+  for (var j = 0; j < ds.length; j++) {
+    ds[j].classList.toggle("on", +ds[j].getAttribute("data-d") === density);
+    ds[j].disabled = !style;
+  }
+  $("none").disabled = !style;
+  ceolPostDirty((shown !== undefined ? shown : working()) !== original);
+}
+
+function rhythm(kind) {
+  push();
+  var r = kind === "snap" ? ceolSwing(base, "snap", [1, 3]) : ceolSwing(base, kind);
+  if (r.note) { undoStack.pop(); say(r.note, true); return; }
+  if (!r.changed) { undoStack.pop(); say("Nothing to change: no pairs of quavers on the beat.", true); return; }
+  base = r.abc;
+  draw();
+  if (!style) say(r.changed + (r.changed === 1 ? " pair" : " pairs") +
+    (kind === "straight" ? " straightened." : kind === "snap" ? " changed: dotted on the 1st and 3rd beats, snapped on the 2nd and 4th." : " swung."));
+}
+
+var lastRegion = "";
+CEOL_ORNAMENT_STYLES.forEach(function (s) {
+  if (s.region !== lastRegion) {
+    var h = document.createElement("div");
+    h.className = "region";
+    h.textContent = s.region;
+    $("styles").appendChild(h);
+    lastRegion = s.region;
+  }
+  var b = document.createElement("button");
+  b.className = "style";
+  b.setAttribute("data-id", s.id);
+  b.innerHTML = s.name + "<small>" + s.about + "</small>";
+  b.addEventListener("click", function () { push(); style = style === s.id ? "" : s.id; draw(); if (!style) say(""); });
+  $("styles").appendChild(b);
+});
+var ds = document.querySelectorAll(".dens");
+for (var di = 0; di < ds.length; di++) {
+  ds[di].addEventListener("click", function () { push(); density = +this.getAttribute("data-d"); draw(); });
+}
+$("none").addEventListener("click", function () { push(); style = ""; draw(); say(""); });
+$("strip").addEventListener("click", function () {
+  var r = ceolStripOrnaments(base);
+  if (!r.changed) { say("This tune has no grace notes or rolls written in.", true); return; }
+  push(); base = r.abc; draw();
+  if (!style) say(r.changed + (r.changed === 1 ? " ornament" : " ornaments") + " taken out.");
+});
+$("lilt").addEventListener("click", function () { rhythm("lilt"); });
+$("snap").addEventListener("click", function () { rhythm("snap"); });
+$("straight").addEventListener("click", function () { rhythm("straight"); });
+$("undo").addEventListener("click", function () {
+  if (!undoStack.length) return;
+  var b = undoStack.pop(); base = b.base; style = b.style; density = b.density; draw(); say("");
+});
+$("reset").addEventListener("click", function () { push(); base = original; style = ""; draw(); say(""); });
+$("compare").addEventListener("click", function () { showOriginal = !showOriginal; draw(); });
+$("sizeUp").addEventListener("click", function () { zoom = Math.min(2.5, zoom + 0.15); draw(); });
+$("sizeDown").addEventListener("click", function () { zoom = Math.max(0.7, zoom - 0.15); draw(); });
+$("play").addEventListener("click", function () {
+  if (ceolPrev.on) { ceolPreviewStop(); return; }
+  ceolPrev.button = $("play");
+  ceolPreviewStart(visual, $("render"));
+});
+window.addEventListener("resize", function () { draw(); });
+
+function loadABC(text) {
+  original = text || ""; base = original; style = ""; density = 2; undoStack = []; showOriginal = false;
+  draw();
+  var type = ceolTuneType(original);
+  if (/strathspey/.test(type)) say("A strathspey: try Strathspey snaps, or Scottish: fiddle and flute, which adds them.");
+  else if (/hornpipe|barndance|schottische/.test(type)) say("A " + type + ": Hornpipe swing dots the even quavers.");
+}
+function getWorkingABC() { return working(); }
+function isDirty() { return working() !== original; }
+</script>
+</body>
+</html>

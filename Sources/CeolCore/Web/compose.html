@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- FONN-COMPOSE-1: write a new tune, on the stave or in ABC. -->
+<script src="abcjs-basic-min.js"></script>
+<script>var chordsOn = false;</script>
+<script src="voices.js"></script>
+<script src="edittools.js"></script>
+<script src="editpreview.js"></script>
+<link rel="stylesheet" href="editpages.css">
+<style>
+  #details { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 6px 8px; align-items: center;
+    padding: 8px 16px; border-bottom: 1px solid #e2e2e7; font-size: 13px; color: #666; }
+  #details input, #details select { width: 100%; box-sizing: border-box; min-width: 0; }
+  #abcPane { display: none; padding: 8px 16px; }
+  #abcText { height: 34vh; }
+  body.abcMode #abcPane { display: block; }
+  body.abcMode .staffOnly { display: none !important; }
+  #render { padding-bottom: 230px; }
+  body.abcMode #render { padding-bottom: 24px; }
+  .dur { font-size: 22px; line-height: 1; padding: 4px 8px; min-width: 40px; }
+  .pitch { min-width: 30px; padding: 7px 6px; }
+  @media (prefers-color-scheme: dark) { #details { border-bottom-color: #3a3a3f; color: #aaa; } }
+  @media (max-width: 520px) { #details { grid-template-columns: auto 1fr; } }
+  /* FONN-COMPOSE-2: the How to… guide, over everything. */
+  #help { display: none; position: fixed; inset: 0; z-index: 10; overflow-y: auto;
+    background: #fff; padding: 12px 16px calc(24px + env(safe-area-inset-bottom)); }
+  #help.open { display: block; }
+  #help h2 { font: 600 18px -apple-system, sans-serif; margin: 4px 0 10px; display: flex; align-items: center; }
+  #help h2 span { flex: 1; }
+  #help details { border-bottom: 1px solid #e2e2e7; padding: 8px 0; }
+  #help summary { font-weight: 600; cursor: pointer; }
+  #help p, #help li { font-size: 14px; line-height: 1.45; }
+  #help code { font: 13px ui-monospace, Menlo, monospace; background: #f2f2f6; padding: 1px 4px; border-radius: 4px; }
+  #help table { border-collapse: collapse; font-size: 13px; }
+  #help td { padding: 3px 8px 3px 0; vertical-align: top; }
+  #help td:first-child { white-space: nowrap; }
+  #layoutBox { display: none; padding: 6px 0 0; font-size: 12px; }
+  #layoutBox.show { display: block; }
+  #layoutBox .p { color: #b25c00; margin: 4px 0; }
+  @media (prefers-color-scheme: dark) {
+    #help { background: #1c1c1e; } #help details { border-bottom-color: #3a3a3f; }
+    #help code { background: #2c2c2e; } #layoutBox .p { color: #f2a65a; }
+  }
+</style>
+</head>
+<body>
+<div id="details">
+  <span>Title</span><input id="fTitle" type="text" placeholder="New tune">
+  <span>Composer</span><input id="fComposer" type="text" placeholder="You, or leave blank">
+  <span>Type</span>
+  <select id="fType">
+    <option>reel</option><option>jig</option><option>slip jig</option><option>hornpipe</option>
+    <option>polka</option><option>slide</option><option>strathspey</option><option>march</option>
+    <option>waltz</option><option>mazurka</option><option>barndance</option><option>air</option>
+  </select>
+  <span>Key</span>
+  <span style="display:flex;gap:6px">
+    <select id="fRoot" style="flex:1">
+      <option>D</option><option>G</option><option>A</option><option>E</option><option>B</option>
+      <option>C</option><option>F</option><option>Bb</option><option>Eb</option><option>F#</option>
+    </select>
+    <select id="fMode" style="flex:1.4">
+      <option value="">major</option><option value="m">minor</option>
+      <option value="dor">dorian</option><option value="mix">mixolydian</option>
+    </select>
+  </span>
+</div>
+<div class="bar">
+  <span id="hint" class="hint">Tap the stave to put a note there.</span>
+  <span class="seg"><button id="modeStaff" class="small on">Stave</button><button id="modeABC" class="small">ABC</button></span>
+  <button id="undo" class="small" disabled>&#8617;</button>
+  <button id="howto" class="small">How to&#8230;</button>
+</div>
+<div class="tools">
+  <button id="sizeDown" class="small">A&#8722;</button>
+  <button id="sizeUp" class="small">A&#43;</button>
+  <button id="play" class="small">&#9654;</button>
+  <span id="count" class="label"></span>
+</div>
+<div id="msg" class="msg"></div>
+<div id="abcPane"><textarea id="abcText" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+  <div id="layoutBox"><div id="layoutList"></div><button id="tidy" class="small">Tidy the layout</button></div>
+</div>
+<div id="render" class="render"></div>
+
+<div class="dock staffOnly">
+  <div class="row" id="durRow">
+    <button class="dur" data-u="0.5" title="Semiquaver">&#x1D161;</button>
+    <button class="dur on" data-u="1" title="Quaver">&#x266A;</button>
+    <button class="dur" data-u="1.5" title="Dotted quaver">&#x266A;.</button>
+    <button class="dur" data-u="2" title="Crotchet">&#x2669;</button>
+    <button class="dur" data-u="3" title="Dotted crotchet">&#x2669;.</button>
+    <button class="dur" data-u="4" title="Minim">&#x1D15E;</button>
+    <button class="dur" data-u="6" title="Dotted minim">&#x1D15E;.</button>
+    <button class="dur" data-u="8" title="Semibreve">&#x1D15D;</button>
+  </div>
+  <div class="row">
+    <button id="accSharp" class="small" title="Sharp the next note">&#9839;</button>
+    <button id="accFlat" class="small" title="Flatten the next note">&#9837;</button>
+    <button id="accNat" class="small" title="Natural">&#9838;</button>
+    <button id="rest" class="small" title="Put a rest">Rest</button>
+    <button id="triplet" class="small" title="The next three notes are a triplet">(3</button>
+    <button id="tie" class="small" title="Tie to the next note">Tie</button>
+  </div>
+  <div class="row" id="pitchRow"></div>
+  <div class="row">
+    <button id="left" class="big" title="Back a note">&#9664;</button>
+    <button id="right" class="big" title="On a note">&#9654;</button>
+    <button id="del" class="big" title="Take out the note before the cursor">&#9003;</button>
+    <button id="up" class="big" title="Selected note up">&#9650;</button>
+    <button id="down" class="big" title="Selected note down">&#9660;</button>
+    <button id="addPart" class="small" title="Add another eight-bar part">+ Part</button>
+  </div>
+  <div class="row">
+    <button id="pickup" class="small" title="Notes before the first full bar">Pickup</button>
+    <button id="endings" class="small" title="First and second endings for this part">1st &amp; 2nd endings</button>
+  </div>
+</div>
+<div id="help">
+  <h2><span>How to&#8230;</span><button id="helpClose" class="small">Done</button></h2>
+  <details open><summary>Put notes on the stave</summary>
+    <p>Choose a note length along the bottom, then tap the stave at the height you want: on a line or in a space. The note goes in at the &#9662;. Or tap a letter button: <code>D E F G A B</code> are the low octave, <code>c d e f g a b</code> the high one. Each bar fills from its empty space, and when it is full the &#9662; moves on to the next bar by itself, so you never need to place bar lines.</p></details>
+  <details><summary>Note lengths and dotted notes</summary>
+    <p>The buttons are, in order: semiquaver, quaver, dotted quaver, crotchet, dotted crotchet, minim, dotted minim, semibreve. The length you choose stays chosen until you choose another. A reel is mostly quavers; a jig is quavers in threes, with dotted crotchets for the long notes.</p></details>
+  <details><summary>Change or take out a note</summary>
+    <p>Tap a note to select it (it turns gold). Then: a length button changes its length; &#9650; &#9660; move it up or down a step; a letter button or a tap on the stave replaces it; &#9003; takes it out and leaves its space empty. Without a selected note, &#9003; takes out the note before the &#9662;. &#9664; &#9654; move the &#9662;. &#8617; undoes anything.</p></details>
+  <details><summary>Sharps, flats and naturals</summary>
+    <p>The key signature does the usual sharps for you: in D, every F and C is already sharp. For anything else, tap &#9839;, &#9837; or &#9838; just before the note; it applies to that one note (and, as in written music, to the same note later in the bar).</p></details>
+  <details><summary>Rests, ties and triplets</summary>
+    <p><b>Rest</b> puts a rest of the chosen length at the &#9662;. <b>Tie</b> joins the next note to the one after it (play them as one long note). <b>(3</b> makes the next three notes a triplet, three in the time of two: choose quavers, tap (3, then the three notes.</p></details>
+  <details><summary>Start with a pickup</summary>
+    <p>Many tunes start with a note or two before the first full bar. Tap <b>Pickup</b>, then the notes: they go before the first bar. Strictly, the last bar of the part then gives up the same amount of time; leave the end of that bar empty and Fonn fills it with a rest when you save.</p></details>
+  <details><summary>Repeats, endings and more parts</summary>
+    <p>Each part is already repeated: <code>|:</code> at the start, <code>:|</code> at the end. For different endings, put the &#9662; in the part and tap <b>1st &amp; 2nd endings</b>: the part's last bar becomes the first-time bar, and a new empty bar is added for the second time. <b>+ Part</b> adds another eight bars (C, D …). Parts you leave empty are left out when you save.</p></details>
+  <details><summary>Title, type, key and metre</summary>
+    <p>Fill them in at the top. Choosing a type before you write sets its metre (a jig is 6/8, a slip jig 9/8, a polka 2/4). Once there are notes, a new type changes only the name; to change the metre then, switch to ABC and edit the <code>M:</code> line.</p></details>
+  <details><summary>Chords and ornaments</summary>
+    <p>Easiest after saving: on the tune's &#9776;, <b>Edit the chords</b> lets you choose a chord for each bar, and <b>Swing and ornaments</b> adds rolls, cuts and other regional ornaments. In ABC, a chord is its name in quotes before the note, <code>"G"B2</code>, and a grace note goes in braces, <code>{g}A</code>.</p></details>
+  <details><summary>Typing ABC instead</summary>
+    <p>Tap <b>ABC</b> to see and type the tune as text; the music is redrawn as you type, and <b>Stave</b> takes you back. With a keyboard, Tab puts in a bar line. In a reel (<code>L:1/8</code>):</p>
+    <table>
+      <tr><td><code>D E F G A B</code></td><td>low octave; <code>c d e f g a b</code> high; <code>c'</code> higher, <code>D,</code> lower</td></tr>
+      <tr><td><code>A A2 A3 A4</code></td><td>quaver, crotchet, dotted crotchet, minim</td></tr>
+      <tr><td><code>A/ A3/</code></td><td>semiquaver, dotted quaver</td></tr>
+      <tr><td><code>A&gt;B A&lt;B</code></td><td>dotted pair (hornpipe), Scotch snap</td></tr>
+      <tr><td><code>^F _B =F</code></td><td>sharp, flat, natural</td></tr>
+      <tr><td><code>z z2</code></td><td>rests</td></tr>
+      <tr><td><code>| || |] |: :|</code></td><td>bar, double bar, end, repeats</td></tr>
+      <tr><td><code>|1 ... :|2 ...</code></td><td>first and second endings</td></tr>
+      <tr><td><code>(3ABc</code></td><td>triplet</td></tr>
+      <tr><td><code>A2-A</code></td><td>tie</td></tr>
+      <tr><td><code>"G"B2</code></td><td>chord</td></tr>
+      <tr><td><code>{g}A ~A</code></td><td>grace note, roll</td></tr>
+      <tr><td><code>P:B</code></td><td>start of a part</td></tr>
+    </table></details>
+  <details><summary>When the layout looks strange</summary>
+    <p>Each line of ABC starts a new stave, so keep each part on one line (Fonn fits the bars to the screen). A blank line ends the tune, and anything after it is lost. A <code>!</code> on its own forces a stave break. Text pasted from websites can carry invisible spaces. In ABC view, Fonn lists any of these it finds, and <b>Tidy the layout</b> fixes them without changing a note.</p></details>
+  <details><summary>Hear it and keep it</summary>
+    <p>&#9654; plays the tune as it will be kept. <b>Save</b> (Mac: <b>Add to Library</b>) takes out the empty bars and parts, tops up half-filled bars with rests, and adds the tune to your library, where it works like any other: sets, collections, versions, printing.</p></details>
+</div>
+<div id="audio" style="display:none"></div>
+<script>
+// The ABC text is the one source of truth. The stave view puts notes into it
+// at a cursor, taking their length out of the empty-bar fillers (x8 in a
+// reel), so bar lines never need placing: a bar fills, and the cursor moves
+// on to the next one. The ABC view is the same text, typed.
+var abc = "", cursor = 0, selected = null, undoStack = [], zoom = 1;
+var units = 1, acc = "", restNext = false, tripletLeft = 0, tieNext = false, pickupMode = false;
+var visual = null, startMap = {}, renderShift = { at: -1, len: 0 };
+var abcMode = false, clickedAt = 0;
+var MARK = '"^\u25BE"';     // the cursor, drawn as a small mark over the next note
+
+function $(id) { return document.getElementById(id); }
+
+function say(text, warn) { var m = $("msg"); m.textContent = text || ""; m.className = "msg" + (warn ? " warn" : ""); }
+
+function pushUndo() { undoStack.push({ abc: abc, cursor: cursor }); if (undoStack.length > 300) undoStack.shift(); }
+
+function bodyStart() { return ceolBodyStart(abc); }
+
+function hasNotes() { return ceolComposeFinal(abc) !== ""; }
+
+function setHeader(field, value) {
+  var re = new RegExp("(^|\\n)" + field + ":[^\\n]*");
+  var before = abc.length;
+  if (re.test(abc)) {
+    abc = value === null ? abc.replace(re, "") : abc.replace(re, "$1" + field + ":" + value);
+  } else if (value !== null && value !== "") {
+    // New header lines go just before K:, which must stay last.
+    abc = abc.replace(/(^|\n)K:/, "$1" + field + ":" + value + "\nK:");
+  }
+  cursor = Math.max(bodyStart(), cursor + (abc.length - before));
+}
+
+function readForm() {
+  var key = $("fRoot").value + $("fMode").value;
+  if (!hasNotes()) {
+    // Nothing written yet: a new type is a new template, metre and all.
+    abc = ceolComposeTemplate({ title: $("fTitle").value.trim() || "New tune",
+                                composer: $("fComposer").value.trim(),
+                                type: $("fType").value, key: key });
+    cursor = firstFiller();
+  } else {
+    setHeader("T", $("fTitle").value.trim() || "New tune");
+    setHeader("C", $("fComposer").value.trim() || null);
+    setHeader("R", $("fType").value);
+    setHeader("K", key);
+  }
+}
+
+function fillForm() {
+  var g = function (f) { var m = new RegExp("(^|\\n)" + f + ":([^\\n]*)").exec(abc); return m ? m[2].trim() : ""; };
+  $("fTitle").value = g("T") === "New tune" ? "" : g("T");
+  $("fComposer").value = g("C");
+  var type = g("R").toLowerCase();
+  if (type) $("fType").value = type;
+  var k = /^([A-G][#b]?)\s*(m|min|dor|mix)?/i.exec(g("K") || "D");
+  if (k) {
+    $("fRoot").value = k[1];
+    var mode = (k[2] || "").toLowerCase();
+    $("fMode").value = mode === "min" ? "m" : mode;
+  }
+}
+
+/// The first empty bar: where a new tune's first note goes.
+function firstFiller() {
+  var re = /x\d*/g, m;
+  re.lastIndex = bodyStart();
+  while ((m = re.exec(abc))) {
+    var line = abc.slice(abc.lastIndexOf("\n", m.index - 1) + 1, m.index);
+    if (!/^\s*(%|[A-Za-z]:)/.test(line) && ((line.match(/"/g) || []).length % 2) === 0) return m.index;
+  }
+  return abc.replace(/\s*$/, "").length;
+}
+
+// ── Drawing ─────────────────────────────────────────────────────────────────
+
+function render() {
+  ceolPreviewStop();
+  var src = abc, shiftAt = -1;
+  if (!abcMode && selected === null && cursor >= bodyStart()) {
+    // The cursor mark goes into the drawn copy only.
+    src = abc.slice(0, cursor) + MARK + abc.slice(cursor);
+    shiftAt = cursor;
+  }
+  renderShift = { at: shiftAt, len: shiftAt >= 0 ? MARK.length : 0 };
+  visual = ceolRenderInto($("render"), src, zoom, {
+    clickListener: function (el) {
+      if (abcMode || !el || el.el_type !== "note") return;
+      var s = back(el.startChar), e = back(el.endChar);
+      // Tapping an empty bar: the cursor goes there, and the tap's height
+      // then places the note in it (the stave handler below does that).
+      if (el.rest && el.rest.type === "invisible") { selected = null; cursor = s; pickupMode = false; return; }
+      clickedAt = Date.now();
+      var text = abc.slice(s, e).replace(/[\s<>]+$/, "");
+      selected = { s: s, e: s + text.length };
+      cursor = s + text.length;
+      render(); sync();
+    }
+  });
+  startMap = ceolElementsByStart(visual);
+  if (selected) {
+    var el = startMap[fwd(selected.s)];
+    if (el && el.abselem) { try { el.abselem.highlight(undefined, "#c9a227"); } catch (e) {} }
+  }
+}
+
+/// Positions in the drawn copy back to the real text, and forward again.
+function back(n) {
+  if (renderShift.at < 0 || n < renderShift.at) return n;
+  return Math.max(renderShift.at, n - renderShift.len);
+}
+function fwd(n) { return (renderShift.at >= 0 && n >= renderShift.at) ? n + renderShift.len : n; }
+
+function sync() {
+  $("undo").disabled = undoStack.length === 0;
+  var t = ceolReadTune(ceolComposeFinal(abc) || abc);
+  var real = t ? t.notes.filter(function (n) { return !n.invisible; }).length : 0;
+  $("count").textContent = real ? real + (real === 1 ? " note" : " notes") : "";
+  $("hint").textContent = abcMode
+    ? "Type ABC. The music below follows as you type."
+    : selected ? "Selected: change its length or pitch below, or \u232B to take it out."
+               : "Tap the stave to put a note at the \u25BE, or a note to change it.";
+  ["accSharp", "accFlat", "accNat"].forEach(function (id) { $(id).classList.remove("on"); });
+  if (acc === "^") $("accSharp").classList.add("on");
+  if (acc === "_") $("accFlat").classList.add("on");
+  if (acc === "=") $("accNat").classList.add("on");
+  $("rest").classList.toggle("on", restNext);
+  $("triplet").classList.toggle("on", tripletLeft > 0);
+  $("tie").classList.toggle("on", tieNext);
+  $("pickup").classList.toggle("on", pickupMode);
+  $("up").disabled = $("down").disabled = !selected;
+  var durs = document.querySelectorAll(".dur");
+  for (var i = 0; i < durs.length; i++) durs[i].classList.toggle("on", +durs[i].getAttribute("data-u") === units);
+  showLayout();
+  ceolPostDirty(hasNotes());
+}
+
+// ── Putting notes in ────────────────────────────────────────────────────────
+
+function lengthText(u) { return ceolLengthText(u / 8, 1 / 8); }
+
+/// Units of L a note's text lasts, read from its length suffix.
+function unitsOf(text) {
+  var sp = ceolSplitNote(text);
+  if (sp) {
+    var m = /^(\d*)(\/*\d*)$/.exec(sp.len);
+    return m ? ceolParseUnits(m[1], m[2]) : 1;
+  }
+  var r = /^[zx](\d*)(\/*\d*)/.exec(text.replace(/^"[^"]*"/, ""));
+  return r ? ceolParseUnits(r[1], r[2]) : 1;
+}
+
+/// How long the selected note lasts, as abcjs reads it (so a note inside a
+/// triplet counts for its two-thirds).
+function selectedUnits() {
+  var notes = stops();
+  for (var i = 0; i < notes.length; i++) if (notes[i].s === selected.s) return notes[i].dur * 8;
+  return unitsOf(abc.slice(selected.s, selected.e));
+}
+
+function place(stepIndex) {
+  pushUndo();
+  var letter = restNext ? "z" : acc + ceolStepLetter(stepIndex);
+  var text = letter + lengthText(units) + (tieNext && !restNext ? "-" : "");
+  var take = units;
+  if (tripletLeft > 0) {
+    // A triplet's three notes last as long as two: all of it comes out of the
+    // bar with the first note, and the other two take nothing more.
+    if (tripletLeft === 3) { text = "(3" + text; take = units * 2; } else take = 0;
+    tripletLeft--;
+  }
+  if (selected) {
+    // Replacing a selected note: give its length back first.
+    var d = ceolComposeDelete(abc, selected.s, selected.e, selectedUnits());
+    abc = d.abc; cursor = d.cursor; selected = null;
+  }
+  var r = ceolComposeInsert(abc, cursor, text, take);
+  abc = r.abc; cursor = r.cursor;
+  acc = ""; restNext = false; tieNext = false;
+  say("");
+  render(); sync();
+}
+
+/// Change the selected note's length (a duration button with a note selected).
+function relength(u) {
+  if (!selected) return;
+  var old = abc.slice(selected.s, selected.e);
+  var sp = ceolSplitNote(old);
+  pushUndo();
+  var d = ceolComposeDelete(abc, selected.s, selected.e, selectedUnits());
+  abc = d.abc;
+  var text = sp ? sp.prefix + sp.acc + sp.letter + sp.marks + lengthText(u) + sp.rest
+                : old.replace(/^(z|x)(\d*)(\/*\d*)/, "$1" + lengthText(u));
+  var r = ceolComposeInsert(abc, d.cursor, text, u);
+  abc = r.abc;
+  selected = { s: d.cursor, e: d.cursor + text.length };
+  cursor = selected.e;
+  render(); sync();
+}
+
+function moveSelected(by) {
+  if (!selected) return;
+  var old = abc.slice(selected.s, selected.e);
+  var sp = ceolSplitNote(old);
+  if (!sp) return;
+  pushUndo();
+  var idx = ceolStepIndex(sp.letter, sp.marks) + by;
+  var text = sp.prefix + ceolStepLetter(idx) + sp.len + sp.rest;   // accidental dropped: the key decides
+  abc = abc.slice(0, selected.s) + text + abc.slice(selected.e);
+  selected = { s: selected.s, e: selected.s + text.length };
+  cursor = selected.e;
+  render(); sync();
+}
+
+/// The notes and fillers in the body, in order, for ◀ ▶ and ⌫.
+function stops() {
+  var t = ceolReadTune(abc);
+  return t ? t.notes : [];
+}
+
+function step(by) {
+  selected = null;
+  var notes = stops();
+  if (by < 0) {
+    for (var i = notes.length - 1; i >= 0; i--) if (notes[i].s < cursor) { cursor = notes[i].s; break; }
+  } else {
+    for (var j = 0; j < notes.length; j++) if (notes[j].s > cursor) { cursor = notes[j].s; render(); sync(); return; }
+    cursor = abc.replace(/\s*$/, "").length;
+  }
+  render(); sync();
+}
+
+function del() {
+  var notes = stops(), target = -1;
+  if (selected) {
+    for (var k = 0; k < notes.length; k++) if (notes[k].s === selected.s) target = k;
+  } else {
+    for (var i = 0; i < notes.length; i++) if (notes[i].e <= cursor && !notes[i].invisible) target = i;
+  }
+  if (target < 0) return;
+  var from = target, to = target;
+  if (notes[target].triplet) {
+    // A triplet goes as a whole: its three notes share the time of two, so
+    // taking out one would leave the bar the wrong length.
+    var runStart = target;
+    while (runStart > 0 && notes[runStart - 1].triplet && notes[runStart - 1].bar === notes[target].bar) runStart--;
+    from = runStart + Math.floor((target - runStart) / 3) * 3;
+    to = Math.min(from + 2, notes.length - 1);
+  }
+  var s = notes[from].s, e = notes[to].e;
+  var lead = abc.slice(Math.max(0, s - 2), s);
+  if (notes[from].triplet && lead === "(3") s -= 2;
+  var units = 0;
+  for (var j = from; j <= to; j++) units += notes[j].dur * 8;
+  pushUndo();
+  var d = ceolComposeDelete(abc, s, e, units);
+  abc = d.abc; cursor = d.cursor; selected = null;
+  render(); sync();
+}
+
+function addPart() {
+  pushUndo();
+  var type = $("fType").value;
+  var spec = CEOL_COMPOSE_TYPES[type] || CEOL_COMPOSE_TYPES.reel;
+  var mm = /(^|\n)M:\s*([^\n]*)/.exec(abc);
+  var f = "x" + (mm ? ceolFillerUnits(mm[2]) : spec.bar);
+  var parts = (abc.match(/(^|\n)P:/g) || []).length;
+  var name = "ABCDEFGH"[Math.min(7, parts)];
+  var four = [f, f, f, f].join(" | ");
+  abc = abc.replace(/\s*$/, "\n") + "P:" + name + "\n|: " + four + " |\n" + four + " :|\n";
+  cursor = abc.lastIndexOf("P:" + name) + ("P:" + name + "\n|: ").length;
+  selected = null;
+  render(); sync();
+  say("Part " + name + " added: eight empty bars.");
+}
+
+/// The tap on the stave itself, away from any note: which line or space.
+function pitchAt(clientY) {
+  var staves = document.querySelectorAll("#render .abcjs-staff");
+  var best = null, bestDist = Infinity;
+  for (var i = 0; i < staves.length; i++) {
+    var r = staves[i].getBoundingClientRect();
+    if (r.height < 4) continue;
+    var gap = r.height / 4;
+    var mid = (r.top + r.bottom) / 2;
+    var dist = Math.abs(clientY - mid);
+    if (clientY >= r.top - gap * 4 && clientY <= r.bottom + gap * 4 && dist < bestDist) {
+      best = { top: r.top, gap: gap }; bestDist = dist;
+    }
+  }
+  if (!best) return null;
+  // The top line of the treble stave is f (step 10); each half-gap is a step.
+  var steps = Math.round((best.top - clientY) / (best.gap / 2));
+  return Math.max(-3, Math.min(17, 10 + steps));       // A, to e'' — the flute and some
+}
+
+$("render").addEventListener("click", function (ev) {
+  if (abcMode) return;
+  // abcjs answers a tap on a note itself; let that win.
+  setTimeout(function () {
+    // A tap that just selected a note is not also a new note.
+    if (Date.now() - clickedAt < 400) return;
+    var p = pitchAt(ev.clientY);
+    if (p === null) return;
+    if (restNext) { place(0); return; }
+    place(p);
+  }, 0);
+});
+
+// ── The buttons ─────────────────────────────────────────────────────────────
+
+function buildPitchRow() {
+  // The flute's range in the tune's key: D up to b'. The key signature
+  // supplies the sharps, so these are plain letters.
+  var row = $("pitchRow"); row.innerHTML = "";
+  for (var i = 1; i <= 13; i++) {
+    var b = document.createElement("button");
+    b.className = "pitch small";
+    b.textContent = ceolStepLetter(i);
+    b.setAttribute("data-i", i);
+    b.addEventListener("click", function () { place(+this.getAttribute("data-i")); });
+    row.appendChild(b);
+  }
+}
+
+var durs = document.querySelectorAll(".dur");
+for (var di = 0; di < durs.length; di++) {
+  durs[di].addEventListener("click", function () {
+    units = +this.getAttribute("data-u");
+    if (selected) relength(units); else sync();
+  });
+}
+$("accSharp").addEventListener("click", function () { acc = acc === "^" ? "" : "^"; sync(); });
+$("accFlat").addEventListener("click", function () { acc = acc === "_" ? "" : "_"; sync(); });
+$("accNat").addEventListener("click", function () { acc = acc === "=" ? "" : "="; sync(); });
+// A rest needs no pitch: it goes straight in (or replaces the selected note).
+$("rest").addEventListener("click", function () { restNext = true; place(0); });
+$("triplet").addEventListener("click", function () { tripletLeft = tripletLeft > 0 ? 0 : 3; sync(); });
+$("tie").addEventListener("click", function () { tieNext = !tieNext; sync(); });
+$("left").addEventListener("click", function () { step(-1); });
+$("right").addEventListener("click", function () { step(1); });
+$("del").addEventListener("click", del);
+$("up").addEventListener("click", function () { moveSelected(1); });
+$("down").addEventListener("click", function () { moveSelected(-1); });
+$("addPart").addEventListener("click", addPart);
+$("undo").addEventListener("click", function () {
+  if (!undoStack.length) return;
+  var b = undoStack.pop(); abc = b.abc; cursor = b.cursor; selected = null;
+  if (abcMode) $("abcText").value = abc;
+  fillForm(); render(); sync();
+});
+$("sizeUp").addEventListener("click", function () { zoom = Math.min(2.5, zoom + 0.15); render(); });
+$("sizeDown").addEventListener("click", function () { zoom = Math.max(0.7, zoom - 0.15); render(); });
+$("play").addEventListener("click", function () {
+  if (ceolPrev.on) { ceolPreviewStop(); return; }
+  // Play the tune as it will be kept: empty bars out.
+  var kept = ceolComposeFinal(abc);
+  if (!kept) { say("Nothing to play yet.", true); return; }
+  var probe = document.createElement("div");
+  probe.style.cssText = "position:absolute;left:-10000px;width:800px";
+  document.body.appendChild(probe);
+  var v = null;
+  try { v = ABCJS.renderAbc(probe, kept, {})[0]; } catch (e) {}
+  probe.parentNode.removeChild(probe);
+  ceolPrev.button = $("play");
+  ceolPreviewStart(v, $("render"));
+});
+["fTitle", "fComposer"].forEach(function (id) {
+  $(id).addEventListener("change", function () { pushUndo(); readForm(); render(); sync(); });
+});
+["fType", "fRoot", "fMode"].forEach(function (id) {
+  $(id).addEventListener("change", function () {
+    pushUndo(); readForm();
+    if (abcMode) $("abcText").value = abc;
+    render(); sync();
+    if (id === "fType" && hasNotes()) say("Type changed. The metre stays as it is, since there are notes in the bars.");
+  });
+});
+
+function setMode(toABC) {
+  abcMode = toABC;
+  document.body.classList.toggle("abcMode", abcMode);
+  $("modeABC").classList.toggle("on", abcMode);
+  $("modeStaff").classList.toggle("on", !abcMode);
+  selected = null;
+  if (abcMode) { $("abcText").value = abc; }
+  else { fillForm(); cursor = Math.min(Math.max(cursor, bodyStart()), abc.length); if (cursor === bodyStart()) cursor = firstFiller(); }
+  render(); sync();
+}
+$("modeABC").addEventListener("click", function () { setMode(true); });
+$("modeStaff").addEventListener("click", function () { setMode(false); });
+// Tab puts in a bar line, as EasyABC does: the most-typed symbol in ABC,
+// one key away (a hardware keyboard on the iPad or the Mac).
+$("abcText").addEventListener("keydown", function (e) {
+  if (e.key !== "Tab" || e.shiftKey) return;
+  e.preventDefault();
+  var ta = this, s = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + " | " + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = s + 3;
+  ta.dispatchEvent(new Event("input"));
+});
+var typing = null;
+$("abcText").addEventListener("input", function () {
+  clearTimeout(typing);
+  typing = setTimeout(function () {
+    pushUndo();
+    abc = $("abcText").value;
+    render(); sync();
+  }, 300);
+});
+
+// ── How to…, layout, pickup and endings (FONN-COMPOSE-2) ──────────────────
+
+$("howto").addEventListener("click", function () { $("help").classList.add("open"); });
+$("helpClose").addEventListener("click", function () { $("help").classList.remove("open"); });
+
+function showLayout() {
+  var probs = abcMode ? ceolLayoutProblems(abc) : [];
+  $("layoutBox").classList.toggle("show", probs.length > 0);
+  $("layoutList").innerHTML = "";
+  probs.forEach(function (p) {
+    var d = document.createElement("div");
+    d.className = "p";
+    d.textContent = "\u26A0 " + p.title + ": " + p.detail;
+    $("layoutList").appendChild(d);
+  });
+  $("tidy").style.display = probs.some(function (p) { return p.fixable; }) ? "" : "none";
+}
+$("tidy").addEventListener("click", function () {
+  pushUndo();
+  abc = ceolTidyLayout(abc);
+  $("abcText").value = abc;
+  render(); sync();
+});
+
+$("pickup").addEventListener("click", function () {
+  // On: notes go before the first bar line, taking nothing from any bar —
+  // they come out as the pickup. Off (tap again, or tap an empty bar): on
+  // into the first bar.
+  if (pickupMode) { pickupMode = false; selected = null; cursor = firstFiller(); render(); sync(); say(""); return; }
+  var re = /(^|\n)(\|:|\|)/g, m;
+  re.lastIndex = Math.max(0, bodyStart() - 1);
+  while ((m = re.exec(abc))) {
+    var at = m.index + m[1].length;
+    if (at >= bodyStart()) {
+      pickupMode = true; selected = null; cursor = at; render(); sync();
+      say("Put the pickup notes in, then tap Pickup again to go on to the first bar. Leave the same amount empty at the end of the part.");
+      return;
+    }
+  }
+  say("Couldn't find the first bar.", true);
+});
+
+$("endings").addEventListener("click", function () {
+  var close = abc.indexOf(":|", cursor);
+  // Just moved on into a new, still empty part: mean the part before.
+  var prevClose = abc.lastIndexOf(":|", cursor);
+  if (prevClose >= 0 && !/[A-Ga-gz]/.test(abc.slice(prevClose + 2, cursor).replace(/P:[^\n]*|"[^"]*"/g, ""))) close = prevClose;
+  if (close < 0) { say("Put the \u25BE in a part with a repeat first.", true); return; }
+  if (/^\|?[12]/.test(abc.slice(abc.lastIndexOf("|", close - 1), close))) { say("This part has endings already.", true); return; }
+  var barStart = abc.lastIndexOf("|", close - 1);
+  if (barStart < 0 || abc[barStart + 1] === ":") { say("The part needs at least two bars for endings.", true); return; }
+  pushUndo();
+  var mm = /(^|\n)M:\s*([^\n]*)/.exec(abc);
+  var fill = "x" + (mm ? ceolFillerUnits(mm[2]) : 8);
+  abc = abc.slice(0, barStart + 1) + "1" + abc.slice(barStart + 1, close + 2) + "2 " + fill + " |]" + abc.slice(close + 2);
+  render(); sync();
+  say("The last bar is now the first-time ending; the new bar after :| is the second-time ending.");
+});
+
+window.addEventListener("resize", function () { render(); });
+
+// ── For the app ─────────────────────────────────────────────────────────────
+
+function loadABC(text) {
+  abc = (text && /\nK:/.test(text)) ? text : ceolComposeTemplate({ type: "reel", key: "D" });
+  undoStack = []; selected = null;
+  fillForm();
+  cursor = firstFiller();
+  buildPitchRow();
+  render(); sync();
+}
+/// What the app saves: the tune with empty bars taken out, or "" if empty.
+function getWorkingABC() { return ceolComposeFinal(abc); }
+function isDirty() { return hasNotes(); }
+</script>
+</body>
+</html>

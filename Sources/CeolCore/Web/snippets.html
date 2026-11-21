@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- FONN-SNIPPETS-1: the first two bars of each tune, to jog the memory. -->
+<script src="abcjs-basic-min.js"></script>
+<script>var chordsOn = false;</script>
+<script src="voices.js"></script>
+<script src="edittools.js"></script>
+<script src="editpreview.js"></script>
+<link rel="stylesheet" href="editpages.css">
+<style>
+  body { padding-bottom: 40px; }
+  #summary { padding: 6px 16px; font-size: 12px; color: #888; }
+  h2.type { position: sticky; top: 0; z-index: 2; margin: 0; padding: 8px 16px 6px;
+    font: 700 15px -apple-system, sans-serif; background: rgba(242,242,247,0.96);
+    border-bottom: 1px solid #e2e2e7; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  h3.key { margin: 0; padding: 8px 16px 2px; font: 600 12px -apple-system, sans-serif; color: #2f6f4f;
+    text-transform: uppercase; letter-spacing: 0.04em; }
+  .snip { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; gap: 0 8px;
+    padding: 4px 12px 2px; border-bottom: 1px solid #f0f0f3; align-items: center; }
+  .snip .play { grid-row: 1 / 3; width: 36px; height: 36px; padding: 0; border-radius: 18px; font-size: 14px; }
+  .snip .name { font: 600 14px -apple-system, sans-serif; color: inherit; text-decoration: none;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+  .snip .name small { font-weight: 400; color: #999; margin-left: 6px; font-size: 11px; }
+  .snip .marks { color: #c9a227; font-size: 11px; margin-left: 4px; }
+  .snip .music { min-height: 40px; overflow: hidden; padding: 2px 0; }
+  .snip .music { max-width: 380px; }
+  .snip .music svg { display: block; }
+  @media (min-width: 700px) {
+    .snip { grid-template-columns: 40px minmax(180px, 280px) minmax(0, 380px); grid-template-rows: auto; }
+    .snip .play { grid-row: 1; }
+  }
+  .empty { padding: 60px 30px; text-align: center; color: #888; }
+  @media (prefers-color-scheme: dark) {
+    h2.type { background: rgba(28,28,30,0.96); border-bottom-color: #3a3a3f; }
+    .snip { border-bottom-color: #2c2c2e; }
+    .snip .music svg { filter: invert(0.88) hue-rotate(180deg); }
+  }
+</style>
+</head>
+<body>
+<div id="summary"></div>
+<div id="list"></div>
+<div id="audio" style="display:none"></div>
+<script>
+// Sorted by type, in the order a session plays them, then by key — so the
+// D-major reels sit together, which is how you'd want to jog your memory
+// before a session — then by title.
+var TYPE_ORDER = ["reel", "jig", "slip jig", "hornpipe", "polka", "slide", "strathspey",
+                  "march", "barndance", "highland", "mazurka", "waltz", "air"];
+var KEY_ROOTS = "C C# Db D D# Eb E F F# Gb G G# Ab A A# Bb B".split(" ");
+
+function typeRank(t) {
+  var i = TYPE_ORDER.indexOf((t || "").toLowerCase());
+  return i < 0 ? (t ? 100 : 200) : i;
+}
+function keyParts(k) {
+  var m = /^([A-G][#b]?)\s*(.*)$/.exec((k || "").trim());
+  if (!m) return { root: 99, mode: k || "" };
+  var r = KEY_ROOTS.indexOf(m[1]);
+  return { root: r < 0 ? 98 : r, mode: m[2].toLowerCase() };
+}
+function plural(type) {
+  if (!type) return "No type given";
+  var t = type.charAt(0).toUpperCase() + type.slice(1);
+  if (/s$/.test(t)) return t;
+  return /(ch|sh|x)$/.test(t) ? t + "es" : t + "s";
+}
+function esc(s) {
+  return String(s || "").replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+var rows = [], observer = null, playing = null;
+
+function loadSnippets(data) {
+  var tunes = (data.tunes || []).slice();
+  tunes.sort(function (a, b) {
+    var t = typeRank(a.type) - typeRank(b.type);
+    if (t) return t;
+    if ((a.type || "") !== (b.type || "")) return (a.type || "").localeCompare(b.type || "");
+    var ka = keyParts(a.key), kb = keyParts(b.key);
+    if (ka.root !== kb.root) return ka.root - kb.root;
+    if (ka.mode !== kb.mode) return ka.mode.localeCompare(kb.mode);
+    return (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title);
+  });
+  var list = document.getElementById("list");
+  list.innerHTML = ""; rows = [];
+  var skipped = data.withoutMusic || 0;
+  document.getElementById("summary").textContent =
+    tunes.length + (tunes.length === 1 ? " tune" : " tunes") +
+    (skipped ? " · " + skipped + " with no music yet not shown" : "") +
+    " · tap ▶ to hear the opening, a name to open the tune";
+  if (!tunes.length) {
+    list.innerHTML = '<div class="empty">No tunes match. Try fewer filters.</div>';
+    return;
+  }
+  var lastType = null, lastKey = null;
+  tunes.forEach(function (t) {
+    if (t.type !== lastType) {
+      var n = tunes.filter(function (x) { return x.type === t.type; }).length;
+      var h = document.createElement("h2");
+      h.className = "type";
+      h.textContent = plural(t.type) + " · " + n;
+      list.appendChild(h);
+      lastType = t.type; lastKey = null;
+    }
+    if (t.key !== lastKey) {
+      var k = document.createElement("h3");
+      k.className = "key";
+      k.textContent = t.key || "Key not given";
+      list.appendChild(k);
+      lastKey = t.key;
+    }
+    var row = document.createElement("div");
+    row.className = "snip";
+    var marks = (t.rating ? "★".repeat(t.rating) : "") + (t.favourite ? " ♥" : "") + (t.hitlist ? " ◎" : "");
+    row.innerHTML = '<button class="play small" title="Hear the opening">&#9654;</button>' +
+      '<a class="name">' + esc(t.title) + (marks ? '<span class="marks">' + marks + '</span>' : "") + "</a>" +
+      '<div class="music"></div>';
+    var entry = { t: t, row: row, music: row.querySelector(".music"), drawn: false, visual: null };
+    row.querySelector(".name").addEventListener("click", function () {
+      try { window.webkit.messageHandlers.noteedit.postMessage({ open: t.id }); } catch (e) {}
+    });
+    row.querySelector(".play").addEventListener("click", function () { play(entry, this); });
+    list.appendChild(row);
+    rows.push(entry);
+  });
+  // Draw each snippet only as it comes near the screen: a whole library of
+  // engravings at once would take seconds.
+  if (observer) observer.disconnect();
+  if ("IntersectionObserver" in window) {
+    observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var r = rows[+e.target.getAttribute("data-i")];
+        if (r) draw(r);
+        observer.unobserve(e.target);
+      });
+    }, { rootMargin: "800px 0px" });
+    rows.forEach(function (r, i) { r.row.setAttribute("data-i", i); observer.observe(r.row); });
+  } else {
+    rows.forEach(draw);
+  }
+}
+
+function draw(r) {
+  if (r.drawn) return;
+  r.drawn = true;
+  var abc = ceolIncipit(r.t.abc, 2);
+  if (!abc) {
+    r.music.innerHTML = '<span style="font-size:12px;color:#999">No notes written yet</span>';
+    return;
+  }
+  r.abc = abc;
+  // Laid out at a fixed width, then the drawing is cropped to the music
+  // (abcjs leaves room above and below for things a snippet doesn't have)
+  // and scaled to the row, so a busy opening shrinks to fit instead of
+  // running off the edge, and every row is the same compact height.
+  try {
+    r.visual = (ABCJS.renderAbc(r.music, abc, {
+      staffwidth: 480, add_classes: true,
+      paddingtop: 0, paddingbottom: 0, paddingleft: 0, paddingright: 0,
+      visualTranspose: r.t.transpose || 0
+    }) || [])[0] || null;
+  } catch (e) {}
+  var svg = r.music.querySelector("svg");
+  if (svg) {
+    try {
+      var bb = svg.getBBox();
+      svg.setAttribute("viewBox", [bb.x - 2, bb.y - 2, bb.width + 4, bb.height + 4].join(" "));
+      svg.removeAttribute("height");
+      svg.setAttribute("width", "100%");
+      svg.style.height = "auto";
+    } catch (e) {}
+  }
+}
+
+function play(r, button) {
+  if (playing === r && ceolPrev.on) { ceolPreviewStop(); playing = null; return; }
+  if (ceolPrev.button && ceolPrev.button !== button) { ceolPreviewStop(); }
+  draw(r);
+  if (!r.visual) return;
+  playing = r;
+  ceolPrev.button = button;
+  // The snippet has no Q: line (it would be drawn); the tune's own tempo is
+  // handed to the player instead.
+  var qpm = ceolTempoQpm(r.t.abc);
+  ceolPreviewStart(r.visual, r.music, qpm ? { qpm: qpm } : null);
+}
+
+window.addEventListener("resize", function () {
+  rows.forEach(function (r) { if (r.drawn) { r.drawn = false; r.music.innerHTML = ""; } });
+  if (observer) rows.forEach(function (r) { observer.observe(r.row); }); else rows.forEach(draw);
+});
+
+/// The app hands over one string, as for the other pages: here, the list.
+function loadABC(text) {
+  var data = {};
+  try { data = JSON.parse(text || "{}"); } catch (e) {}
+  loadSnippets(data);
+}
+function getWorkingABC() { return ""; }
+</script>
+</body>
+</html>

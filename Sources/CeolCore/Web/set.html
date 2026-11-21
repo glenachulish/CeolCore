@@ -197,6 +197,16 @@
   html.ceol-print #hiddenRender, html.ceol-print #measureRender { max-height: 0; }
   html.ceol-print .tune-section svg { filter: none !important; }
 
+  /* FONN-COLOURS-1: the app's colours (FonnColour.swift): speed blue, the
+     bar loop orange (filled while looping), as the player's own loop. */
+  #speedSlow, #speedFast, html.dark #speedSlow, html.dark #speedFast {
+    background: #2f6fd6 !important; color: #fff !important;
+  }
+  #selInfo button.loop-active, html.dark #selInfo button.loop-active,
+  #loopRow button.loop-active, html.dark #loopRow button.loop-active {
+    background: #e08a00 !important; color: #fff !important;
+  }
+  #loopToggle:not(.loop-active) { color: #c77700 !important; }
 </style>
 </head>
 <body>

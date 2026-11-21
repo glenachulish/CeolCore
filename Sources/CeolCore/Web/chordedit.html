@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- FONN-CHORDEDIT-1: the chords over a tune, bar by bar. -->
+<script src="abcjs-basic-min.js"></script>
+<script>var chordsOn = true;</script>
+<script src="voices.js"></script>
+<script src="autochords.js"></script>
+<script src="edittools.js"></script>
+<script src="editpreview.js"></script>
+<link rel="stylesheet" href="editpages.css">
+<style>
+  #render { padding-bottom: 12px; }
+  /* The chord chart: Òrain's chord line over the words, for a tune — each
+     bar a box, each chord place in it a button, four bars to a line. */
+  #chart { padding: 4px 16px 200px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .cbar { display: flex; gap: 3px; border-left: 2px solid #c7c7cc; padding-left: 4px; align-items: center; }
+  .cbar.partStart { border-left: 4px double #888; }
+  .cbar .num { font-size: 9px; color: #999; width: 14px; }
+  .slot { flex: 1; min-width: 0; padding: 7px 2px; font: 600 14px -apple-system, sans-serif;
+    color: #2f6f4f; background: #f2f2f6; text-align: center; overflow: hidden; text-overflow: ellipsis; }
+  .slot.empty { color: #bbb; font-weight: 400; }
+  .slot.sel { outline: 2px solid #c9a227; background: #fff7dc; }
+  #palette .chord { min-width: 52px; padding: 6px 8px; }
+  #palette .chord small { display: block; font: 10px -apple-system, sans-serif; opacity: 0.6; }
+  #otherBox { display: none; gap: 6px; }
+  #otherBox.open { display: flex; }
+  #otherText { width: 110px; }
+  @media (max-width: 520px) { #chart { grid-template-columns: repeat(2, 1fr); } }
+  @media (prefers-color-scheme: dark) {
+    .slot { background: #2c2c2e; color: #6fcf97; } .slot.sel { background: #4a3f16; }
+    .cbar { border-left-color: #48484a; }
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <span id="hint" class="hint">Tap a bar below, or a note, then choose its chord.</span>
+  <button id="undo" class="small" disabled>&#8617;</button>
+  <button id="reset" class="small" disabled>Reset</button>
+</div>
+<div class="tools">
+  <span class="label">Chords in a bar</span>
+  <span class="seg"><button class="per small" data-n="1">1</button><button class="per small" data-n="2">2</button><button class="per small" data-n="0">Each beat</button></span>
+  <button id="suggest" class="small" title="Chords worked out from the melody">Suggest</button>
+  <button id="clear" class="small">Clear all</button>
+  <span class="label">Move all</span>
+  <button id="shiftDown" class="small" title="Every chord down a semitone">&#9837;</button>
+  <button id="shiftUp" class="small" title="Every chord up a semitone">&#9839;</button>
+  <button id="compare" class="small">Original</button>
+  <button id="sizeDown" class="small">A&#8722;</button>
+  <button id="sizeUp" class="small">A&#43;</button>
+  <button id="play" class="small" title="Hear it with the backing">&#9654;</button>
+</div>
+<div id="msg" class="msg"></div>
+<div id="render" class="render"></div>
+<div id="chart"></div>
+<div class="dock">
+  <div class="row" id="palette"></div>
+  <div class="row">
+    <button id="prev" class="big">&#9664;</button>
+    <button id="none" class="small">No chord</button>
+    <button id="same" class="small" title="The chord before this one">Same as before</button>
+    <button id="other" class="small">Other&#8230;</button>
+    <span id="otherBox"><input id="otherText" type="text" placeholder="e.g. D/F#" autocapitalize="off" autocorrect="off"><button id="otherOK" class="small">Set</button></span>
+    <button id="next" class="big">&#9654;</button>
+  </div>
+</div>
+<div id="audio" style="display:none"></div>
+<script>
+// perBar: -1 the usual for the metre, 1 or 2 a bar, 0 every beat.
+var original = "", abc = "", undoStack = [], zoom = 1, perBar = -1, showOriginal = false;
+var tune = null, slots = [], sel = -1, visual = null, startMap = {};
+
+function $(id) { return document.getElementById(id); }
+function say(text, warn) { var m = $("msg"); m.textContent = text || ""; m.className = "msg" + (warn ? " warn" : ""); }
+
+function slotsPerBar() {
+  if (perBar === 1 || perBar === 2) return perBar;
+  if (perBar === 0) return Math.max(1, Math.round(tune.barLen / tune.beatLen));
+  return ceolDefaultSlots(tune);
+}
+
+function reread() {
+  tune = ceolReadTune(abc);
+  slots = tune ? ceolChordSlots(tune, slotsPerBar()) : [];
+  if (sel >= slots.length) sel = slots.length - 1;
+}
+
+function change(next, keepSel) {
+  if (next === abc) return;
+  undoStack.push({ abc: abc, sel: sel });
+  if (undoStack.length > 300) undoStack.shift();
+  abc = next;
+  var was = sel;
+  reread();
+  sel = keepSel ? Math.min(was, slots.length - 1) : sel;
+  draw();
+}
+
+// ── Drawing ─────────────────────────────────────────────────────────────────
+
+function draw() {
+  ceolPreviewStop();
+  visual = ceolRenderInto($("render"), showOriginal ? original : abc, zoom, {
+    clickListener: function (el) {
+      if (showOriginal || !el || el.el_type !== "note") return;
+      for (var i = 0; i < slots.length; i++) {
+        var hit = slots[i].notes.some(function (n) { return tune.notes[n].s === el.startChar; });
+        if (hit) { sel = i; draw(); return; }
+      }
+    }
+  });
+  startMap = ceolElementsByStart(visual);
+  if (!showOriginal && sel >= 0 && slots[sel]) {
+    slots[sel].notes.forEach(function (n) {
+      var el = startMap[tune.notes[n].s];
+      if (el && el.abselem) { try { el.abselem.highlight(undefined, "#c9a227"); } catch (e) {} }
+    });
+  }
+  drawChart();
+  drawPalette();
+  sync();
+}
+
+function drawChart() {
+  var chart = $("chart"); chart.innerHTML = "";
+  if (!tune) return;
+  var byBar = {};
+  slots.forEach(function (s, i) { (byBar[s.bar] = byBar[s.bar] || []).push(i); });
+  tune.bars.forEach(function (bar, b) {
+    var box = document.createElement("div");
+    box.className = "cbar";
+    var num = document.createElement("span");
+    num.className = "num"; num.textContent = bar.pickup ? "" : String(b + (tune.bars[0].pickup ? 0 : 1));
+    box.appendChild(num);
+    (byBar[b] || []).forEach(function (i) {
+      var s = slots[i];
+      var btn = document.createElement("button");
+      btn.className = "slot" + (s.chords.length ? "" : " empty") + (i === sel ? " sel" : "");
+      btn.textContent = s.chords.length ? s.chords.join(" ") : (s.first < 0 ? "" : "\u00B7");
+      btn.disabled = s.first < 0;
+      btn.addEventListener("click", function () { sel = i; draw(); });
+      box.appendChild(btn);
+    });
+    chart.appendChild(box);
+  });
+}
+
+function drawPalette() {
+  var row = $("palette"); row.innerHTML = "";
+  if (!tune) return;
+  var current = sel >= 0 && slots[sel] ? slots[sel].chords.join(" ") : "";
+  ceolKeyChords(tune).forEach(function (c) {
+    var b = document.createElement("button");
+    b.className = "chord small" + (c.name === current ? " on" : "");
+    b.innerHTML = c.name + "<small>" + c.roman + "</small>";
+    b.addEventListener("click", function () { choose(c.name); });
+    row.appendChild(b);
+  });
+}
+
+function sync() {
+  $("undo").disabled = undoStack.length === 0;
+  $("reset").disabled = abc === original;
+  $("compare").classList.toggle("on", showOriginal);
+  var pers = document.querySelectorAll(".per");
+  var n = tune ? slotsPerBar() : 2;
+  for (var i = 0; i < pers.length; i++) {
+    var v = +pers[i].getAttribute("data-n");
+    pers[i].classList.toggle("on", v === 0 ? perBar === 0 : (perBar !== 0 && v === n));
+  }
+  var none = sel < 0 || showOriginal;
+  ["none", "same", "other", "prev", "next"].forEach(function (id) { $(id).disabled = none; });
+  $("hint").textContent = showOriginal ? "The chords as they were. Tap Original again to go back to yours."
+    : sel < 0 ? "Tap a bar below, or a note, then choose its chord."
+    : "Bar " + (slots[sel].bar + (tune.bars[0].pickup ? 0 : 1)) +
+      (slotsPerBar() > 1 ? ", part " + (slots[sel].slot + 1) : "") + ": choose a chord. It moves on by itself.";
+  ceolPostDirty(abc !== original);
+}
+
+// ── Choosing ────────────────────────────────────────────────────────────────
+
+function choose(name) {
+  if (sel < 0 || showOriginal) return;
+  var s = slots[sel];
+  say("");
+  change(ceolSetSlotChord(abc, tune, s, name), true);
+  // On to the next place, the way you'd fill in a chord chart.
+  if (sel < slots.length - 1) { sel++; draw(); }
+  $("otherBox").classList.remove("open");
+}
+
+$("none").addEventListener("click", function () { choose(""); });
+$("same").addEventListener("click", function () {
+  for (var i = sel - 1; i >= 0; i--) if (slots[i].chords.length) { choose(slots[i].chords[slots[i].chords.length - 1]); return; }
+  say("No chord before this one to copy.", true);
+});
+$("other").addEventListener("click", function () { $("otherBox").classList.toggle("open"); $("otherText").focus(); });
+$("otherOK").addEventListener("click", function () {
+  var v = $("otherText").value.trim();
+  if (v) choose(v);
+});
+$("otherText").addEventListener("keydown", function (e) { if (e.key === "Enter") $("otherOK").click(); });
+$("prev").addEventListener("click", function () { if (sel > 0) { sel--; draw(); } });
+$("next").addEventListener("click", function () { if (sel < slots.length - 1) { sel++; draw(); } });
+
+var pers = document.querySelectorAll(".per");
+for (var pi = 0; pi < pers.length; pi++) {
+  pers[pi].addEventListener("click", function () {
+    perBar = +this.getAttribute("data-n");
+    sel = -1; reread(); draw();
+  });
+}
+$("suggest").addEventListener("click", function () {
+  var r = ceolAutoChords(ceolClearChords(abc));
+  if (!r) { say("Couldn't work out chords for this tune (it needs a key and a metre).", true); return; }
+  change(r.text, true);
+  say("Chords worked out from the melody. Change any you'd play differently.");
+});
+$("clear").addEventListener("click", function () { change(ceolClearChords(abc), true); say("Chords cleared."); });
+function shift(by) {
+  var ks = {};
+  try { ks = tune.tune.getKeySignature() || {}; } catch (e) {}
+  var flats = (ks.accidentals || []).some(function (a) { return a.acc === "flat"; });
+  change(ceolShiftChords(abc, by, flats), true);
+  say("Every chord moved " + (by > 0 ? "up" : "down") + " a semitone. The notes are as they were.");
+}
+$("shiftUp").addEventListener("click", function () { shift(1); });
+$("shiftDown").addEventListener("click", function () { shift(-1); });
+$("undo").addEventListener("click", function () {
+  if (!undoStack.length) return;
+  var b = undoStack.pop(); abc = b.abc; reread(); sel = b.sel; draw();
+});
+$("reset").addEventListener("click", function () { change(original, true); });
+$("compare").addEventListener("click", function () { showOriginal = !showOriginal; draw(); });
+$("sizeUp").addEventListener("click", function () { zoom = Math.min(2.5, zoom + 0.15); draw(); });
+$("sizeDown").addEventListener("click", function () { zoom = Math.max(0.7, zoom - 0.15); draw(); });
+$("play").addEventListener("click", function () {
+  if (ceolPrev.on) { ceolPreviewStop(); return; }
+  ceolPrev.button = $("play");
+  ceolPreviewStart(visual, $("render"));
+});
+window.addEventListener("resize", function () { draw(); });
+
+// ── For the app ─────────────────────────────────────────────────────────────
+
+function loadABC(text) {
+  original = text || ""; abc = original; undoStack = []; sel = -1; showOriginal = false;
+  reread();
+  if (slots.length) sel = 0;
+  draw();
+  if (tune && !slots.some(function (s) { return s.chords.length; })) {
+    say("No chords yet. Choose them bar by bar, or Suggest to start from chords worked out from the melody.");
+  }
+}
+function getWorkingABC() { return abc; }
+function isDirty() { return abc !== original; }
+</script>
+</body>
+</html>

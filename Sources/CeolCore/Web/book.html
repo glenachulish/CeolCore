@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- FONN-BOOK-1: a collection as a printed book. -->
+<script src="abcjs-basic-min.js"></script>
+<script src="edittools.js"></script>
+<style>
+  /* Laid out for A4 with 15 mm margins: 180 mm across is 680 CSS pixels. Each
+     page's content is kept within 930 pixels down, which fits A4 (1009) and
+     US Letter (942) alike, and each page starts a new sheet. The music is
+     fitted to its page, so the contents' page numbers are the paper's. */
+  html, body { margin: 0; padding: 0; background: #e5e5ea; -webkit-text-size-adjust: 100%; }
+  body { font: 14px -apple-system, "Helvetica Neue", sans-serif; color: #111; }
+  #book { width: 680px; margin: 0 auto; }
+  .page { position: relative; box-sizing: border-box; background: #fff; overflow: hidden; }
+  .page + .page { break-before: page; page-break-before: always; }
+  @media screen {
+    #book { padding: 16px 0 40px; }
+    .page { height: 962px; margin: 0 0 16px; padding: 0; box-shadow: 0 1px 6px rgba(0,0,0,0.18); }
+  }
+  /* Paper: by the print media query, and by the ceol-print class the app sets
+     before printing (renderForPrint), as the tune and set pages do. */
+  @media print {
+    html, body { background: #fff; }
+    .page { height: auto !important; max-height: 930px; margin: 0 !important; box-shadow: none !important; }
+    #book { transform: none !important; margin: 0 auto !important; padding: 0 !important; }
+  }
+  html.ceol-print, html.ceol-print body { background: #fff; }
+  html.ceol-print .page { height: auto !important; max-height: 930px; margin: 0 !important; box-shadow: none !important; }
+  html.ceol-print #book { transform: none !important; margin: 0 auto !important; padding: 0 !important; }
+  .cover { display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 0 60px; }
+  @media print { .cover { height: 900px; } }
+  .cover .band { width: 100%; height: 10px; background: #2f6f4f; margin-bottom: 48px;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cover h1 { font: 600 40px/1.15 Georgia, "Times New Roman", serif; margin: 0 0 18px; }
+  .cover .about { font: italic 17px/1.45 Georgia, serif; color: #333; margin: 0 0 28px; max-width: 480px; }
+  .cover .meta { font-size: 14px; color: #555; }
+  .cover .made { position: absolute; bottom: 36px; left: 0; right: 0; font-size: 11px; color: #888; }
+  .contents { padding: 40px 30px 0; }
+  .contents h2 { font: 600 24px Georgia, serif; margin: 0 0 18px; }
+  .row { display: flex; align-items: baseline; font-size: 14px; padding: 4px 0; }
+  .row .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+  .row .k { color: #777; font-size: 12px; margin-left: 8px; white-space: nowrap; }
+  .row .dots { flex: 1; border-bottom: 1px dotted #aaa; margin: 0 6px; transform: translateY(-3px); }
+  .row .n { min-width: 24px; text-align: right; font-variant-numeric: tabular-nums; }
+  .tune { padding: 18px 10px 0; }
+  .tune .hd { display: flex; align-items: baseline; border-bottom: 1px solid #ccc; padding: 0 0 6px; margin: 0 0 4px; }
+  .tune .hd .title { font: 600 20px Georgia, serif; flex: 1; }
+  .tune .hd .k { color: #666; font-size: 12px; margin-right: 14px; }
+  .tune .hd .n { font-size: 13px; color: #333; font-variant-numeric: tabular-nums; }
+  .tune .music svg { display: block; }
+  .empty { padding: 120px 40px; text-align: center; color: #666; }
+</style>
+</head>
+<body>
+<div id="book"></div>
+<script>
+var PAGE_H = 930, WIDTH = 680, CONTENTS_ROWS = 28;
+var MUSIC_W = WIDTH - 20;            // the tune page's side padding
+var MUSIC_H = PAGE_H - 18 - 48;      // less the top padding and the heading
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+/// The tune without the lines the page heading already shows.
+function forPage(abc) {
+  // Laid out properly on paper: short lines joined, old ! breaks out (the
+  // same tidy as Edit ABC's, which never changes a note). Print only — the
+  // tune itself is left as it is.
+  var text = String(abc || "");
+  try { text = ceolTidyLayout(text); } catch (e) {}
+  var lines = text.replace(/\r\n?/g, "\n").split("\n"), out = [], seenT = false;
+  for (var i = 0; i < lines.length; i++) {
+    if (/^T:/.test(lines[i]) && !seenT) { seenT = true; continue; }
+    if (/^R:/.test(lines[i])) continue;
+    out.push(lines[i]);
+  }
+  return out.join("\n");
+}
+
+function el(tag, cls, html) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html !== undefined) e.innerHTML = html;
+  return e;
+}
+
+/// One tune, drawn to fit its page: at full size if it fits, otherwise the
+/// whole engraving scaled down until it does.
+function drawTune(host, t) {
+  var abc = forPage(t.abc);
+  var opts = {
+    staffwidth: MUSIC_W - 10, scale: 1,
+    wrap: { minSpacing: 1.4, maxSpacing: 2.7, minSpacingLimit: 1, lastLineLimit: 3.5 },
+    paddingtop: 0, paddingbottom: 0, paddingleft: 4, paddingright: 4,
+    visualTranspose: t.transpose || 0
+  };
+  try { ABCJS.renderAbc(host, abc, opts); } catch (e) { host.textContent = "This tune's notation couldn't be read."; return; }
+  var svg = host.querySelector("svg");
+  if (!svg) return;
+  var h = svg.getBoundingClientRect().height;
+  if (h > MUSIC_H) {
+    // Shrink everything, and give it the matching extra width so the lines
+    // still fill the page once scaled.
+    var s = Math.max(0.45, (MUSIC_H / h) * 0.98);
+    opts.scale = s;
+    opts.staffwidth = Math.round((MUSIC_W - 10) / s);
+    host.innerHTML = "";
+    ABCJS.renderAbc(host, abc, opts);
+    svg = host.querySelector("svg");
+    if (svg && svg.getBoundingClientRect().width > MUSIC_W + 2) {
+      opts.staffwidth = Math.round((MUSIC_W - 10) / s * (MUSIC_W / svg.getBoundingClientRect().width));
+      host.innerHTML = "";
+      ABCJS.renderAbc(host, abc, opts);
+    }
+  }
+}
+
+function loadBook(book) {
+  var root = document.getElementById("book");
+  root.innerHTML = "";
+  var tunes = book.tunes || [];
+  var contentsPages = Math.max(1, Math.ceil(tunes.length / CONTENTS_ROWS));
+  var first = 1 + contentsPages + 1;          // the cover is page 1
+
+  // Cover
+  var cover = el("div", "page cover");
+  cover.appendChild(el("div", "band"));
+  cover.appendChild(el("h1", "", esc(book.title || "Collection")));
+  if (book.about) cover.appendChild(el("p", "about", esc(book.about)));
+  cover.appendChild(el("div", "meta", tunes.length + (tunes.length === 1 ? " tune" : " tunes") +
+                                       (book.date ? " &middot; " + esc(book.date) : "")));
+  cover.appendChild(el("div", "made", "Printed from Fonn"));
+  root.appendChild(cover);
+
+  if (!tunes.length) {
+    var none = el("div", "page empty", "There are no tunes with music in this collection yet.");
+    root.appendChild(none);
+    return finished(1);
+  }
+
+  // Contents
+  for (var c = 0; c < contentsPages; c++) {
+    var page = el("div", "page contents");
+    page.appendChild(el("h2", "", c === 0 ? "Contents" : "Contents, continued"));
+    tunes.slice(c * CONTENTS_ROWS, (c + 1) * CONTENTS_ROWS).forEach(function (t, i) {
+      var n = first + c * CONTENTS_ROWS + i;
+      var kind = [t.type, t.key].filter(Boolean).join(" \u00B7 ");
+      page.appendChild(el("div", "row",
+        '<span class="t">' + esc(t.title) + '</span>' +
+        (kind ? '<span class="k">' + esc(kind) + '</span>' : "") +
+        '<span class="dots"></span><span class="n">' + n + '</span>'));
+    });
+    root.appendChild(page);
+  }
+
+  // One page per tune
+  tunes.forEach(function (t, i) {
+    var page = el("div", "page tune");
+    var kind = [t.type, t.key].filter(Boolean).join(" \u00B7 ");
+    page.appendChild(el("div", "hd",
+      '<span class="title">' + esc(t.title) + '</span>' +
+      (kind ? '<span class="k">' + esc(kind) + '</span>' : "") +
+      '<span class="n">' + (first + i) + '</span>'));
+    var music = el("div", "music");
+    page.appendChild(music);
+    root.appendChild(page);
+    drawTune(music, t);
+  });
+  finished(1 + contentsPages + tunes.length);
+}
+
+function finished(pages) {
+  fitPreview();
+  try { window.webkit.messageHandlers.noteedit.postMessage({ dirty: false, pages: pages }); } catch (e) {}
+}
+
+/// On a narrow screen (a phone) show the pages scaled down to fit; paper
+/// ignores this, since print media lay out at the page's own width.
+function fitPreview() {
+  var root = document.getElementById("book");
+  var vw = document.documentElement.clientWidth;
+  var s = Math.min(1, (vw - 16) / WIDTH);
+  if (s < 1) {
+    // Scaled from the top-left corner and moved across to the middle: the
+    // page is wider than the screen, so margin:auto can't centre it.
+    root.style.transformOrigin = "top left";
+    root.style.margin = "0";
+    root.style.transform = "translateX(" + Math.round((vw - WIDTH * s) / 2) + "px) scale(" + s + ")";
+    root.style.marginBottom = (-(1 - s) * root.scrollHeight) + "px";
+  } else {
+    root.style.transform = ""; root.style.margin = ""; root.style.marginBottom = "";
+  }
+}
+window.addEventListener("resize", fitPreview);
+
+function renderForPrint(on) {
+  document.documentElement.classList.toggle("ceol-print", !!on);
+  if (!on) fitPreview();
+}
+
+/// The app hosts this page in the same web view as the note editor, which
+/// hands over one string: here, the book as JSON.
+function loadABC(text) {
+  var book = {};
+  try { book = JSON.parse(text || "{}"); } catch (e) {}
+  loadBook(book);
+}
+function getWorkingABC() { return ""; }
+</script>
+</body>
+</html>

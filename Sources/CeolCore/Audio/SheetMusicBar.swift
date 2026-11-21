@@ -194,7 +194,7 @@ public struct SheetMusicBar: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(compact ? .small : .regular)
-            .tint(sheet.scrolling ? .red : .accentColor)
+            .tint(sheet.scrolling ? FonnColour.stop : FonnColour.play)   // FONN-COLOURS-1
 
             // Words, not − and +: those are the tempo's, just to the left, and
             // two pairs of identical buttons doing different things is a trap.

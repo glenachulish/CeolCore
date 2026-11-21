@@ -1,0 +1,43 @@
+/* FONN-COMPOSE-1: shared by compose.html, chordedit.html and styles.html —
+   the same look as noteedit.html, so the editors read as one family. */
+html, body { margin: 0; padding: 0; background: transparent; -webkit-text-size-adjust: 100%;
+  font: 14px -apple-system, sans-serif; color: #222; }
+.bar { display: flex; gap: 8px; align-items: center; padding: 8px 16px 2px; color: #666; font-size: 13px; }
+.tools { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 4px 16px 8px;
+  color: #666; font-size: 13px; border-bottom: 1px solid #e2e2e7; }
+.tools .label { font-size: 12px; color: #888; margin-left: 6px; }
+button { font: 600 14px -apple-system, sans-serif; border: none; border-radius: 6px;
+  padding: 6px 12px; background: #e8e8ed; color: #333; -webkit-tap-highlight-color: transparent; }
+button.small { padding: 6px 10px; }
+button:disabled { opacity: 0.35; }
+button.on { background: #2f6f4f; color: #fff; }
+.seg { display: inline-flex; border-radius: 7px; overflow: hidden; }
+.seg button { border-radius: 0; margin: 0; border-right: 1px solid rgba(0,0,0,0.08); }
+.seg button:last-child { border-right: none; }
+.hint { flex: 1; }
+.msg { padding: 4px 16px; font-size: 12px; color: #2f6f4f; min-height: 16px; }
+.msg.warn { color: #b25c00; }
+.render { padding: 6px 16px 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.render svg { max-width: none; height: auto; }
+.ceol-playing, .ceol-playing path, .ceol-playing rect, .ceol-playing ellipse {
+  fill: #e67e22 !important; stroke: #e67e22 !important; }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: rgba(255,255,255,0.95); border-top: 1px solid #e2e2e7;
+  backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
+.dock .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; margin: 3px 0; }
+.dock button { min-width: 40px; }
+.dock .big { font-size: 20px; padding: 6px 10px; min-width: 46px; }
+input[type=text], select, textarea { font: 15px -apple-system, sans-serif; border: 1px solid #d0d0d6;
+  border-radius: 6px; padding: 5px 8px; background: #fff; color: #222; }
+textarea { font: 13px ui-monospace, Menlo, monospace; width: 100%; box-sizing: border-box; }
+@media (prefers-color-scheme: dark) {
+  html, body { color: #eee; }
+  .render svg { filter: invert(0.88) hue-rotate(180deg); }
+  .bar, .tools, .tools .label { color: #aaa; }
+  .tools { border-bottom-color: #3a3a3f; }
+  button { background: #3a3a3f; color: #eee; }
+  button.on { background: #2f6f4f; color: #fff; }
+  .msg { color: #6fcf97; } .msg.warn { color: #f2a65a; }
+  .dock { background: rgba(28,28,30,0.95); border-top-color: #3a3a3f; }
+  input[type=text], select, textarea { background: #1c1c1e; color: #eee; border-color: #3a3a3f; }
+}

@@ -185,3 +185,23 @@
 .abcjs-css-warning {
 	display: none;
 }
+
+/* FONN-COLOURS-1: the same colours as the app's buttons (FonnColour.swift),
+   so the player can be found at a glance: play green, red while playing
+   (tap to stop); loop orange, filled while looping. */
+.abcjs-inline-audio .abcjs-btn.abcjs-midi-start {
+	background: #2e9e4f !important;
+	border-radius: 17px;
+	width: 34px;
+	margin-right: 6px;
+}
+.abcjs-inline-audio .abcjs-midi-start g,
+.abcjs-inline-audio .abcjs-midi-start:hover g { fill: #ffffff; stroke: #ffffff; }
+.abcjs-inline-audio .abcjs-btn.abcjs-midi-start.abcjs-pushed { background: #d63a30 !important; }
+.abcjs-inline-audio .abcjs-midi-loop g { fill: #ffb547; stroke: #ffb547; }
+.abcjs-inline-audio .abcjs-btn.abcjs-midi-loop.abcjs-pushed {
+	background: #e08a00 !important;
+	border-color: #e08a00;
+	border-radius: 6px;
+}
+.abcjs-inline-audio .abcjs-midi-loop.abcjs-pushed g { fill: #ffffff; stroke: #ffffff; }

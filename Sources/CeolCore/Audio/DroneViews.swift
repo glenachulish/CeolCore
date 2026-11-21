@@ -23,7 +23,8 @@ public struct DroneButton: View {
                 Text(Drone.noteNames[drone.note])
                     .font(.caption.weight(.semibold))
             }
-            .foregroundStyle(drone.armed ? Color.accentColor : Color.secondary)
+            // FONN-COLOURS-1: purple, filled while it sounds.
+            .fonnChip(FonnColour.drone, on: drone.armed)
             .frame(minWidth: 44, minHeight: 32)
             .contentShape(Rectangle())
         }
