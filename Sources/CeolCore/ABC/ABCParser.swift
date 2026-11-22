@@ -19,7 +19,12 @@ public enum ABCParser {
     public static func splitTunes(_ text: String) -> [String] {
         var tunes: [String] = []
         var current: [String] = []
-        for line in text.components(separatedBy: .newlines) {
+        // FONN-CRLF-1: Windows line endings (The Session's downloads use them).
+        // .newlines treats \r and \n as two separators, so every CRLF became a
+        // line break plus an empty line, and a blank line ends an ABC tune.
+        let unified = text.replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        for line in unified.components(separatedBy: .newlines) {
             if line.trimmingCharacters(in: .whitespaces).hasPrefix("X:") {
                 if current.contains(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("X:") }) {
                     tunes.append(current.joined(separator: "\n"))
