@@ -27,6 +27,9 @@ public enum TheSessionAPI {
         public let name: String
         public let type: String
         public let tunebooks: Int
+        /// FONN-SESSIONCOUNTS-2: another name the site gives the tune in its
+        /// search results ("Drowsey Maggie"), or "".
+        public var alias: String = ""
 
         /// Spelled out because the memberwise initialiser a struct gets for
         /// free is internal, and TheSessionBrowserView builds one of these
@@ -63,6 +66,10 @@ public enum TheSessionAPI {
         public let type: String
         public let aliases: [String]
         public let settings: [Setting]
+        /// FONN-SESSIONCOUNTS-2: tunebooks holding the tune. Checked 24 Nov
+        /// 2026: the site sends this on the tune itself, not in search
+        /// results, and sends no votes for settings.
+        public var tunebooks: Int = 0
     }
 
     public enum APIError: LocalizedError {
@@ -87,6 +94,23 @@ public enum TheSessionAPI {
         return json
     }
 
+    /// FONN-SESSIONCOUNTS-1. A count from the site, in whatever form it
+    /// comes: a whole number, a decimal, text ("123"), or an object holding
+    /// one ({"count": 123}). Reading only a whole number gave 0 for every
+    /// other form, and the screens hide a 0: tunebook and vote counts had
+    /// gone blank on iOS and Android alike. Missing is 0, as before.
+    static func count(_ value: Any?) -> Int {
+        switch value {
+        case let n as Int: return n
+        case let n as Double: return Int(n)
+        case let n as NSNumber: return n.intValue
+        case let s as String: return Int(s.trimmingCharacters(in: .whitespaces)) ?? 0
+        case let d as [String: Any]: return count(d["count"] ?? d["total"] ?? d["value"])
+        case let a as [Any]: return a.count
+        default: return 0
+        }
+    }
+
     public static func search(_ query: String) async throws -> [SearchResult] {
         var components = URLComponents(string: "https://thesession.org/tunes/search")!
         components.queryItems = [
@@ -98,9 +122,11 @@ public enum TheSessionAPI {
         guard let tunes = json["tunes"] as? [[String: Any]] else { throw APIError.badResponse }
         return tunes.compactMap { t in
             guard let id = t["id"] as? Int, let name = t["name"] as? String else { return nil }
-            return SearchResult(id: id, name: name,
-                                type: t["type"] as? String ?? "",
-                                tunebooks: t["tunebooks"] as? Int ?? 0)
+            var result = SearchResult(id: id, name: name,
+                                      type: t["type"] as? String ?? "",
+                                      tunebooks: count(t["tunebooks"]))   // FONN-SESSIONCOUNTS-1
+            result.alias = t["alias"] as? String ?? ""   // FONN-SESSIONCOUNTS-2
+            return result
         }
     }
 
@@ -132,10 +158,12 @@ public enum TheSessionAPI {
                            key: keyNorm, mode: modeNorm,
                            abc: addSessionRepeats(fullABC),
                            member: member,
-                           votes: s["votes"] as? Int ?? 0,
+                           votes: count(s["votes"]),   // FONN-SESSIONCOUNTS-1
                            date: s["date"] as? String ?? "")
         }
-        return TuneDetail(id: id, name: name, type: type, aliases: aliases, settings: settings)
+        var detail = TuneDetail(id: id, name: name, type: type, aliases: aliases, settings: settings)
+        detail.tunebooks = count(json["tunebooks"])   // FONN-SESSIONCOUNTS-2
+        return detail
     }
 
     /// Reconstruct a full ABC document from TheSession API fields

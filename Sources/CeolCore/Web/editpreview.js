@@ -38,13 +38,26 @@ function ceolPreviewStart(visual, host, extra) {
     // FONN-PREVIEWTEMPO-1: a tune with no Q: plays at its type's speed, as on
     // the tune page, not at abcjs's own 180 a minute.
     if (!options.qpm) { var q = ceolPreviewDefaultQpm(visual); if (q) options.qpm = q; }
+    // FONN-BEATUNIT-1: every caller works in crotchets a minute, but abcjs
+    // reads options.qpm as beats a minute in the tune's own beat
+    // (visual.getBeatLength(): a minim in 2/2 and C|, a dotted crotchet in
+    // 6/8 and 9/8, a dotted minim in 6/4). So a reel in C| played twice as
+    // fast, a jig half as fast again, a tune in 6/4 three times (Up to Your
+    // Knees in Sand, Marni Swanson). Converted here, once, for every preview.
+    if (options.qpm) {
+      var beat = 0.25;
+      try { beat = visual.getBeatLength() || 0.25; } catch (e) {}
+      options.qpm = Math.max(1, Math.round(options.qpm * 0.25 / beat));
+    }
     ceolPrev.synth.init({ visualObj: visual, options: options })
       .then(function () { return ceolPrev.synth.prime(); })
       .then(function () {
         if (!ceolPrev.on) { try { ceolPrev.synth.stop(); } catch (e) {} return; }
         ceolPrev.synth.start();
         try {
+          // FONN-BEATUNIT-1: the highlight keeps the same time as the sound.
           ceolPrev.timer = new ABCJS.TimingCallbacks(visual, {
+            qpm: options.qpm || undefined,
             eventCallback: function (ev) {
               ceolPreviewClear();
               if (!ev) { ceolPreviewStop(); return null; }

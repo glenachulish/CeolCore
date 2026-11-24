@@ -33,31 +33,11 @@
    "composer": "Tiennet Simonnin, Ronan Le Dissez"
   },
   {
-   "title": "Gavottes Pourleth",
-   "key": "G",
-   "abc": "X: 1\nT: Gavottes Pourleth\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
-  },
-  {
-   "title": "Ton doubl gavotte",
-   "key": "G",
-   "abc": "X: 1\nT: Ton doubl gavotte\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
-  },
-  {
-   "title": "Heuliad Gavotten",
-   "key": "G",
-   "abc": "X: 1\nT: Heuliad Gavotten\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
-  },
-  {
-   "title": "Heuliad Plinn",
-   "key": "G",
-   "abc": "X: 1\nT: Heuliad Plinn\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
-  },
-  {
    "title": "Skolvan Doubl Plinn",
    "type": "reel",
    "key": "B",
    "mode": "minor",
-   "abc": "X: 1\nT: Skolvan Doubl Plinn\nC: Gaby Kerdoncuff, Y. Le Bihan\nZ: Fred Saur\nS: https://thesession.org/tunes/6150#setting6150\nR: reel\nM: 4/4\nL: 1/8\nK: Bmin\nP:A\n|e2 ef ed (3cBA|e2 de fg f2|e2 f2 ed (3cBA|e2 de fe f2|\nP:B\n|:f2 fd ef gf|e2 (3dcB cd B2|(3Bcd ef af g2|fg ed e2 e2:|",
+   "abc": "X: 1\nT: Skolvan Doubl Plinn\nC: Gaby Kerdoncuff, Y. Le Bihan\nZ: Fred Saur\nS: https://thesession.org/tunes/6150#setting6150\nR: reel\nM: 4/4\nL: 1/8\nK: Bmin\nP:A\n|e2 ef ed (3cBA|e2 de fg f2|e2 f2 ed (3cBA|e2 de fe f2|\nP:B\n|:f2 fd ef gf|e2 (3dcB cd B2|(3Bcd ef af g2|fg ed e2 e2:|\n",
    "composer": "Gaby Kerdoncuff, Y. Le Bihan"
   },
   {
@@ -136,46 +116,6 @@
     },
     {
      "title": "Hanter Dro",
-     "key": "B",
-     "mode": "minor",
-     "_position": 1
-    }
-   ]
-  },
-  {
-   "name": "Breton 3 · Gavottes Pourleth / Ton doubl gavotte / Heuliad Gavotten",
-   "tunes": [
-    {
-     "title": "Gavottes Pourleth",
-     "key": "G",
-     "mode": "",
-     "_position": 0
-    },
-    {
-     "title": "Ton doubl gavotte",
-     "key": "G",
-     "mode": "",
-     "_position": 1
-    },
-    {
-     "title": "Heuliad Gavotten",
-     "key": "G",
-     "mode": "",
-     "_position": 2
-    }
-   ]
-  },
-  {
-   "name": "Breton 4 · Heuliad Plinn / Skolvan Doubl Plinn",
-   "tunes": [
-    {
-     "title": "Heuliad Plinn",
-     "key": "G",
-     "mode": "",
-     "_position": 0
-    },
-    {
-     "title": "Skolvan Doubl Plinn",
      "key": "B",
      "mode": "minor",
      "_position": 1

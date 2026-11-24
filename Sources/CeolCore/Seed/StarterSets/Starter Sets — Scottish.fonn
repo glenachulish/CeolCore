@@ -78,7 +78,7 @@
    "type": "strathspey",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Monymusk\n\nZ: fidicen\n\nS: https://thesession.org/tunes/11167#setting11167\n\nR: strathspey\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\ne|:d<G B>G d>G c>e|d<G B>G AB/A/ c>e|d<G B>G B/c/d d>g|1 e>c A.d B<G G>e:|2 e.c A.d B<G G>f||\nP:B\ng2 d>g B>g d>f|g>d c>g B.g A.f|g>d e>g d>g B>g|e>c A>d B<G G>f|\ng>d d>g B>g d>f|g>d c>g B>g A>f|g>d e>g d>g c>g|B<g A>c B<G G||\n"
+   "abc": "X: 1\nT: Monymusk\nZ: fidicen\nS: https://thesession.org/tunes/11167#setting11167\nR: strathspey\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\ne|:d<G B>G d>G c>e|d<G B>G AB/A/ c>e|d<G B>G B/c/d d>g|1 e>c A.d B<G G>e:|2 e.c A.d B<G G>f||\nP:B\ng2 d>g B>g d>f|g>d c>g B.g A.f|g>d e>g d>g B>g|e>c A>d B<G G>f|\ng>d d>g B>g d>f|g>d c>g B>g A>f|g>d e>g d>g c>g|B<g A>c B<G G||\n"
   },
   {
    "title": "De'il Among the Tailors",
@@ -102,7 +102,7 @@
    "type": "strathspey",
    "key": "D",
    "mode": "major",
-   "abc": "X: 1\n\nT: Miller O' Hirn, The\n\nC: James Scott Skinner\nZ: m_gavin\n\nS: https://thesession.org/tunes/3770#setting3770\n\nR: strathspey\n\nM: 4/4\n\nL: 1/8\n\nK: Dmaj\nP:A\nD2 d>B A<F E>D|B,2 E>D B<D A,>B,|D2 d>B A<F E>D|1 B,>D C>E F<D D>C:|2 B,>D C>E F<D D>B||\nP:B\n|:A<F F>A B<G G>A|G<E E>d c<A A>B|A<F F>A B<G G>A|(3Bcd (3efg f<d d>B|\nA<F F>A B<G G>A|G<E E>d c<A A>c|(3dAB (3cde (3fde (3fga|(3bag (3fed (3cBA (3GFE||\n",
+   "abc": "X: 1\nT: Miller O' Hirn, The\nC: James Scott Skinner\nZ: m_gavin\nS: https://thesession.org/tunes/3770#setting3770\nR: strathspey\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\nD2 d>B A<F E>D|B,2 E>D B<D A,>B,|D2 d>B A<F E>D|1 B,>D C>E F<D D>C:|2 B,>D C>E F<D D>B||\nP:B\n|:A<F F>A B<G G>A|G<E E>d c<A A>B|A<F F>A B<G G>A|(3Bcd (3efg f<d d>B|\nA<F F>A B<G G>A|G<E E>d c<A A>c|(3dAB (3cde (3fde (3fga|(3bag (3fed (3cBA (3GFE||\n",
    "aliases": [
     "Miller O' Hirn, The"
    ],
@@ -123,7 +123,7 @@
    "type": "barndance",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Flower O' The Quern\n\nC: James Scott Skinner\nZ: domhnall.\n\nS: https://thesession.org/tunes/6738#setting6738\n\nR: barndance\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\nD2|G2 G2 F2 ED|c2 c2 B2 d2|d2 BA G2 AB|A6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\nP:B\nG2|c2 c2 c2 de|d3 B d2 ge|d2 BA G2 AB|A6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\nP:C\nG,2|C2 C2 C2 DE|D3 B, D2 GE|D2 B,A, G,2 A,B,|A,6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\nP:D\nG2|c2 c2 c2 de|d3 B d2 ge|d2 BA G2 AB|A6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\n",
+   "abc": "X: 1\nT: Flower O' The Quern\nC: James Scott Skinner\nZ: domhnall.\nS: https://thesession.org/tunes/6738#setting6738\nR: barndance\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\nD2|G2 G2 F2 ED|c2 c2 B2 d2|d2 BA G2 AB|A6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\nP:B\nG2|c2 c2 c2 de|d3 B d2 ge|d2 BA G2 AB|A6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\nP:C\nG,2|C2 C2 C2 DE|D3 B, D2 GE|D2 B,A, G,2 A,B,|A,6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\nP:D\nG2|c2 c2 c2 de|d3 B d2 ge|d2 BA G2 AB|A6 D2|\nG2 G2 F2 ED|c2 c2 B2 d2|dcEA G2 F2|G6||\n",
    "composer": "James Scott Skinner"
   },
   {
@@ -131,14 +131,14 @@
    "type": "march",
    "key": "D",
    "mode": "major",
-   "abc": "X: 3\n\nT: Scotland The Brave\n\nZ: rorymellishollins\n\nS: https://thesession.org/tunes/4960#setting31611\n\nR: march\n\nM: 4/4\n\nL: 1/8\n\nK: Dmaj\nD2 D>E|FD FA|d2 d>c|dA FD|\nG2 B>G|FA FD|E2A>B|AG FE|\nD2 D>E|FD FA|d2 d>c|dA FD|\nG2 B>G|FA FD|E2 D>E|D4|\ne2 e>d|ec A2|d2 f>e|dA FA|\nd2 dd|c2 dc|Bd cB|AG FE|\nD2 D>E|FD FA|d2 d>c|dA FD|\nG2 B>G|FA df|e2 AB/c/|d4|\n"
+   "abc": "X: 3\nT: Scotland The Brave\nZ: rorymellishollins\nS: https://thesession.org/tunes/4960#setting31611\nR: march\nM: 4/4\nL: 1/8\nK: Dmaj\nD2 D>E|FD FA|d2 d>c|dA FD|\nG2 B>G|FA FD|E2A>B|AG FE|\nD2 D>E|FD FA|d2 d>c|dA FD|\nG2 B>G|FA FD|E2 D>E|D4|\ne2 e>d|ec A2|d2 f>e|dA FA|\nd2 dd|c2 dc|Bd cB|AG FE|\nD2 D>E|FD FA|d2 d>c|dA FD|\nG2 B>G|FA df|e2 AB/c/|d4|\n"
   },
   {
    "title": "The Road To The Isles",
    "type": "march",
    "key": "D",
    "mode": "major",
-   "abc": "X: 3\n\nT: Road To The Isles, The\n\nC: John McLellan\nZ: DetlefS\n\nS: https://thesession.org/tunes/4190#setting31311\n\nR: march\n\nM: 4/4\n\nL: 1/8\n\nK: Dmaj\nP:A\n|:Ad|f3g afef|dedc B2dc|BABc defa|e6 Ad|\nf3g afef|dedc B2g2|fafd Acec|d6:|\nP:B\nfg|aAAA BAAA|dedc B2dc|BABc defa|e6fg|\naAAA BAAA|dedc B2g2|fafd Acec|d6:|\n",
+   "abc": "X: 3\nT: Road To The Isles, The\nC: John McLellan\nZ: DetlefS\nS: https://thesession.org/tunes/4190#setting31311\nR: march\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:Ad|f3g afef|dedc B2dc|BABc defa|e6 Ad|\nf3g afef|dedc B2g2|fafd Acec|d6:|\nP:B\nfg|aAAA BAAA|dedc B2dc|BABc defa|e6fg|\naAAA BAAA|dedc B2g2|fafd Acec|d6:|\n",
    "aliases": [
     "Road To The Isles, The"
    ],
@@ -149,7 +149,7 @@
    "type": "strathspey",
    "key": "B",
    "mode": "minor",
-   "abc": "X: 1\n\nT: Mairi's Wedding\n\nZ: Nigel Gatherer\n\nS: https://thesession.org/tunes/5324#setting5324\n\nR: strathspey\n\nM: 4/4\n\nL: 1/8\n\nK: Bmin\nP:A\nB>BB>B B>BB>B|B>BF>E D>EFA|B>BB>B B>BB>B|A>Ac>c B2 B z|\nB>BB>B B>BB>B|F>FF>E D>EFA|B>BB>B B>BB>B|A>Ac>c B3 z||\nP:B\n|:B,2 D2 F2 B2|F>FF>E D>EF>B|B,2 D2 F2 B2|A>Ac>c B2 B z:|\n"
+   "abc": "X: 1\nT: Mairi's Wedding\nZ: Nigel Gatherer\nS: https://thesession.org/tunes/5324#setting5324\nR: strathspey\nM: 4/4\nL: 1/8\nK: Bmin\nP:A\nB>BB>B B>BB>B|B>BF>E D>EFA|B>BB>B B>BB>B|A>Ac>c B2 B z|\nB>BB>B B>BB>B|F>FF>E D>EFA|B>BB>B B>BB>B|A>Ac>c B3 z||\nP:B\n|:B,2 D2 F2 B2|F>FF>E D>EF>B|B,2 D2 F2 B2|A>Ac>c B2 B z:|\n"
   },
   {
    "title": "Sleepy Maggie",
@@ -205,7 +205,7 @@
    "type": "waltz",
    "key": "B",
    "mode": "minor",
-   "abc": "X: 3\n\nT: Fear A' Bhàta\n\nZ: JACKB\n\nS: https://thesession.org/tunes/8919#setting24771\n\nR: waltz\n\nM: 3/4\n\nL: 1/8\n\nK: Bmin\nB4 c2|d6|d4 a2|f2 e2 d2|\nc6|e6|f4 B2|B6|\nB4 d2|c4 B2|A6|F6|\nF4 A2|B6|B6|A4 B2|\nd6|e6|b4 a2|f6|\ne4 c2|d4 c2|B6|B6||\n"
+   "abc": "X: 3\nT: Fear A' Bhàta\nZ: JACKB\nS: https://thesession.org/tunes/8919#setting24771\nR: waltz\nM: 3/4\nL: 1/8\nK: Bmin\nB4 c2|d6|d4 a2|f2 e2 d2|\nc6|e6|f4 B2|B6|\nB4 d2|c4 B2|A6|F6|\nF4 A2|B6|B6|A4 B2|\nd6|e6|b4 a2|f6|\ne4 c2|d4 c2|B6|B6||\n"
   },
   {
    "title": "Sleepy Maggie",

@@ -49,9 +49,19 @@ public enum SessionTypes {
         // Hyphens for spaces ("Dark-Water") would find nothing.
         let query = TitleDisplay.plain(title).replacingOccurrences(of: "-", with: " ")
         let results = try await TheSessionAPI.search(query)
-        let hits = results.filter { !wanted.isDisjoint(with: TitleMatching.variants(of: $0.name)) }
+        // FONN-SESSIONCOUNTS-2: the site's alias counts as a name too.
+        let hits = results.filter { result in
+            var names = TitleMatching.variants(of: result.name)
+            if !result.alias.isEmpty { names.formUnion(TitleMatching.variants(of: result.alias)) }
+            return !wanted.isDisjoint(with: names)
+        }
             .filter { !$0.type.trimmingCharacters(in: .whitespaces).isEmpty }
-        guard let best = hits.max(by: { $0.tunebooks < $1.tunebooks }) else { return nil }
+        // Search results carry no tunebook count now (checked 24 Nov 2026),
+        // so the site's own order decides: its first match. A count, if the
+        // site sends one again, still wins.
+        guard let first = hits.first else { return nil }
+        let best = hits.contains(where: { $0.tunebooks > 0 })
+            ? (hits.max(by: { $0.tunebooks < $1.tunebooks }) ?? first) : first
         let types = Set(hits.map { $0.type.lowercased() })
         return Match(type: best.type.trimmingCharacters(in: .whitespaces).lowercased(),
                      sessionName: best.name, byLink: false, ambiguous: types.count > 1)
@@ -184,7 +194,7 @@ public struct SessionTypeLookupView: View {
         let type = match.type.capitalized
         if match.byLink { return "\(type), from its thesession.org link" }
         if match.ambiguous {
-            return "\(type)? The Session has several tunes called \u{201C}\(match.sessionName)\u{201D}; this is the best known"
+            return "\(type)? The Session has several tunes called \u{201C}\(match.sessionName)\u{201D}; this is its first match"
         }
         return "\(type), as \u{201C}\(match.sessionName)\u{201D} on The Session"
     }

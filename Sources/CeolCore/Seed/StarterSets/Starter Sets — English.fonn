@@ -19,14 +19,14 @@
    "type": "jig",
    "key": "D",
    "mode": "major",
-   "abc": "X: 17\n\nT: Off She Goes\n\nZ: leprecawn\n\nS: https://thesession.org/tunes/1133#setting45358\n\nR: jig\n\nM: 6/8\n\nL: 1/8\n\nK: Dmaj\nP:A\n|:A|F2 A G2 B|ABc d2 A|F2 A G2 B|AFD E2 D|\nF2 A G2 B|ABc d2 e|f2 d g2 f|edc d2:|\nP:B\n|:e|faf d2 f|gag e2 g|faf d2 f|ecA A2 g|\nfaf def|gag efg|f2 d g2 f|edc d2:|\n"
+   "abc": "X: 17\nT: Off She Goes\nZ: leprecawn\nS: https://thesession.org/tunes/1133#setting45358\nR: jig\nM: 6/8\nL: 1/8\nK: Dmaj\nP:A\n|:A|F2 A G2 B|ABc d2 A|F2 A G2 B|AFD E2 D|\nF2 A G2 B|ABc d2 e|f2 d g2 f|edc d2:|\nP:B\n|:e|faf d2 f|gag e2 g|faf d2 f|ecA A2 g|\nfaf def|gag efg|f2 d g2 f|edc d2:|\n"
   },
   {
    "title": "Kemp's Jig",
    "type": "polka",
    "key": "D",
    "mode": "major",
-   "abc": "X: 2\n\nT: Kemp's Jig\n\nZ: Falkbeer\n\nS: https://thesession.org/tunes/7093#setting18657\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Dmaj\nf3g f2e2|d3e d2c2|B2A2 B2c2|d4 d4|\nfefg f2e2|dcde d2c2|B2A2 BABc|d4 d4|\n~f2a2 ~f2a2|f2ag ~f4|e2g2 e2g2|e2d=c B2^c2|\nd2A2 F2A2|d2AG FGA2|B2A2 B2c2|d4 d4||\n"
+   "abc": "X: 2\nT: Kemp's Jig\nZ: Falkbeer\nS: https://thesession.org/tunes/7093#setting18657\nR: polka\nM: 2/4\nL: 1/8\nK: Dmaj\nf3g f2e2|d3e d2c2|B2A2 B2c2|d4 d4|\nfefg f2e2|dcde d2c2|B2A2 BABc|d4 d4|\n~f2a2 ~f2a2|f2ag ~f4|e2g2 e2g2|e2d=c B2^c2|\nd2A2 F2A2|d2AG FGA2|B2A2 B2c2|d4 d4||\n"
   },
   {
    "title": "Speed The Plough",
@@ -52,28 +52,28 @@
    "type": "hornpipe",
    "key": "G",
    "mode": "major",
-   "abc": "X: 5\n\nT: Portsmouth\n\nZ: Stuart Peel\n\nS: https://thesession.org/tunes/2466#setting53527\n\nR: hornpipe\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:D2 | G2 GA BAGF | E2 E2 e3 e | d2 B2 cBAG | A2 F2 E2 D2 |\nG2 GA BAGF | E2 E2 e3 e | d2 B2 cBAB | G2 B2 G2 :|\nP:B\n|:d2 | g2 ga bagf | g2 d2 d2- dd | e2 d2 cBAG | A2 F2 E2 D2 |\nG2 GA BAGF | E2 E2 e3 e | d2 B2 cBAB | G2 B2 G2 :|\n"
+   "abc": "X: 5\nT: Portsmouth\nZ: Stuart Peel\nS: https://thesession.org/tunes/2466#setting53527\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\n|:D2 | G2 GA BAGF | E2 E2 e3 e | d2 B2 cBAG | A2 F2 E2 D2 |\nG2 GA BAGF | E2 E2 e3 e | d2 B2 cBAB | G2 B2 G2 :|\nP:B\n|:d2 | g2 ga bagf | g2 d2 d2- dd | e2 d2 cBAG | A2 F2 E2 D2 |\nG2 GA BAGF | E2 E2 e3 e | d2 B2 cBAB | G2 B2 G2 :|\n"
   },
   {
    "title": "Jack The Lad",
    "type": "reel",
    "key": "E",
    "mode": "dorian",
-   "abc": "X: 1\n\nT: Jack The Lad\n\nZ: Aidan Tulloch\n\nS: https://thesession.org/tunes/13538#setting23946\n\nR: reel\n\nM: 4/4\n\nL: 1/8\n\nK: Edor\nP:A\n|:E3 F G2 A2|B2 e2 B4|{c} d2 d2 d2 B2|A2 F2 E2 D2|\nE3 F G2 A2|B2 e2 B4|{c} d2 B2 A2 F2|E4 E4:|\nP:B\ne2 e2 e2 e2|d2 B2 B3 c|d2 d2 d2 B2|A2 F2 E2 D2|\nE3 F G2 A2|B2 e2 B4|{c} d2 B2 A2 F2|E4 E4:|\n"
+   "abc": "X: 1\nT: Jack The Lad\nZ: Aidan Tulloch\nS: https://thesession.org/tunes/13538#setting23946\nR: reel\nM: 4/4\nL: 1/8\nK: Edor\nP:A\n|:E3 F G2 A2|B2 e2 B4|{c} d2 d2 d2 B2|A2 F2 E2 D2|\nE3 F G2 A2|B2 e2 B4|{c} d2 B2 A2 F2|E4 E4:|\nP:B\ne2 e2 e2 e2|d2 B2 B3 c|d2 d2 d2 B2|A2 F2 E2 D2|\nE3 F G2 A2|B2 e2 B4|{c} d2 B2 A2 F2|E4 E4:|\n"
   },
   {
    "title": "Sailor's",
    "type": "hornpipe",
    "key": "A",
    "mode": "major",
-   "abc": "X: 2\n\nT: Sailor's\n\nZ: MC2\n\nS: https://thesession.org/tunes/12708#setting30380\n\nR: hornpipe\n\nM: 4/4\n\nL: 1/8\n\nK: Amaj\nP:A\n|:(cd)|ecea fagf|ecea fagf|efec dedB|cdcA B2cd|\necea fagf|ecea fagf|gbge faf^d|e2g2e2:|\nP:B\n|:(cB)|ABcd efga|f2B2 B2(B^A)|Bc^de fgab|g2e2e2(cd)|\ne2ag fedc|d2ba gfed|cecA BdBG|A2c2A2:|\n"
+   "abc": "X: 2\nT: Sailor's\nZ: MC2\nS: https://thesession.org/tunes/12708#setting30380\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Amaj\nP:A\n|:(cd)|ecea fagf|ecea fagf|efec dedB|cdcA B2cd|\necea fagf|ecea fagf|gbge faf^d|e2g2e2:|\nP:B\n|:(cB)|ABcd efga|f2B2 B2(B^A)|Bc^de fgab|g2e2e2(cd)|\ne2ag fedc|d2ba gfed|cecA BdBG|A2c2A2:|\n"
   },
   {
    "title": "The Morpeth Rant",
    "type": "reel",
    "key": "D",
    "mode": "major",
-   "abc": "X: 8\n\nT: Morpeth Rant, The\n\nC: William Shield\nZ: Edgar Bolton\n\nS: https://thesession.org/tunes/1310#setting46138\n\nR: reel\n\nM: 4/4\n\nL: 1/8\n\nK: Dmaj\nP:A\nA|:\"D\"d2AG FDFA|\"G\"BGBd \"A\"cAce|\"D\"f2fd gfed|\"A\"c2e2 e2Ac|\n\"D\"d2AG FDFA|\"G\"BGBd \"A\"cAce|\"D\"f2fd gfed|\"A\"A2 d2 \"A\"d3 A:|\nP:B\n|:\"D\"dfaf dfaf|\"G\"gfef g2ef|\"A\"gfed cdeg|\"D\"fefg f3 f|\n\"D\"dfaf dfaf|\"G\"gfef g2ef|\"A\"gfed caag|\"D\"f2 d2 d4:|\n",
+   "abc": "X: 8\nT: Morpeth Rant, The\nC: William Shield\nZ: Edgar Bolton\nS: https://thesession.org/tunes/1310#setting46138\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\nA|:\"D\"d2AG FDFA|\"G\"BGBd \"A\"cAce|\"D\"f2fd gfed|\"A\"c2e2 e2Ac|\n\"D\"d2AG FDFA|\"G\"BGBd \"A\"cAce|\"D\"f2fd gfed|\"A\"A2 d2 \"A\"d3 A:|\nP:B\n|:\"D\"dfaf dfaf|\"G\"gfef g2ef|\"A\"gfed cdeg|\"D\"fefg f3 f|\n\"D\"dfaf dfaf|\"G\"gfef g2ef|\"A\"gfed caag|\"D\"f2 d2 d4:|\n",
    "aliases": [
     "Morpeth Rant, The"
    ],
@@ -84,7 +84,7 @@
    "type": "waltz",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Brafferton Village\n\nC: Kathryn Tickell\nZ: Tommy McCarty\n\nS: https://thesession.org/tunes/3987#setting3987\n\nR: waltz\n\nM: 3/4\n\nL: 1/8\n\nK: Gmaj\nD2|B3 AG2|B3cd2|e3ce2|d4c2|\nB3AG2|D3GBc|B3A{G}D2|A4D2|\nB3AG2|B3cd2|e2f2g2|d4c2|\nB3cd2|B2A2G2|{D}A4F2|G4g2|\ne4c2|e3fg2|d3e{c}A2|B3AG2|\nE3Gc2|D3GB2|(3def g2B2|A4g2|\ne3cG2|d3BG2|e2fag2|d4c2|\nB3cd2|B2A2G2|{D}A4F2|G4||\n",
+   "abc": "X: 1\nT: Brafferton Village\nC: Kathryn Tickell\nZ: Tommy McCarty\nS: https://thesession.org/tunes/3987#setting3987\nR: waltz\nM: 3/4\nL: 1/8\nK: Gmaj\nD2|B3 AG2|B3cd2|e3ce2|d4c2|\nB3AG2|D3GBc|B3A{G}D2|A4D2|\nB3AG2|B3cd2|e2f2g2|d4c2|\nB3cd2|B2A2G2|{D}A4F2|G4g2|\ne4c2|e3fg2|d3e{c}A2|B3AG2|\nE3Gc2|D3GB2|(3def g2B2|A4g2|\ne3cG2|d3BG2|e2fag2|d4c2|\nB3cd2|B2A2G2|{D}A4F2|G4||\n",
    "composer": "Kathryn Tickell"
   },
   {
@@ -92,7 +92,7 @@
    "type": "march",
    "key": "A",
    "mode": "dorian",
-   "abc": "X: 2\n\nT: Cuckold Comes Out Of The Amery, The\n\nZ: Dow\n\nS: https://thesession.org/tunes/26870#setting18685\n\nR: march\n\nM: 4/4\n\nL: 1/8\n\nK: Ador\nP:A\n|:ABcA c2d2|e3d e2g2|G2G2 B3c|dBAG BcdB|\nABcA c2d2|e3d e2g2|d2cB g2B2|A4 e4:|\nP:B\n|:g3e c2g2|e2c2 efge|dcBA G2d2|B2G2 BcdB|\ngfed cdef|g2c2 efge|d2cB g2B2|A4 e4:|\nP:C\n|:ABcA cdec|efge cdec|GABG BcdB|dBAG BcdB|\nABcA cdec|efge cdec|d2cB g2B2|A4 e4:|\nP:D\n|:gfef gfef|gfed cdec|dcBc dcBc|dcBA GABG|\ngfef gfef|gfed cdec|d2cB g2B2|A4 e4:|\nP:E\n|:cege cege|cege cege|Bdgd Bdgd|Bdgd Bdgd|\ncege cege|cege cege|Bdgd g2B2|A4 e4:|\nP:F\n|:A2ed c2ed|A2ed c2ed|G2ed Be2d|G2ed B2ed|\nA2ed c2ed|A2ed c2dc|BcdB g2B2|A4 e4:|\nP:G\n|:g2c2 e2g2|c2ef g2c2|g2B2 d2g2|G2Bc d2ef|\ng2c2 e2g2|c2ef g2c2|d2cB g2B2|A4 a4:|\nP:H\n|:ecAc ecAc|ecAc ecAc|dBGB dBGB|dBGB dBGB|\necAc ecAc|ecAc ecAc|d2cB g2B2|A4 e4:|\n",
+   "abc": "X: 2\nT: Cuckold Comes Out Of The Amery, The\nZ: Dow\nS: https://thesession.org/tunes/26870#setting18685\nR: march\nM: 4/4\nL: 1/8\nK: Ador\nP:A\n|:ABcA c2d2|e3d e2g2|G2G2 B3c|dBAG BcdB|\nABcA c2d2|e3d e2g2|d2cB g2B2|A4 e4:|\nP:B\n|:g3e c2g2|e2c2 efge|dcBA G2d2|B2G2 BcdB|\ngfed cdef|g2c2 efge|d2cB g2B2|A4 e4:|\nP:C\n|:ABcA cdec|efge cdec|GABG BcdB|dBAG BcdB|\nABcA cdec|efge cdec|d2cB g2B2|A4 e4:|\nP:D\n|:gfef gfef|gfed cdec|dcBc dcBc|dcBA GABG|\ngfef gfef|gfed cdec|d2cB g2B2|A4 e4:|\nP:E\n|:cege cege|cege cege|Bdgd Bdgd|Bdgd Bdgd|\ncege cege|cege cege|Bdgd g2B2|A4 e4:|\nP:F\n|:A2ed c2ed|A2ed c2ed|G2ed Be2d|G2ed B2ed|\nA2ed c2ed|A2ed c2dc|BcdB g2B2|A4 e4:|\nP:G\n|:g2c2 e2g2|c2ef g2c2|g2B2 d2g2|G2Bc d2ef|\ng2c2 e2g2|c2ef g2c2|d2cB g2B2|A4 a4:|\nP:H\n|:ecAc ecAc|ecAc ecAc|dBGB dBGB|dBGB dBGB|\necAc ecAc|ecAc ecAc|d2cB g2B2|A4 e4:|\n",
    "aliases": [
     "Cuckold Comes Out Of The Amery, The"
    ]
@@ -102,35 +102,35 @@
    "type": "march",
    "key": "A",
    "mode": "minor",
-   "abc": "X: 1\n\nT: Princess Royal\n\nZ: Richard D Cook\n\nS: https://thesession.org/tunes/22383#setting45133\n\nR: march\n\nM: 4/4\n\nL: 1/8\n\nK: Amix\nP:A\n[M:6/8] |:e|d2 ~A B<de|e>dB g3|e2d B>AG|B<ed B>AG|\nd2 ~A B<de|e>dB g2G|A>Bd e>dB|A3 A2:|\nP:B\ng|a2f g2e|e>dB g3|e2d B>AG|B<ed B>AG|\na2f g2e|e>dB g2G|A>Bd e>dB|A3 A2g|\na2f g2e|e>dB g3|e2d B>AG|B<ed B>AG|\nd2 ~A B<de|e>dB g2G|A>Bd e>dB|A3 A2|\nP:C\n|:e|~A3 B2d|e>dB g3|G<Gd B>AG|B<ed B>AG|\n~A3 B2d|e>dB g2G|A>Bd e>dB|A3 A2:|\nP:D\ne/f/|g2e f2d|e>dB g3|G>Bd B>AG|B<ed B>AG|\ng2e f2d|e>dB g2G|A>Bd e>dB|A3 A2 e/f/|\ng2e f2d|e>dB g3|G>Bd B>AG|B<ed B>AG|\nA>BG A>Bd|e>dB g2G|A>Bd e>dB|A3 A2||\n"
+   "abc": "X: 1\nT: Princess Royal\nZ: Richard D Cook\nS: https://thesession.org/tunes/22383#setting45133\nR: march\nM: 4/4\nL: 1/8\nK: Amix\nP:A\n[M:6/8] |:e|d2 ~A B<de|e>dB g3|e2d B>AG|B<ed B>AG|\nd2 ~A B<de|e>dB g2G|A>Bd e>dB|A3 A2:|\nP:B\ng|a2f g2e|e>dB g3|e2d B>AG|B<ed B>AG|\na2f g2e|e>dB g2G|A>Bd e>dB|A3 A2g|\na2f g2e|e>dB g3|e2d B>AG|B<ed B>AG|\nd2 ~A B<de|e>dB g2G|A>Bd e>dB|A3 A2|\nP:C\n|:e|~A3 B2d|e>dB g3|G<Gd B>AG|B<ed B>AG|\n~A3 B2d|e>dB g2G|A>Bd e>dB|A3 A2:|\nP:D\ne/f/|g2e f2d|e>dB g3|G>Bd B>AG|B<ed B>AG|\ng2e f2d|e>dB g2G|A>Bd e>dB|A3 A2 e/f/|\ng2e f2d|e>dB g3|G>Bd B>AG|B<ed B>AG|\nA>BG A>Bd|e>dB g2G|A>Bd e>dB|A3 A2||\n"
   },
   {
    "title": "Shepherd's Hey",
    "type": "reel",
    "key": "G",
    "mode": "major",
-   "abc": "X: 4\n\nT: Shepherd's Hey\n\nZ: fidicen\n\nS: https://thesession.org/tunes/3573#setting16599\n\nR: reel\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\n|:A2c2 B4|A2c2 G4|A2c2 B2AB|c2C2 F4:|\n|:A2F2 B4|A2F2 G4|A2c2 B2AB|c2C2 F4:|\nF|ABcA B2B2|ABcA G2C2|ABcA B2AB|c2C2 F4:|\n|:A2F2 B4|A2F2 G4|A2c2 B2AB|c2C2 F4:|\nB2d2 c2c2|BcdB A2A2|BcdB ccBc|d2A2 G4:|\n|:A|B2G2 c3A|B2G2 A4|BcdB cBcA|d2A2 G3:|\nG|BcdB c2(3cdc|BcdB A2D2|BcdB c2Bc|d2D2 G3A:|\n|:B2G2 c3A|B2G2 A3A|BcdB c2Bc|d2D2 G3A:|\nD|GBdB c2c2|BcdB A2A2|GBdB c2Bc|d2D2 G4:|\n|:B|d2B2 c3d/c/|B2G2 A4|GBdB c2Bc|d2ef g2a/g/f/e|\nd2B2 c3d/c/|B2G2 A4|GBdB c2Bc|d2D2 G3||\nC|B>cd>B c2c2|B>cd>B A2A2|B>cd>B c2Bc|d2D2 G3A:|\n|:B2G2 c3A|B2G2 A4|B>cd>B c2Bc|d2D2 G3:|\nA>Bc>A B2B2|A>Bc>A G2G2|A>Bc>A B2A>B|c2C2 F4:|\n|:A2F2 B4|A2F2 G4|A>Bc>A B2B>G|c2C2 F4:|\n|:A4F4|B4B4|A4F4|\nG4G4|A>Bc>A B2B>G|c2C2 F4:|\nc>de>c c2c2|B>cd>B A4|c>de>c c2B>c|d2D2 G4:|\n|:B2G2 c4|B2G2 A4|B>cd>B c2B>c|d2D2 G4:|\nBddB e2B2|BddB A4|d2B2 AGGA|B2A2 G4||\nD2A2 B2G2|d2A2 B4|d2B2 AGGA|B2A2 G4|\nB2G2 c4|B2G2 A4|B2AB c2Bc|d2A2 G4||\nB>de>B d2d2|B>de>B A4|c2 (3BcB A2e2|d2D2 G4||\nA|B2e2 d4|B2d2 A4|c2 (3BcB A2e2|d2D2 G4||\nA>Bc>A B2B2|A>Bc>A G4|A>Bc>A B2AB|c2C2 F4||\nA2F2 G4|A2F2 G4|A2c2 B2d2|c2C2 F4||\nA|B>cd>B c2d>c|B>cd>B A2D2|B>cd>B c2B>c|d2F2 G3:|\n|:A|B2G2 c3A|B2G2 A4|B>cd>B c2B>c|d2f2 G3:|\nA|BcdB c2(3cdc|BcdB A2D2|BcdB c2 Bc|1 d2 D2 G3A:|2 d2D2 G3||\n|:A|B2G2 c3A|B2G2 A3A|BcdB c2 Bc|d2 D2 G>:|\nG|BcdB c2c2|B2d2 A4|BcdB c2Bc|d2D2 G3:|\n|:B2B2 c4|B2B2 A4|B2AB c2Bc|d2D2 G4:|\nB>c|d>cB>c d2e>f|g>ag>f e2B>c|d>cB>c d2e>f|g>ag>f e6:|:\nzd|C2 (3ccc B>AG>B|d>c (3Bcd c>B (3Abc|B>AG2 A>Bc>d|B2d2 c2c2|\nBcdB A2A2|BcdB ccBc|d2A2 G3||\nA|B2G2 c3A|B2G2 A4|BcdB cBcA|d2A2 G4||\nB2d2 cBc2|B2d2 A4|Bcd2 cBc2|d2D2 G4||\nB2G2 c3A|B2G2 A4|Bcd2 {d}c2Bc|d2D2 G4||\nA|BdeB d2d2|BdeB A2G2|GBB(3B/c/B/ A2e2|d2D2 G3:|\n|:A|B2e2 d4|b2e2 A4|c2(3BcB A2e2|d2D2 G3:|\n"
+   "abc": "X: 4\nT: Shepherd's Hey\nZ: fidicen\nS: https://thesession.org/tunes/3573#setting16599\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\n|:A2c2 B4|A2c2 G4|A2c2 B2AB|c2C2 F4:|\n|:A2F2 B4|A2F2 G4|A2c2 B2AB|c2C2 F4:|\nF|ABcA B2B2|ABcA G2C2|ABcA B2AB|c2C2 F4:|\n|:A2F2 B4|A2F2 G4|A2c2 B2AB|c2C2 F4:|\nB2d2 c2c2|BcdB A2A2|BcdB ccBc|d2A2 G4:|\n|:A|B2G2 c3A|B2G2 A4|BcdB cBcA|d2A2 G3:|\nG|BcdB c2(3cdc|BcdB A2D2|BcdB c2Bc|d2D2 G3A:|\n|:B2G2 c3A|B2G2 A3A|BcdB c2Bc|d2D2 G3A:|\nD|GBdB c2c2|BcdB A2A2|GBdB c2Bc|d2D2 G4:|\n|:B|d2B2 c3d/c/|B2G2 A4|GBdB c2Bc|d2ef g2a/g/f/e|\nd2B2 c3d/c/|B2G2 A4|GBdB c2Bc|d2D2 G3||\nC|B>cd>B c2c2|B>cd>B A2A2|B>cd>B c2Bc|d2D2 G3A:|\n|:B2G2 c3A|B2G2 A4|B>cd>B c2Bc|d2D2 G3:|\nA>Bc>A B2B2|A>Bc>A G2G2|A>Bc>A B2A>B|c2C2 F4:|\n|:A2F2 B4|A2F2 G4|A>Bc>A B2B>G|c2C2 F4:|\n|:A4F4|B4B4|A4F4|\nG4G4|A>Bc>A B2B>G|c2C2 F4:|\nc>de>c c2c2|B>cd>B A4|c>de>c c2B>c|d2D2 G4:|\n|:B2G2 c4|B2G2 A4|B>cd>B c2B>c|d2D2 G4:|\nBddB e2B2|BddB A4|d2B2 AGGA|B2A2 G4||\nD2A2 B2G2|d2A2 B4|d2B2 AGGA|B2A2 G4|\nB2G2 c4|B2G2 A4|B2AB c2Bc|d2A2 G4||\nB>de>B d2d2|B>de>B A4|c2 (3BcB A2e2|d2D2 G4||\nA|B2e2 d4|B2d2 A4|c2 (3BcB A2e2|d2D2 G4||\nA>Bc>A B2B2|A>Bc>A G4|A>Bc>A B2AB|c2C2 F4||\nA2F2 G4|A2F2 G4|A2c2 B2d2|c2C2 F4||\nA|B>cd>B c2d>c|B>cd>B A2D2|B>cd>B c2B>c|d2F2 G3:|\n|:A|B2G2 c3A|B2G2 A4|B>cd>B c2B>c|d2f2 G3:|\nA|BcdB c2(3cdc|BcdB A2D2|BcdB c2 Bc|1 d2 D2 G3A:|2 d2D2 G3||\n|:A|B2G2 c3A|B2G2 A3A|BcdB c2 Bc|d2 D2 G>:|\nG|BcdB c2c2|B2d2 A4|BcdB c2Bc|d2D2 G3:|\n|:B2B2 c4|B2B2 A4|B2AB c2Bc|d2D2 G4:|\nB>c|d>cB>c d2e>f|g>ag>f e2B>c|d>cB>c d2e>f|g>ag>f e6:|:\nzd|C2 (3ccc B>AG>B|d>c (3Bcd c>B (3Abc|B>AG2 A>Bc>d|B2d2 c2c2|\nBcdB A2A2|BcdB ccBc|d2A2 G3||\nA|B2G2 c3A|B2G2 A4|BcdB cBcA|d2A2 G4||\nB2d2 cBc2|B2d2 A4|Bcd2 cBc2|d2D2 G4||\nB2G2 c3A|B2G2 A4|Bcd2 {d}c2Bc|d2D2 G4||\nA|BdeB d2d2|BdeB A2G2|GBB(3B/c/B/ A2e2|d2D2 G3:|\n|:A|B2e2 d4|b2e2 A4|c2(3BcB A2e2|d2D2 G3:|\n"
   },
   {
    "title": "Childgrove",
    "type": "barndance",
    "key": "D",
    "mode": "minor",
-   "abc": "X: 3\n\nT: Childgrove\n\nZ: janglecrow\n\nS: https://thesession.org/tunes/10003#setting32244\n\nR: barndance\n\nM: 4/4\n\nL: 1/8\n\nK: Dmin\nP:A\n|:A2|\"Dm\"A2 d2 d2 e2|f4 e2 d2|\"Gm\"g2 f2 e2 d2|\"Am\" e3d cBA2|\n\"Dm\"A2 d2 d2 e2|f4 e2 a2|\"Gm\"g2 f2 \"A\"efed|\"Dm\"d6:|\nP:B\n|:fg|\"F\"a2 f2 f2 a2|\"C\"g2 e2 e2 g2|\n\"Dm\"f2 d2 defd|\"Am\"e2 A2 A2 fg|\"F\"a2 f2 f2 a2|\n\"C\"g3f efge|\"Dm\"f2 ed \"A\"e2 d^c|\"Dm\"d6:|\n"
+   "abc": "X: 3\nT: Childgrove\nZ: janglecrow\nS: https://thesession.org/tunes/10003#setting32244\nR: barndance\nM: 4/4\nL: 1/8\nK: Dmin\nP:A\n|:A2|\"Dm\"A2 d2 d2 e2|f4 e2 d2|\"Gm\"g2 f2 e2 d2|\"Am\" e3d cBA2|\n\"Dm\"A2 d2 d2 e2|f4 e2 a2|\"Gm\"g2 f2 \"A\"efed|\"Dm\"d6:|\nP:B\n|:fg|\"F\"a2 f2 f2 a2|\"C\"g2 e2 e2 g2|\n\"Dm\"f2 d2 defd|\"Am\"e2 A2 A2 fg|\"F\"a2 f2 f2 a2|\n\"C\"g3f efge|\"Dm\"f2 ed \"A\"e2 d^c|\"Dm\"d6:|\n"
   },
   {
    "title": "Jamaica",
    "type": "polka",
    "key": "D",
    "mode": "major",
-   "abc": "X: 1\n\nT: Jamaica\n\nZ: fynnjamin\n\nS: https://thesession.org/tunes/9009#setting9009\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Dmaj\nP:A\n|:DF FG/A/|BA B2|AF G/F/E/D/|E2 D2:|\nP:B\ndd cB/A/|BB AF|dd c/d/e|B2 A2|\ndd cB/A/|BB AF|G/A/B AG/F/|E2 D2||\n"
+   "abc": "X: 1\nT: Jamaica\nZ: fynnjamin\nS: https://thesession.org/tunes/9009#setting9009\nR: polka\nM: 2/4\nL: 1/8\nK: Dmaj\nP:A\n|:DF FG/A/|BA B2|AF G/F/E/D/|E2 D2:|\nP:B\ndd cB/A/|BB AF|dd c/d/e|B2 A2|\ndd cB/A/|BB AF|G/A/B AG/F/|E2 D2||\n"
   },
   {
    "title": "The Oyster Girl",
    "type": "jig",
    "key": "G",
    "mode": "major",
-   "abc": "X: 5\n\nT: Oyster Girl, The\n\nZ: ceolachan\n\nS: https://thesession.org/tunes/3319#setting16390\n\nR: jig\n\nM: 6/8\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:d>ed B2 G|A2 F D2 F|G2 B d>cB|B3 A2 ^c|\nd>ed B2 G|g2 e c2 e|e2 B d>cA|G3 G2:|\nP:B\nB2 B B>^AB|B2 e B2 _B|A2 A A>B^c|d3- d2 ^c|\nd2 d B>AG|g2 e c>de|e>dB d>cA|G3- G2:|\n",
+   "abc": "X: 5\nT: Oyster Girl, The\nZ: ceolachan\nS: https://thesession.org/tunes/3319#setting16390\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:d>ed B2 G|A2 F D2 F|G2 B d>cB|B3 A2 ^c|\nd>ed B2 G|g2 e c2 e|e2 B d>cA|G3 G2:|\nP:B\nB2 B B>^AB|B2 e B2 _B|A2 A A>B^c|d3- d2 ^c|\nd2 d B>AG|g2 e c>de|e>dB d>cA|G3- G2:|\n",
    "aliases": [
     "Oyster Girl, The"
    ]
@@ -140,14 +140,14 @@
    "type": "jig",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\n\nT: I Will If I Can\n\nZ: Dow\n\nS: https://thesession.org/tunes/1248#setting14549\n\nR: jig\n\nM: 6/8\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:GBd gdB|ded d2B|GBd gdB|ABA AdB|\nGBd gdB|def gfe|dcB cBA|1 GAG GdB:|2 GAG Gef||\nP:B\n|:g2d edB|ded def|g2d edB|ABA Aef|\ng2d edB|def gfe|dcB cBA|1 GAG Gef:|2 GAG GdB||\n"
+   "abc": "X: 2\nT: I Will If I Can\nZ: Dow\nS: https://thesession.org/tunes/1248#setting14549\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:GBd gdB|ded d2B|GBd gdB|ABA AdB|\nGBd gdB|def gfe|dcB cBA|1 GAG GdB:|2 GAG Gef||\nP:B\n|:g2d edB|ded def|g2d edB|ABA Aef|\ng2d edB|def gfe|dcB cBA|1 GAG Gef:|2 GAG GdB||\n"
   },
   {
    "title": "The Winster Gallop",
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\n\nT: Winster Gallop, The\n\nZ: dcef\n\nS: https://thesession.org/tunes/3570#setting53383\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:GB GB|GB d2|AB/c/ BA|GB d>B|\nce ge|dB d2|AB/c/ BA|1 G/F/G/A/ B/A/G/D/:|2 G2 G2||\nP:B\n|:g (3f/g/f/ ed|g (3f/g/f/ ed|gf (3e/f/e/ d|cB A2|\nfe dd/e/|f/e/f/e/ d2|d2 A>c|BG G2:|\n",
+   "abc": "X: 2\nT: Winster Gallop, The\nZ: dcef\nS: https://thesession.org/tunes/3570#setting53383\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\n|:GB GB|GB d2|AB/c/ BA|GB d>B|\nce ge|dB d2|AB/c/ BA|1 G/F/G/A/ B/A/G/D/:|2 G2 G2||\nP:B\n|:g (3f/g/f/ ed|g (3f/g/f/ ed|gf (3e/f/e/ d|cB A2|\nfe dd/e/|f/e/f/e/ d2|d2 A>c|BG G2:|\n",
    "aliases": [
     "Winster Gallop, The"
    ]
@@ -157,7 +157,7 @@
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Trip To Brighton\n\nZ: Mix O'Lydian\n\nS: https://thesession.org/tunes/11782#setting11782\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:G/A/B/c/ dg|dB/A/ GA/B/|cA BG|F D2F|\nEC CE|cE Ec|B/c/d DF|G2G z:|\nP:B\nG D2G|BB B/c/d|c A2a|aA A/B/c|\nBG cA|dB gg|f/g/a A^c|d2d2|\nG D2G|BB B/c/d|c A2a|aA A/B/c|\nBG cA|dB gc|B/c/d DF|G2G2||\n"
+   "abc": "X: 1\nT: Trip To Brighton\nZ: Mix O'Lydian\nS: https://thesession.org/tunes/11782#setting11782\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\n|:G/A/B/c/ dg|dB/A/ GA/B/|cA BG|F D2F|\nEC CE|cE Ec|B/c/d DF|G2G z:|\nP:B\nG D2G|BB B/c/d|c A2a|aA A/B/c|\nBG cA|dB gg|f/g/a A^c|d2d2|\nG D2G|BB B/c/d|c A2a|aA A/B/c|\nBG cA|dB gc|B/c/d DF|G2G2||\n"
   },
   {
    "title": "Rakes of Mallow, The",
@@ -175,49 +175,49 @@
    "type": "jig",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Constant Billy\n\nZ: Mix O'Lydian\n\nS: https://thesession.org/tunes/14338#setting26228\n\nR: jig\n\nM: 6/8\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:D|G2 d BGB|c2 A F2 D|BAG E2 E|DEF G2:|\nP:B\n|:d|Bcd e2 e|ABc d2 d|Bcd e2 e|ABc def|\ng2 d BGB|c2 A F2 D|BAG E2 E|DEF G2:|\n"
+   "abc": "X: 1\nT: Constant Billy\nZ: Mix O'Lydian\nS: https://thesession.org/tunes/14338#setting26228\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:D|G2 d BGB|c2 A F2 D|BAG E2 E|DEF G2:|\nP:B\n|:d|Bcd e2 e|ABc d2 d|Bcd e2 e|ABc def|\ng2 d BGB|c2 A F2 D|BAG E2 E|DEF G2:|\n"
   },
   {
    "title": "Glorishears",
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Glorishears\n\nZ: ceolachan\n\nS: https://thesession.org/tunes/13346#setting23362\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\nD|G>G GA|G2 DC|B,>C DE|D2 DD|\nG>G GA|G2 D2|B,>C DE|D2- D2|\nG>G GA|G2 G2|F>G AB|A2- A2|\nG/A/B/A/ Gd/c/|BA G||\nP:B\n|:d/c/|BB/A/ B/c/d/B/|cA A/B/c|BB/A/ GB|A/G/F/E/ D2|\nGF/E/ DG|AG/F/ GA|BA/G/ F/G/A/F/|1 G2- G:|2 G2 G||\n"
+   "abc": "X: 1\nT: Glorishears\nZ: ceolachan\nS: https://thesession.org/tunes/13346#setting23362\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\nD|G>G GA|G2 DC|B,>C DE|D2 DD|\nG>G GA|G2 D2|B,>C DE|D2- D2|\nG>G GA|G2 G2|F>G AB|A2- A2|\nG/A/B/A/ Gd/c/|BA G||\nP:B\n|:d/c/|BB/A/ B/c/d/B/|cA A/B/c|BB/A/ GB|A/G/F/E/ D2|\nGF/E/ DG|AG/F/ GA|BA/G/ F/G/A/F/|1 G2- G:|2 G2 G||\n"
   },
   {
    "title": "Buttered Peas",
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 6\n\nT: Buttered Peas\n\nZ: Edgar Bolton\n\nS: https://thesession.org/tunes/6341#setting53007\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\nd/c/|: \"G\" Bd dc/B/| \"C\"ce ed/c/| \"G\"Bd dc/B/| \"D\"cA Ad/c/|\n\"G\" Bd dc/B/| \"C\"ce ed/c/| \"G\"Bd \"D\"A>c|\"G\" BG G d/c/:|\nP:B\n|:\"G\" Bd g>a| \"G\"g/f/e/d/ gd|\"G\"Bd gf/g/|\"D\"aA Ad/c/|\n\"G\"Bd g>a| \"G\"g/f/e/d/ gd |\"G\"Bd \"D\"A>c|1 \"G\"BG G d/c/:|2 \"G\"BG G2||\n"
+   "abc": "X: 6\nT: Buttered Peas\nZ: Edgar Bolton\nS: https://thesession.org/tunes/6341#setting53007\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\nd/c/|: \"G\" Bd dc/B/| \"C\"ce ed/c/| \"G\"Bd dc/B/| \"D\"cA Ad/c/|\n\"G\" Bd dc/B/| \"C\"ce ed/c/| \"G\"Bd \"D\"A>c|\"G\" BG G d/c/:|\nP:B\n|:\"G\" Bd g>a| \"G\"g/f/e/d/ gd|\"G\"Bd gf/g/|\"D\"aA Ad/c/|\n\"G\"Bd g>a| \"G\"g/f/e/d/ gd |\"G\"Bd \"D\"A>c|1 \"G\"BG G d/c/:|2 \"G\"BG G2||\n"
   },
   {
    "title": "Steamboat",
    "type": "hornpipe",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Steamboat\n\nZ: Mix O'Lydian\n\nS: https://thesession.org/tunes/14271#setting26026\n\nR: hornpipe\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:(3def|g2 g>B d2 d2|B>cd>B G2 G2|\nB2 B2 B2 B2|d>cB>c A2 (3def|g2 g>B d2 d2|\nB>cd>B G2 G2|B2 B2 B2 d2|e>cA>F G2:|\nP:B\n|:B>A|G>AB>c d>B G2|F>GA>B c>B A2|G>AB>c d>ef>g|a>gf>e d>cB>A|\nG>AB>c d>B G2|F>GA>B c>B A2|G>AB>c d>ef>g|e>cA>F G2:|\n"
+   "abc": "X: 1\nT: Steamboat\nZ: Mix O'Lydian\nS: https://thesession.org/tunes/14271#setting26026\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\n|:(3def|g2 g>B d2 d2|B>cd>B G2 G2|\nB2 B2 B2 B2|d>cB>c A2 (3def|g2 g>B d2 d2|\nB>cd>B G2 G2|B2 B2 B2 d2|e>cA>F G2:|\nP:B\n|:B>A|G>AB>c d>B G2|F>GA>B c>B A2|G>AB>c d>ef>g|a>gf>e d>cB>A|\nG>AB>c d>B G2|F>GA>B c>B A2|G>AB>c d>ef>g|e>cA>F G2:|\n"
   },
   {
    "title": "Jacky Tar",
    "type": "hornpipe",
    "key": "E",
    "mode": "minor",
-   "abc": "X: 9\n\nT: Jacky Tar\n\nZ: Fliúiteadóir\n\nS: https://thesession.org/tunes/2020#setting40527\n\nR: hornpipe\n\nM: 4/4\n\nL: 1/8\n\nK: Emin\nP:A\nBd|:~e2ed effe|dBBA BcdB|ABde fg ef|fedB BA (3Bcd|\ne2ef g2ef|fedB BABd|B2BA GBcB|AGED E4:|\nP:B\n|:BGEG BGEG|BdBA GEEF|DFAB A2 FA|dBAF EDEF|\nGABA Bdgd|B2BA Bcd2|B2BA GBdB|AGED E4:|\n"
+   "abc": "X: 9\nT: Jacky Tar\nZ: Fliúiteadóir\nS: https://thesession.org/tunes/2020#setting40527\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Emin\nP:A\nBd|:~e2ed effe|dBBA BcdB|ABde fg ef|fedB BA (3Bcd|\ne2ef g2ef|fedB BABd|B2BA GBcB|AGED E4:|\nP:B\n|:BGEG BGEG|BdBA GEEF|DFAB A2 FA|dBAF EDEF|\nGABA Bdgd|B2BA Bcd2|B2BA GBdB|AGED E4:|\n"
   },
   {
    "title": "Cider Song, The",
    "type": "three-two",
    "key": "E",
    "mode": "minor",
-   "abc": "X: 1\n\nT: Cider Song, The\n\nZ: gian marco\n\nS: https://thesession.org/tunes/23745#setting48802\n\nR: three-two\n\nM: 3/2\n\nL: 1/8\n\nK: Emin\nAAF||\nG2 E2 EA|AG FA AF|G2 E2 F/E/D|E3E GA|\nB2 B2 c/B/A|B3B AA|G2 E2 EA|AG FA AF|\nG2 E2 F/E/D|E4z2||\n"
+   "abc": "X: 1\nT: Cider Song, The\nZ: gian marco\nS: https://thesession.org/tunes/23745#setting48802\nR: three-two\nM: 3/2\nL: 1/8\nK: Emin\nAAF||\nG2 E2 EA|AG FA AF|G2 E2 F/E/D|E3E GA|\nB2 B2 c/B/A|B3B AA|G2 E2 EA|AG FA AF|\nG2 E2 F/E/D|E4z2||\n"
   },
   {
    "title": "Hole In The Wall",
    "type": "three-two",
    "key": "G",
    "mode": "minor",
-   "abc": "X: 2\n\nT: Hole In The Wall\n\nZ: spraff\n\nS: https://thesession.org/tunes/7482#setting57583\n\nR: three-two\n\nM: 3/2\n\nL: 1/8\n\nK: Gmin\nP:A\n|:d3e de f2c2f2|B3 c Bc d2A2d2|G3 A GA B2F2d2|B6 A2 B4:|\nP:B\nb3 a ga b2 a2 g2|^f3 g fg a2d2a2|b3 a ga b2a2g2|g6 ^f2 g4|\nG3 A GA B2 AB c2|B3c Bc d2 cd e2|d3e de f2F2f2|d6 cd B4||\n"
+   "abc": "X: 2\nT: Hole In The Wall\nZ: spraff\nS: https://thesession.org/tunes/7482#setting57583\nR: three-two\nM: 3/2\nL: 1/8\nK: Gmin\nP:A\n|:d3e de f2c2f2|B3 c Bc d2A2d2|G3 A GA B2F2d2|B6 A2 B4:|\nP:B\nb3 a ga b2 a2 g2|^f3 g fg a2d2a2|b3 a ga b2a2g2|g6 ^f2 g4|\nG3 A GA B2 AB c2|B3c Bc d2 cd e2|d3e de f2F2f2|d6 cd B4||\n"
   },
   {
    "title": "Rakes of Mallow",

@@ -88,7 +88,7 @@
    "type": "jig",
    "key": "D major",
    "mode": "major",
-   "abc": "X: 3\nT: The Rambling Pitchfork\nR: jig\nM: 6/8\nL: 1/8\nK: Dmaj\n|:E|F3 AFF|dFF AFD|GFG ABc|ded cAG|\nFAF AFF|dFF AFD|GFG BAB|AFD D2:|\n|:A|d2 e fed|ecA AFA|dcd efg|faf gfe|\n[1 dcd fed|ecA AGF|GFG BAB|AFD D2:|\n[2 a2 f gfe|fed ecA|GFG BAB|AFD D2||"
+   "abc": "X: 3\nT: The Rambling Pitchfork\nR: jig\nM: 6/8\nL: 1/8\nK: Dmaj\n|:E|F3 AFF|dFF AFD|GFG ABc|ded cAG|\nFAF AFF|dFF AFD|GFG BAB|AFD D2:|\n|:A|d2 e fed|ecA AFA|dcd efg|faf gfe|\n[1 dcd fed|ecA AGF|GFG BAB|AFD D2:|\n[2 a2 f gfe|fed ecA|GFG BAB|AFD D2||\n"
   },
   {
    "title": "The Butterfly",
@@ -169,7 +169,7 @@
    "type": "single jig",
    "key": "G major",
    "mode": "major",
-   "abc": "X:4\nT:Merrily Kiss the Quaker's Wife\nR:single jig\nH:See also slide#54\nZ:id:hn-slide-4\nM:6/8\nK:G\nGAB D2B|c2A BGE|GAB DEG|A3 AGE|\nGAB D2B|c2A BGE|GAB D2E|1 G3 G2D:|2 G3 G2A||\n|:BGG AGG|BGG AGE|GAB DEG|A3 AGA|\nBGG AGG|BGG AGE|GAB D2E|1 G3 G2A:|2 G3 GBd||\n|:~g3 aga|bge dBd|~g3 gab|~a3 agf|\ng2g faf|ege dBA|GAB D2E|1 G3 GBd:|2 G3 G2D||\nP:Variations of 1st part\n|:GAB D2B|BcA B2A|GAB DEG|ABA AGE|\nGAB DED|cBA B2A|GAB D2E|1 G3 G2D:|2 G3 G2A||",
+   "abc": "X:4\nT:Merrily Kiss the Quaker's Wife\nR:single jig\nH:See also slide#54\nZ:id:hn-slide-4\nM:6/8\nK:G\nGAB D2B|c2A BGE|GAB DEG|A3 AGE|\nGAB D2B|c2A BGE|GAB D2E|1 G3 G2D:|2 G3 G2A||\n|:BGG AGG|BGG AGE|GAB DEG|A3 AGA|\nBGG AGG|BGG AGE|GAB D2E|1 G3 G2A:|2 G3 GBd||\n|:~g3 aga|bge dBd|~g3 gab|~a3 agf|\ng2g faf|ege dBA|GAB D2E|1 G3 GBd:|2 G3 G2D||\nP:Variations of 1st part\n|:GAB D2B|BcA B2A|GAB DEG|ABA AGE|\nGAB DED|cBA B2A|GAB D2E|1 G3 G2D:|2 G3 G2A||\n",
    "transcribed_by": "id:hn-slide-4",
    "source_url": "http://www.norbeck.nu/abc/i/hnsl0.abc"
   },
@@ -177,7 +177,7 @@
    "title": "Harvest Home",
    "type": "reel",
    "key": "A major",
-   "abc": "X: 1\n%%MIDI transpose -2\nT: Harvest Storm\nZ: Will Harmon\nS: https://thesession.org/tunes/356#setting356\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\n|d3e dGBd|eGfG gfeg|(3ddd de dGBG|FGAB cege|\nd2 de dGBd|ec (3ccc gfeg|(3ddd de dGBG|FGAB cdef|\ng2 fa gdBd|gG (3GGG dGBd|(3gag fa gdBG|FGAB cdef|\ng2 fa gdBd|gG (3GGG dGBd|gGfG eGdB|cBAB cege",
+   "abc": "X: 1\n%%MIDI transpose -2\nT: Harvest Storm\nZ: Will Harmon\nS: https://thesession.org/tunes/356#setting356\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\n|d3e dGBd|eGfG gfeg|(3ddd de dGBG|FGAB cege|\nd2 de dGBd|ec (3ccc gfeg|(3ddd de dGBG|FGAB cdef|\ng2 fa gdBd|gG (3GGG dGBd|(3gag fa gdBG|FGAB cdef|\ng2 fa gdBd|gG (3GGG dGBd|gGfG eGdB|cBAB cege\n",
    "aliases": [
     "Harvest Storm"
    ],

@@ -9,63 +9,63 @@
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Pant Corlan Yr Wyn\n\nZ: ceolachan\n\nS: https://thesession.org/tunes/6345#setting6345\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:B/A/|GG/A/ BG|cA/B/ cA|BG GB|dA FD|\nGG/A/ BG|cc/B/ Ac|BG F/G/A/F/|GG G:|\nP:B\n|:d/c/|Bd dc/B/|Ac cB/A/|GB BA/G/|FA FD|\nGG/A/ BG|cc/B/ Ac|BG F/G/A/F/|G2 G:|\n"
+   "abc": "X: 1\nT: Pant Corlan Yr Wyn\nZ: ceolachan\nS: https://thesession.org/tunes/6345#setting6345\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\n|:B/A/|GG/A/ BG|cA/B/ cA|BG GB|dA FD|\nGG/A/ BG|cc/B/ Ac|BG F/G/A/F/|GG G:|\nP:B\n|:d/c/|Bd dc/B/|Ac cB/A/|GB BA/G/|FA FD|\nGG/A/ BG|cc/B/ Ac|BG F/G/A/F/|G2 G:|\n"
   },
   {
    "title": "Croen A Ddafad Felan",
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\n\nT: Croen A Ddafad Felan\n\nZ: Dow\n\nS: https://thesession.org/tunes/1212#setting14507\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:G>AB>c d2d2|c>Bc>A d2d2|c>BA>A B>AG>G|1 A>GF>G A2D2:|2 A>Ad>d G2G2||\nP:B\ng>fe>g f2f2|c>Bc>A d4|e>dc>e d2B2|G>AB>G A4|\ng>fe>g f2f2|e>dc>e d4|c>BA>c B>AG>B|A2F2 G4||\n"
+   "abc": "X: 2\nT: Croen A Ddafad Felan\nZ: Dow\nS: https://thesession.org/tunes/1212#setting14507\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\n|:G>AB>c d2d2|c>Bc>A d2d2|c>BA>A B>AG>G|1 A>GF>G A2D2:|2 A>Ad>d G2G2||\nP:B\ng>fe>g f2f2|c>Bc>A d4|e>dc>e d2B2|G>AB>G A4|\ng>fe>g f2f2|e>dc>e d4|c>BA>c B>AG>B|A2F2 G4||\n"
   },
   {
    "title": "Ty Coch Caerdydd",
    "type": "hornpipe",
    "key": "G",
    "mode": "major",
-   "abc": "X: 3\n\nT: Ty Coch Caerdydd\n\nZ: CreadurMawnOrganig\n\nS: https://thesession.org/tunes/13587#setting54443\n\nR: hornpipe\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:BA|G2 g2 gf e2|d4 c2 B2|c2 e2 ed c2|BcBA G2 BA|\nG2 g2 gf e2|d4 c4|B2 G2 FGAF|G2 B2 G2:|\nP:B\n|:Bc|dcBA GABc|d2 d2 dcB2|cBAG FGAB|c2 c2 cBA2|\ndcBA GABc|d2 d2 d2 c2 |B2 G2 FGAF|G2 B2 G2:|\nP:C\n|:z2|AB c2 c2 c2|AB c2 c4|Bc d2 d2 d2|Bc d2 d4|\nAB c2 c2 c2|AB c2 c2 dc|B2 G2 FGAF|G2 B2 G2:|\n"
+   "abc": "X: 3\nT: Ty Coch Caerdydd\nZ: CreadurMawnOrganig\nS: https://thesession.org/tunes/13587#setting54443\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\n|:BA|G2 g2 gf e2|d4 c2 B2|c2 e2 ed c2|BcBA G2 BA|\nG2 g2 gf e2|d4 c4|B2 G2 FGAF|G2 B2 G2:|\nP:B\n|:Bc|dcBA GABc|d2 d2 dcB2|cBAG FGAB|c2 c2 cBA2|\ndcBA GABc|d2 d2 d2 c2 |B2 G2 FGAF|G2 B2 G2:|\nP:C\n|:z2|AB c2 c2 c2|AB c2 c4|Bc d2 d2 d2|Bc d2 d4|\nAB c2 c2 c2|AB c2 c2 dc|B2 G2 FGAF|G2 B2 G2:|\n"
   },
   {
    "title": "Swansea",
    "type": "hornpipe",
    "key": "G",
    "mode": "major",
-   "abc": "X: 4\n\nT: Swansea\n\nZ: birlibirdie\n\nS: https://thesession.org/tunes/9394#setting49904\n\nR: hornpipe\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nM: 6/8\nP:A\n|:ggg gdB|ceg edc|Bgg dcB|ABG FED|\nfgg gdG|cee ege|dBe cAF|1 GGG G2f:|2 GGG Gdc||\nP:B\n|:BGB GBd|ece efg|dBe dgb|abg fed|\nGBG BGB|cec efg|dBB cAF|GGG GBd:|\n"
+   "abc": "X: 4\nT: Swansea\nZ: birlibirdie\nS: https://thesession.org/tunes/9394#setting49904\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Gmaj\nM: 6/8\nP:A\n|:ggg gdB|ceg edc|Bgg dcB|ABG FED|\nfgg gdG|cee ege|dBe cAF|1 GGG G2f:|2 GGG Gdc||\nP:B\n|:BGB GBd|ece efg|dBe dgb|abg fed|\nGBG BGB|cec efg|dBB cAF|GGG GBd:|\n"
   },
   {
    "title": "Mopsi Dôn",
    "type": "jig",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Mopsi Dôn\n\nZ: dafydd\n\nS: https://thesession.org/tunes/5570#setting5570\n\nR: jig\n\nM: 6/8\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:FGA A2B|A2B AFD|GFG BcB|GFG BcB|\nFGA A2B|A2B AFD|GAB c2B|AGF G2G:|\nP:B\n|:dBd cAc|BGB AFD|G2G BAG|F2G A2A|\ndBd cAc|BGB AFD|BAG edc|AGF G2G:|\n"
+   "abc": "X: 1\nT: Mopsi Dôn\nZ: dafydd\nS: https://thesession.org/tunes/5570#setting5570\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:FGA A2B|A2B AFD|GFG BcB|GFG BcB|\nFGA A2B|A2B AFD|GAB c2B|AGF G2G:|\nP:B\n|:dBd cAc|BGB AFD|G2G BAG|F2G A2A|\ndBd cAc|BGB AFD|BAG edc|AGF G2G:|\n"
   },
   {
    "title": "Difyrrwch Gwyr Dyfi",
    "type": "jig",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\n\nT: Difyrrwch Gwyr Dyfi\n\nZ: CreadurMawnOrganig\n\nS: https://thesession.org/tunes/10445#setting20378\n\nR: jig\n\nM: 6/8\n\nL: 1/8\n\nK: Gmaj\n|:ede gfe|ded B2B|ede gfe|dBB B2 B/c/|\nded dcB|cAA A2 G/F/|GAB cAB|GEE E2 e/f/:|\n"
+   "abc": "X: 2\nT: Difyrrwch Gwyr Dyfi\nZ: CreadurMawnOrganig\nS: https://thesession.org/tunes/10445#setting20378\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\n|:ede gfe|ded B2B|ede gfe|dBB B2 B/c/|\nded dcB|cAA A2 G/F/|GAB cAB|GEE E2 e/f/:|\n"
   },
   {
    "title": "Tom John's Rally",
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\n\nT: Tom John's Rally\n\nZ: ceolachan\n\nS: https://thesession.org/tunes/6420#setting18147\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:d>e dd|d/^c/d/e/ dc/d/|ed cB|A2 A2|\nB>^A Bc|d/^c/d/e/ dg|cB A>G|G4:|\nP:B\nA>B AA|B/^A/B/c/ BB|e>g fe|e^d- d>e|\nf>a eg|fa ef/g/|a>g fe|ed- de/f/|\ng>a gf|e>f ed|ed cB|A4|\nB/^A/B/c/ bc|d/^c/d/e/ d>g|cB A>G|G4||\n"
+   "abc": "X: 2\nT: Tom John's Rally\nZ: ceolachan\nS: https://thesession.org/tunes/6420#setting18147\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\n|:d>e dd|d/^c/d/e/ dc/d/|ed cB|A2 A2|\nB>^A Bc|d/^c/d/e/ dg|cB A>G|G4:|\nP:B\nA>B AA|B/^A/B/c/ BB|e>g fe|e^d- d>e|\nf>a eg|fa ef/g/|a>g fe|ed- de/f/|\ng>a gf|e>f ed|ed cB|A4|\nB/^A/B/c/ bc|d/^c/d/e/ d>g|cB A>G|G4||\n"
   },
   {
    "title": "Y Delyn Newydd",
    "type": "polka",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Y Delyn Newydd\n\nZ: sallyanndra\n\nS: https://thesession.org/tunes/14515#setting26748\n\nR: polka\n\nM: 2/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:\"G\" BAGA B2 d2|\"D\" d2 c2 c4|cBAB c2 e2|\"G\" e2 d2 d4|\n\"G\" BAGA B2 d2|\"D\" d2 c2 c4|cB A2 cB A2|\"G\" B2 G2 G4:|\nP:B\n|:\"G\" g2 f2 e2 d2|g2 f2 e2 d2|g2 f2 e2 d2|\"D\" c2 B2 A4|\n\"D\" f2 e2 d4|f2 e2 d4|f2 e2 d2 c2|\"G\" B2 A2 G4:|\n"
+   "abc": "X: 1\nT: Y Delyn Newydd\nZ: sallyanndra\nS: https://thesession.org/tunes/14515#setting26748\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\n|:\"G\" BAGA B2 d2|\"D\" d2 c2 c4|cBAB c2 e2|\"G\" e2 d2 d4|\n\"G\" BAGA B2 d2|\"D\" d2 c2 c4|cB A2 cB A2|\"G\" B2 G2 G4:|\nP:B\n|:\"G\" g2 f2 e2 d2|g2 f2 e2 d2|g2 f2 e2 d2|\"D\" c2 B2 A4|\n\"D\" f2 e2 d4|f2 e2 d4|f2 e2 d2 c2|\"G\" B2 A2 G4:|\n"
   },
   {
    "title": "David Of The White Rock",
    "type": "waltz",
    "key": "E",
    "mode": "minor",
-   "abc": "X: 1\n\nT: David Of The White Rock\n\nC: David Owen\nZ: suskin\n\nS: https://thesession.org/tunes/16320#setting30896\n\nR: waltz\n\nM: 3/4\n\nL: 1/8\n\nK: Emin\nEB AG FE|E2^D2 E2|B,^D FA GF|E6|\nE2 e2 d2|c2 BA B2|G2 BA GF|G6|\nG2 BG dG|A2 GF E^D|EF GE AG|G2 F4|\nEG B^d ec|BA GF G2|F>G E2 ^D2|E5||\n",
+   "abc": "X: 1\nT: David Of The White Rock\nC: David Owen\nZ: suskin\nS: https://thesession.org/tunes/16320#setting30896\nR: waltz\nM: 3/4\nL: 1/8\nK: Emin\nEB AG FE|E2^D2 E2|B,^D FA GF|E6|\nE2 e2 d2|c2 BA B2|G2 BA GF|G6|\nG2 BG dG|A2 GF E^D|EF GE AG|G2 F4|\nEG B^d ec|BA GF G2|F>G E2 ^D2|E5||\n",
    "composer": "David Owen"
   },
   {
@@ -73,21 +73,21 @@
    "type": "reel",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Ar Hyd Y Nos\n\nZ: Mix O'Lydian\n\nS: https://thesession.org/tunes/14299#setting26117\n\nR: reel\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\nG3 F E2 G2|A3 G F2 D2|E4 F3 F|G8|\nG3 F E2 G2|A3 G F2 D2|E4 F3 F|G8||\nP:B\nc3 B c2 d2|e3 d c2 B2|c3 B A2 G2|B3 A G2 F2|\nG3 F E2 G2|A3 G F2 D2|E4 F3 F|G8||\n"
+   "abc": "X: 1\nT: Ar Hyd Y Nos\nZ: Mix O'Lydian\nS: https://thesession.org/tunes/14299#setting26117\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\nG3 F E2 G2|A3 G F2 D2|E4 F3 F|G8|\nG3 F E2 G2|A3 G F2 D2|E4 F3 F|G8||\nP:B\nc3 B c2 d2|e3 d c2 B2|c3 B A2 G2|B3 A G2 F2|\nG3 F E2 G2|A3 G F2 D2|E4 F3 F|G8||\n"
   },
   {
    "title": "Ffarwel Fy Ieuenctid",
    "type": "waltz",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\n\nT: Ffarwel Fy Ieuenctid\n\nZ: Larke\n\nS: https://thesession.org/tunes/19066#setting37423\n\nR: waltz\n\nM: 3/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:D2|GA Bc dB|c2G2B2|A2G2F2|G4:|\nP:B\nD2|GA Bc dB|AB cd ec|d4e2|de fg af|\ng2f2e2|d2gzB2|(3ABc G2F2|G4||\n"
+   "abc": "X: 2\nT: Ffarwel Fy Ieuenctid\nZ: Larke\nS: https://thesession.org/tunes/19066#setting37423\nR: waltz\nM: 3/4\nL: 1/8\nK: Gmaj\nP:A\n|:D2|GA Bc dB|c2G2B2|A2G2F2|G4:|\nP:B\nD2|GA Bc dB|AB cd ec|d4e2|de fg af|\ng2f2e2|d2gzB2|(3ABc G2F2|G4||\n"
   },
   {
    "title": "The Ash Grove",
    "type": "waltz",
    "key": "G",
    "mode": "major",
-   "abc": "X: 4\n\nT: Ash Grove, The\n\nC: Turlough O'Carolan\nZ: ceolachan\n\nS: https://thesession.org/tunes/997#setting14206\n\nR: waltz\n\nM: 3/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:(G B) .d|(B G) .B|(A/B/) (c/A/) (B/G/)|A F D|\n~G/>A/ B/>G/ A/>F/|(G E) C|D G F|G2:|\nP:B\n.G (B d)|(g d) .B|(A/B/) (c/d/) (e/^d/)|(e c) .A|\n(G/A/) .B/.c/ .d/.e/|(d B) .G|A d ~^c|d2 B/=c/|\n(d g) .d|(B G) .B|(A/B/) (c/A/) (B/G/)|(A F) .D|\n~G/>A/ B/>G/ A/>F/|(G E) .C|D G F|G2:|\nP:C\nG2 B2 d2|B2 G2 B2|AB cA BG|A2 F2 D2|\nG>A B>G A>F|G2 E2 C2|D2 G2 F2|G4:|\nP:D\nG2 B2 d2|g2 d2 B2|AB cd e^d|e2 c2 A2|\nGA Bc de|d2 B2 G2|A2 d2 ^c2|d4 B=c|\nd2 g2 d2|B2 G2 B2|AB cA BG|A2 F2 D2|\nG>A B>G A>F|G2 E2 C2|D2 G2 F2|G4:|\n",
+   "abc": "X: 4\nT: Ash Grove, The\nC: Turlough O'Carolan\nZ: ceolachan\nS: https://thesession.org/tunes/997#setting14206\nR: waltz\nM: 3/4\nL: 1/8\nK: Gmaj\nP:A\n|:(G B) .d|(B G) .B|(A/B/) (c/A/) (B/G/)|A F D|\n~G/>A/ B/>G/ A/>F/|(G E) C|D G F|G2:|\nP:B\n.G (B d)|(g d) .B|(A/B/) (c/d/) (e/^d/)|(e c) .A|\n(G/A/) .B/.c/ .d/.e/|(d B) .G|A d ~^c|d2 B/=c/|\n(d g) .d|(B G) .B|(A/B/) (c/A/) (B/G/)|(A F) .D|\n~G/>A/ B/>G/ A/>F/|(G E) .C|D G F|G2:|\nP:C\nG2 B2 d2|B2 G2 B2|AB cA BG|A2 F2 D2|\nG>A B>G A>F|G2 E2 C2|D2 G2 F2|G4:|\nP:D\nG2 B2 d2|g2 d2 B2|AB cd e^d|e2 c2 A2|\nGA Bc de|d2 B2 G2|A2 d2 ^c2|d4 B=c|\nd2 g2 d2|B2 G2 B2|AB cA BG|A2 F2 D2|\nG>A B>G A>F|G2 E2 C2|D2 G2 F2|G4:|\n",
    "aliases": [
     "Ash Grove, The"
    ],
@@ -98,35 +98,35 @@
    "type": "waltz",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\n\nT: Calon Lan\n\nZ: B-bird\n\nS: https://thesession.org/tunes/11462#setting38304\n\nR: waltz\n\nM: 3/4\n\nL: 1/8\n\nK: Gmaj\nP:A\nDG|B3G AB|G2D2EF|\nG3E cB|B2A2DG|B3G AB|\nG2E2GE|D3G GF|G3A BG||\nP:B\nd3B AG|G2F2 AB|c3cBA|B4 DG|\nE3G FD|G2A2 GA|B3 G (3AGF|G4||\n"
+   "abc": "X: 2\nT: Calon Lan\nZ: B-bird\nS: https://thesession.org/tunes/11462#setting38304\nR: waltz\nM: 3/4\nL: 1/8\nK: Gmaj\nP:A\nDG|B3G AB|G2D2EF|\nG3E cB|B2A2DG|B3G AB|\nG2E2GE|D3G GF|G3A BG||\nP:B\nd3B AG|G2F2 AB|c3cBA|B4 DG|\nE3G FD|G2A2 GA|B3 G (3AGF|G4||\n"
   },
   {
    "title": "Rhyfelgyrch Gwŷr Harlech",
    "type": "march",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Rhyfelgyrch Gwŷr Harlech\n\nZ: ceolachan\n\nS: https://thesession.org/tunes/13597#setting24099\n\nR: march\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:D/E/F|G3 F E3 F2|G2 A2 B2 G2|c2 cB A3 G|\nF2 E2 F2 D2 G3 F E2 F2|G3 A Be- e2|dB- B2 A3 G|G4- G2:|\nP:B\n|:F>G|A3 G F2 G2|A2 A2- A2 z2|d2 dc B3 c|d2 d2- d2 z2|\nd3 c B2 Bc|dedc BABc|d2 dc B3 c|d2 d2- d2 zB|\ne2 e2 d3 d|c2 c2 B3 B|A2 cB A2 AG|F2 E2 FD- D2|\nG3 F E2 EF|G2 A2 Be- e2|dB- B2 A3 G|G4- G2:|\n"
+   "abc": "X: 1\nT: Rhyfelgyrch Gwŷr Harlech\nZ: ceolachan\nS: https://thesession.org/tunes/13597#setting24099\nR: march\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\n|:D/E/F|G3 F E3 F2|G2 A2 B2 G2|c2 cB A3 G|\nF2 E2 F2 D2 G3 F E2 F2|G3 A Be- e2|dB- B2 A3 G|G4- G2:|\nP:B\n|:F>G|A3 G F2 G2|A2 A2- A2 z2|d2 dc B3 c|d2 d2- d2 z2|\nd3 c B2 Bc|dedc BABc|d2 dc B3 c|d2 d2- d2 zB|\ne2 e2 d3 d|c2 c2 B3 B|A2 cB A2 AG|F2 E2 FD- D2|\nG3 F E2 EF|G2 A2 Be- e2|dB- B2 A3 G|G4- G2:|\n"
   },
   {
    "title": "Y Gelynnen",
    "type": "hornpipe",
    "key": "G",
    "mode": "major",
-   "abc": "X: 1\n\nT: Y Gelynnen\n\nZ: ceolachan\n\nS: https://thesession.org/tunes/6368#setting6368\n\nR: hornpipe\n\nM: 4/4\n\nL: 1/8\n\nK: Gmaj\nP:A\n|:(3DEF|G2 d>c B>^AB>G|c2 e>d c>Bc>A|G2 d>c B2 (3ABc|d>DF>A d>cB>A|\nG2 d>c B>AB>G|c2 (3Bcd e>ge>c|B>dB>G A2 (3AGF|G2 G2 G2:|\nP:B\n|:B>d|g2 g>a g>fe>d|c2 c>d e>f (3gfe|a2 (3^gab a>=g (3gfe|d>^cd>e d>ef>d|\ng>fg>a g2 e>d|c>Bc>d e2 e>c|(3Bcd B>G (3ABc A>F|G2 B2 G2:|\n"
+   "abc": "X: 1\nT: Y Gelynnen\nZ: ceolachan\nS: https://thesession.org/tunes/6368#setting6368\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\n|:(3DEF|G2 d>c B>^AB>G|c2 e>d c>Bc>A|G2 d>c B2 (3ABc|d>DF>A d>cB>A|\nG2 d>c B>AB>G|c2 (3Bcd e>ge>c|B>dB>G A2 (3AGF|G2 G2 G2:|\nP:B\n|:B>d|g2 g>a g>fe>d|c2 c>d e>f (3gfe|a2 (3^gab a>=g (3gfe|d>^cd>e d>ef>d|\ng>fg>a g2 e>d|c>Bc>d e2 e>c|(3Bcd B>G (3ABc A>F|G2 B2 G2:|\n"
   },
   {
    "title": "Hen Ferchetan",
    "type": "reel",
    "key": "E",
    "mode": "dorian",
-   "abc": "X: 2\n\nT: Hen Ferchetan\n\nZ: Billy Ainsworth\n\nS: https://thesession.org/tunes/13631#setting34431\n\nR: reel\n\nM: 4/4\n\nL: 1/8\n\nK: Edor\nP:A\n|:B2|\"Em\"e2e2B2d2|\"A\"~c2BAB2B2|\"Em\"EF GA B2B2|\"A\"BA GF\"Em\" E2:|\nP:B\nB2|:\"Em\"e2efg2e2|\"G\"fed2e2B2|\"E\"ed efg2e2|\"G\"f2d2\"A\"e4|\n\"Em\"e2e2B2d2|\"A\"~c2BAB2B2|\"Em\"EF GA B2B2|\"A\"BA GF\"Em\" E2B2:|\n"
+   "abc": "X: 2\nT: Hen Ferchetan\nZ: Billy Ainsworth\nS: https://thesession.org/tunes/13631#setting34431\nR: reel\nM: 4/4\nL: 1/8\nK: Edor\nP:A\n|:B2|\"Em\"e2e2B2d2|\"A\"~c2BAB2B2|\"Em\"EF GA B2B2|\"A\"BA GF\"Em\" E2:|\nP:B\nB2|:\"Em\"e2efg2e2|\"G\"fed2e2B2|\"E\"ed efg2e2|\"G\"f2d2\"A\"e4|\n\"Em\"e2e2B2d2|\"A\"~c2BAB2B2|\"Em\"EF GA B2B2|\"A\"BA GF\"Em\" E2B2:|\n"
   },
   {
    "title": "Sospan Fach",
    "type": "reel",
    "key": "E",
    "mode": "dorian",
-   "abc": "X: 2\n\nT: Sospan Fach\n\nZ: Hemery Mathieu\n\nS: https://thesession.org/tunes/13808#setting55386\n\nR: reel\n\nM: 4/4\n\nL: 1/8\n\nK: Edor\nP:A\nF2|B2 B>B B2 Bc|d4 B2 d2|c2 c>c (ce)dc|B6 FF|\nBBBB B2 (Bc)|d4 B2 f2|f2 ed c<e dc|B8||\nP:B\nf2 f2 f3 d|e>e ee e4|d2 d2 d3 B|\nc>c cc c2 f2|f4 e2 d2|c e3 d c3|\nB8|f4 d2 f2|e4 e4|\nd4 B2 d2|c4 c4|(B2 c2) d2 e2|\n(f2 g2) f2 e2|d d3 c3 c|B8||\n"
+   "abc": "X: 2\nT: Sospan Fach\nZ: Hemery Mathieu\nS: https://thesession.org/tunes/13808#setting55386\nR: reel\nM: 4/4\nL: 1/8\nK: Edor\nP:A\nF2|B2 B>B B2 Bc|d4 B2 d2|c2 c>c (ce)dc|B6 FF|\nBBBB B2 (Bc)|d4 B2 f2|f2 ed c<e dc|B8||\nP:B\nf2 f2 f3 d|e>e ee e4|d2 d2 d3 B|\nc>c cc c2 f2|f4 e2 d2|c e3 d c3|\nB8|f4 d2 f2|e4 e4|\nd4 B2 d2|c4 c4|(B2 c2) d2 e2|\n(f2 g2) f2 e2|d d3 c3 c|B8||\n"
   }
  ],
  "sets": [
