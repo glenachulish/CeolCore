@@ -48,6 +48,9 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
         "homeaccordion": (abcName: "harmonica", folder: "homeaccordion"),
         // FONN-MTGFIDDLE-1: the studio violin.
         "mtgfiddle": (abcName: "viola", folder: "mtgfiddle"),
+        // FONN-SMOOTHFLUTE-1: the Wooden Flute cleaned up, under abcjs's
+        // "recorder" (program 74) so its samples aren't confused with the original's.
+        "smoothflute": (abcName: "recorder", folder: "smoothflute"),
     ]
 
 
@@ -186,6 +189,7 @@ public final class SoundfontHandler: NSObject, WKURLSchemeHandler {
         case "whistle": return "whistle"
         case "homeaccordion": return "accordion"
         case "mtgfiddle": return "violin"
+        case "smoothflute": return "flute"
         default: return request.folder
         }
     }

@@ -92,13 +92,14 @@ public enum UnknownTunes {
         tune.type = detail.type
         tune.key = setting.key
         tune.mode = setting.mode
-        tune.abc = setting.abc
+        tune.abc = ABCLayout.onImport(setting.abc)   // FONN-LIBTIDY-1
         tune.theSessionID = detail.id
         tune.theSessionSettingID = String(setting.id)
         tune.sourceURL = "https://thesession.org/tunes/\(detail.id)"
         tune.transcribedBy = setting.member
         note(tune, "Was \(was). Music from thesession.org, setting \(setting.index).")
         try? context.save()
+        UntypedTunes.release([tune])   // FONN-NOTYPELIVE-1
     }
 
     /// The placeholder becomes this ABC. A title-less ABC leaves the name as
@@ -113,7 +114,7 @@ public enum UnknownTunes {
         if !parsed.key.isEmpty { tune.key = parsed.key; tune.mode = parsed.mode }
         if !parsed.composer.isEmpty { tune.composer = parsed.composer }
         if !parsed.aliases.isEmpty { tune.aliases = parsed.aliases }
-        tune.abc = parsed.abc
+        tune.abc = ABCLayout.onImport(parsed.abc)   // FONN-LIBTIDY-1
         note(tune, "Was \(was). Music pasted as ABC.")
         try? context.save()
     }

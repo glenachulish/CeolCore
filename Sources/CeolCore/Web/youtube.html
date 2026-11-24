@@ -5,7 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
   html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; }
-  #player { width: 100%; height: 100%; }
+  /* FONN-YTLOOP-1: the video above, the A–B loop bar below it. */
+  #player { width: 100%; height: calc(100% - 44px); }
+  #loopbar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 44px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    background: #1c1c1e; color: #eee; font: 13px -apple-system, sans-serif;
+    -webkit-user-select: none; user-select: none;
+  }
+  #loopbar button {
+    font: 600 13px -apple-system, sans-serif; color: #fff;
+    background: #3a3a3c; border: 0; border-radius: 14px;
+    padding: 5px 10px; min-width: 34px; white-space: nowrap;
+  }
+  #loopbar button.nudge { min-width: 0; padding: 5px 7px; background: #2c2c2e; color: #bbb; }
+  #loopbar button.set { background: #8a4b00; }
+  #loopbar #loopBtn { background: rgba(255,149,0,0.25); color: #ff9f0a; }
+  #loopbar #loopBtn.on { background: #ff9500; color: #000; }
+  #loopbar #loopBtn:disabled { opacity: 0.35; }
+  #loopbar .time { color: #aaa; font-variant-numeric: tabular-nums; min-width: 34px; text-align: center; }
+  #loopbar.off { display: none; }
+  html.noloop #player { height: 100%; }
   #msg {
     color: #999; font: 13px -apple-system, sans-serif;
     padding: 12px; text-align: center;
@@ -15,6 +35,18 @@
 <body>
 <div id="player"></div>
 <div id="msg" style="display:none">Couldn't load the video.</div>
+<div id="loopbar">
+  <button class="nudge" id="aBack" aria-label="Move A earlier">‹</button>
+  <button id="aBtn" aria-label="Set A, the start of the loop, here">A</button>
+  <span class="time" id="aTime">–</span>
+  <button class="nudge" id="aFwd" aria-label="Move A later">›</button>
+  <button id="loopBtn" disabled aria-label="Loop between A and B">⟲ Loop</button>
+  <button class="nudge" id="bBack" aria-label="Move B earlier">‹</button>
+  <span class="time" id="bTime">–</span>
+  <button id="bBtn" aria-label="Set B, the end of the loop, here">B</button>
+  <button class="nudge" id="bFwd" aria-label="Move B later">›</button>
+  <button class="nudge" id="clearBtn" aria-label="Clear the loop">✕</button>
+</div>
 <script>
 // YouTube's IFrame API, purely so the app can drive the playback rate from its
 // own control. The player's built-in speed menu works too, but it's buried
@@ -27,6 +59,7 @@ var videoId = "";
 function loadVideo(id) {
   videoId = id || "";
   if (!videoId) { document.getElementById("msg").style.display = "block"; return; }
+  clearLoop();
   if (player && player.loadVideoById) { player.loadVideoById(videoId); return; }
   // The API script has to come from YouTube itself.
   var tag = document.createElement("script");
@@ -48,6 +81,7 @@ function onYouTubeIframeAPIReady() {
         if (pendingRate !== null) { setRate(pendingRate); pendingRate = null; }
         postRates();
       },
+      onStateChange: onState,
       // Plenty of videos — music ones especially — are marked "no embedding"
       // by whoever uploaded them, and arrive here as 101 or 150. Nothing can
       // be done about that in an iframe, so tell the app and let it offer to
@@ -55,6 +89,7 @@ function onYouTubeIframeAPIReady() {
       onError: function (e) {
         document.getElementById("msg").style.display = "block";
         document.getElementById("player").style.display = "none";
+        showLoopBar(false);
         try {
           window.webkit.messageHandlers.youtube.postMessage({
             error: (e && typeof e.data === "number") ? e.data : 0
@@ -83,6 +118,96 @@ function setRate(rate) {
 }
 
 function pause() { try { player && player.pauseVideo(); } catch (e) {} }
+
+// ── FONN-YTLOOP-1: A–B loop ────────────────────────────────────────────────
+// The same idea as the Apple Music and recordings strip: tap A where the
+// phrase starts, B where it ends, and it goes round until you stop it.
+// Tapping A or B again while it plays moves that end to now; ‹ › nudge an end
+// by half a second. Only A set: loops from A to the end of the video. Setting
+// A also turns the loop on once B is there, because that is why you set it.
+// YouTube offers no "stop at" event, so the page looks at the clock ten times
+// a second and seeks back when it passes B. A seek lands a moment late, which
+// is the same small gap a real player's loop has.
+var loopA = null, loopB = null, looping = false, loopTimer = 0;
+
+function nowTime() {
+  try { return player && player.getCurrentTime ? player.getCurrentTime() : 0; } catch (e) { return 0; }
+}
+function videoEnd() {
+  try { return player && player.getDuration ? player.getDuration() : 0; } catch (e) { return 0; }
+}
+function fmt(t) {
+  if (t === null) return "–";
+  var m = Math.floor(t / 60), s = t - m * 60;
+  return m + ":" + (s < 10 ? "0" : "") + s.toFixed(1);
+}
+function drawLoop() {
+  document.getElementById("aTime").textContent = fmt(loopA);
+  document.getElementById("bTime").textContent = fmt(loopB);
+  document.getElementById("aBtn").classList.toggle("set", loopA !== null);
+  document.getElementById("bBtn").classList.toggle("set", loopB !== null);
+  var btn = document.getElementById("loopBtn");
+  btn.disabled = loopA === null;
+  btn.classList.toggle("on", looping);
+  btn.textContent = looping ? "⟲ Looping" : "⟲ Loop";
+}
+function setA(t) {
+  loopA = Math.max(0, t);
+  if (loopB !== null && loopB <= loopA + 0.3) loopB = null;
+  if (loopB !== null) looping = true;
+  drawLoop(); tickLoop();
+}
+function setB(t) {
+  var end = videoEnd();
+  if (end) t = Math.min(t, end);
+  if (loopA === null) loopA = 0;
+  if (t <= loopA + 0.3) return;      // B must come after A
+  loopB = t; looping = true;
+  drawLoop(); tickLoop();
+  // Back to A straight away, so you hear the loop you've just made.
+  try { player.seekTo(loopA, true); player.playVideo(); } catch (e) {}
+}
+function clearLoop() { loopA = null; loopB = null; looping = false; drawLoop(); }
+function tickLoop() {
+  clearInterval(loopTimer);
+  if (!looping || loopA === null) return;
+  loopTimer = setInterval(function () {
+    if (!looping || loopA === null) { clearInterval(loopTimer); return; }
+    var t = nowTime();
+    var end = loopB !== null ? loopB : videoEnd() - 0.25;
+    if (end > 0 && t >= end) { try { player.seekTo(loopA, true); } catch (e) {} }
+  }, 100);
+}
+function onState(e) {
+  // Playing on past the end of the video with only A set: start again at A.
+  if (e && e.data === 0 && looping && loopA !== null) {
+    try { player.seekTo(loopA, true); player.playVideo(); } catch (err) {}
+  }
+}
+// The app can switch the bar off for a page that has no room (not used yet).
+function showLoopBar(on) {
+  document.getElementById("loopbar").classList.toggle("off", !on);
+  document.documentElement.classList.toggle("noloop", !on);
+}
+(function () {
+  function on(id, f) {
+    document.getElementById(id).addEventListener("click", function (e) { e.preventDefault(); f(); });
+  }
+  on("aBtn", function () { setA(nowTime()); });
+  on("bBtn", function () { setB(nowTime()); });
+  on("aBack", function () { if (loopA !== null) setA(loopA - 0.5); });
+  on("aFwd", function () { if (loopA !== null) setA(loopA + 0.5); });
+  on("bBack", function () { if (loopB !== null) setB(loopB - 0.5); });
+  on("bFwd", function () { if (loopB !== null) setB(loopB + 0.5); });
+  on("clearBtn", clearLoop);
+  on("loopBtn", function () {
+    if (loopA === null) return;
+    looping = !looping;
+    drawLoop(); tickLoop();
+    if (looping) { try { player.seekTo(loopA, true); player.playVideo(); } catch (e) {} }
+  });
+  drawLoop();
+})();
 
 /// Tell the app which rates this video allows, so its control can offer only
 /// those. YouTube's usual set is 0.25 to 2.

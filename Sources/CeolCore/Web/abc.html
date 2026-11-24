@@ -2369,6 +2369,38 @@ function staffWidth() {
 // look at what was actually engraved.
 var ceolLastDrawn = null;
 
+// ── FONN-PHRASEVIEW-1: show the tune's own lines when there is room ─────────
+//
+// With `wrap` on, abcjs ignores the line breaks in the ABC and re-flows the
+// whole tune by spacing alone — part B can start halfway along part A's last
+// line. So the layout tidy (four bars a line, each part on new lines) never
+// showed on screen. When the ABC is already laid out in short lines (6 bars
+// or fewer, which is what the tidy writes) and the width gives every note
+// enough room, draw with `wrap` off so each ABC line is one stave. On a
+// narrow phone held upright, or for a tune written with long lines, `wrap`
+// stays on exactly as before.
+var CEOL_MIN_NOTE_PX = 17;
+function ceolKeepsOwnLines(abc, width, scale) {
+  var tune;
+  try { tune = (ABCJS.parseOnly(abc) || [])[0]; } catch (e) { return false; }
+  var lines = ((tune && tune.lines) || []).filter(function (l) { return l.staff; });
+  if (lines.length < 2) return false;
+  var maxBars = 0, maxNotes = 0;
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].staff.length > 1) return false;          // several staves: leave to abcjs
+    var bars = 0, notes = 0;
+    var voice = (lines[i].staff[0].voices || [])[0] || [];
+    for (var j = 0; j < voice.length; j++) {
+      if (voice[j].el_type === "bar") bars++;
+      else if (voice[j].el_type === "note") notes++;
+    }
+    if (bars > maxBars) maxBars = bars;
+    if (notes > maxNotes) maxNotes = notes;
+  }
+  if (maxBars > 6 || maxNotes === 0) return false;
+  return (width / (scale || 1)) / maxNotes >= CEOL_MIN_NOTE_PX;
+}
+
 function renderFitted(containerId, abc, opts) {
   function draw(sw, source, options) {
     var o = {};
@@ -2378,6 +2410,14 @@ function renderFitted(containerId, abc, opts) {
     ceolLastDrawn = (ABCJS.renderAbc(containerId, source || abc, o) || [])[0] || null;
     var svg = document.querySelector("#" + containerId + " svg");
     return svg ? (parseFloat(svg.getAttribute("width")) || 0) : 0;
+  }
+  var ownLines = !printMode && opts && opts.wrap
+      && ceolKeepsOwnLines(abc, staffWidth(), opts.scale);   // FONN-PHRASEVIEW-1
+  if (ownLines) {
+    var plain = {};
+    for (var key in opts) plain[key] = opts[key];
+    delete plain.wrap;
+    opts = plain;
   }
   var base = staffWidth();
   var w = draw(base);
@@ -2390,7 +2430,8 @@ function renderFitted(containerId, abc, opts) {
       else { base = base * (target / w); w = w2; }
     }
   }
-  ceolCureStrandedRepeat(containerId, abc, opts, base, draw, ceolLastDrawn);
+  // The tune's own lines start each part afresh, so nothing to cure.
+  if (!ownLines) ceolCureStrandedRepeat(containerId, abc, opts, base, draw, ceolLastDrawn);
 }
 
 // ── Repeat signs stranded at the end of a line ──────────────────────────────

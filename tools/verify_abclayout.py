@@ -65,6 +65,43 @@ def problems(abc):
     if second: out.append("second")
     return out
 
+def close_later_endings(lines):
+    out = list(lines)
+    for i, line in enumerate(lines):
+        if starts_field(line, "X"): break
+        if is_blank(line) or is_field_line(line): continue
+        t = trim_trailing(line)
+        if not t.endswith("|") or t.endswith("||") or t.endswith(":|") or t.endswith("[|"): continue
+        s = None
+        for j in range(len(t) - 1):
+            if t[j] in "[|" and t[j + 1] in "23456789": s = j
+        if s is None: continue
+        tail = t[s + 1:]
+        if any(x in tail for x in (":|", "||", "|]", "|:", "::")): continue
+        opens = False
+        for n in lines[i + 1:]:
+            if is_blank(n): continue
+            if is_field_line(n):
+                if starts_field(n, "P"): opens = True
+                continue
+            if n.lstrip(" \t").startswith(("|:", "[|", "::")): opens = True
+            break
+        if opens: out[i] = t + "|"
+    return out
+
+def leading_fields_as_lines(lines):
+    out, second = [], False
+    for line in lines:
+        if starts_field(line, "X"): second = True
+        if second or is_blank(line) or is_field_line(line): out.append(line); continue
+        rest = line.lstrip(" \t"); fields = []
+        while (rest.startswith("[M:") or rest.startswith("[K:")) and "]" in rest:
+            c = rest.index("]"); fields.append(rest[1:c].strip(" \t")); rest = rest[c + 1:].lstrip(" \t")
+        if not fields: out.append(line); continue
+        out += fields
+        if rest: out.append(rest)
+    return out
+
 def tidy(abc):
     s = []
     for ch in normalised_newlines(abc):
@@ -75,7 +112,8 @@ def tidy(abc):
     lines = "".join(s).split("\n")
     k = next((i for i, l in enumerate(lines) if l.startswith("K:")), None)
     if k is None: return "".join(s)
-    head = "\n".join(lines[:k + 1]) + "\n"; body = lines[k + 1:]
+    # FONN-HEADBLANK-1: blank lines out of the header too.
+    head = "\n".join(l for l in lines[:k + 1] if not is_blank(l)) + "\n"; body = lines[k + 1:]
     has_second = any(starts_field(l, "X") for l in body)
     out = []; cur = [""]
     def flush():
@@ -99,6 +137,7 @@ def tidy(abc):
         if re.search(r"(:\||\|\]|\|\||::)\s*$", cur[0]): flush()
         i += 1
     flush()
+    out = close_later_endings(leading_fields_as_lines(out))  # FONN-LEADFIELD-1, FONN-CLOSEEND-1
     joined = "\n".join(out).rstrip("\n")
     return head + joined + "\n"
 

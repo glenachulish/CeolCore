@@ -70,7 +70,8 @@ public enum ABCParser {
 
     /// "Ador" → ("A", "dorian"); "D" → ("D", "major"); "Gm" → ("G", "minor")
     public static func parseKeyField(_ raw: String) -> (key: String, mode: String) {
-        let value = raw.components(separatedBy: .whitespaces).first ?? raw
+        let words = raw.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+        let value = words.first ?? ""
         guard !value.isEmpty else { return ("", "") }
 
         var idx = value.startIndex
@@ -80,14 +81,23 @@ public enum ABCParser {
             key += String(value[idx])
             idx = value.index(after: idx)
         }
-        let rest = String(value[idx...]).lowercased()
+        var rest = String(value[idx...]).lowercased()
 
+        // FONN-MIXMODE-1: "m" (minor) comes last. It used to sit before "mix",
+        // so every K:Amix was filed as A minor. Longest prefixes first.
         let modes: [(prefix: String, name: String)] = [
-            ("maj", "major"), ("min", "minor"), ("m", "minor"),
+            ("maj", "major"), ("min", "minor"),
             ("dor", "dorian"), ("phr", "phrygian"), ("lyd", "lydian"),
             ("mix", "mixolydian"), ("aeo", "aeolian"), ("loc", "locrian"),
-            ("ion", "major"),
+            ("ion", "major"), ("m", "minor"),
         ]
+        // FONN-MIXMODE-1: the mode may be a word of its own ("K:A mix",
+        // "K:D Dorian"), which only reading the first word filed as major.
+        // Taken only when that word is a mode, so "K:D clef=bass" stays D major.
+        if rest.isEmpty, words.count > 1 {
+            let next = words[1].lowercased()
+            if modes.contains(where: { next.hasPrefix($0.prefix) }) { rest = next }
+        }
         for m in modes where rest.hasPrefix(m.prefix) {
             return (key, m.name)
         }

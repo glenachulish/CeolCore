@@ -25,6 +25,12 @@ public struct CeolVoice: Identifiable, Hashable, Sendable {
 
     public static let all: [CeolVoice] = [
         CeolVoice(id: "flute",                 label: "Wooden Flute",  offline: true,  program: 73),
+        // FONN-SMOOTHFLUTE-1: the Wooden Flute's own samples with the breath
+        // noise and the hard top taken down (ffmpeg afftdn 18 dB, −3 dB at
+        // 3.5 kHz, −6 dB shelf from 5 kHz, low-pass 7 kHz, level matched).
+        // Callum found the original fuzzy; the original stays for comparison.
+        // Program 74 is abcjs's "recorder", free until now.
+        CeolVoice(id: "smoothflute",           label: "Wooden Flute (smooth)", offline: true, program: 74),
         CeolVoice(id: "mflute",                label: "Concert Flute", offline: true,  program: 72),
         CeolVoice(id: "whistle",               label: "Tin Whistle",   offline: true,  program: 78),
         CeolVoice(id: "violin",                label: "Fiddle",        offline: true,  program: 40),

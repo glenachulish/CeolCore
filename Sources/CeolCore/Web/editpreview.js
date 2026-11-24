@@ -35,6 +35,9 @@ function ceolPreviewStart(visual, host, extra) {
     ceolPrev.synth = new ABCJS.synth.CreateSynth();
     var options = audioParams(visual);
     for (var k in (extra || {})) options[k] = extra[k];
+    // FONN-PREVIEWTEMPO-1: a tune with no Q: plays at its type's speed, as on
+    // the tune page, not at abcjs's own 180 a minute.
+    if (!options.qpm) { var q = ceolPreviewDefaultQpm(visual); if (q) options.qpm = q; }
     ceolPrev.synth.init({ visualObj: visual, options: options })
       .then(function () { return ceolPrev.synth.prime(); })
       .then(function () {
@@ -94,4 +97,19 @@ function ceolRenderInto(host, abc, zoom, opts) {
 
 function ceolPostDirty(dirty) {
   try { window.webkit.messageHandlers.noteedit.postMessage({ dirty: !!dirty }); } catch (e) {}
+}
+
+/// FONN-PREVIEWTEMPO-1. The type's speed in crotchets a minute for a tune
+/// that writes no tempo, or 0. Needs abctools.js; the type comes from R:.
+function ceolPreviewDefaultQpm(visual) {
+  if (!visual || typeof ceolDefaultTempo !== "function") return 0;
+  var meta = visual.metaText || {};
+  if (meta.tempo) return 0;
+  var m = null;
+  try { if (visual.getMeterFraction) m = visual.getMeterFraction(); } catch (e) {}
+  var stub = "M:" + (m && m.num && m.den ? m.num + "/" + m.den : "4/4") + "\n" +
+             (meta.rhythm ? "R:" + meta.rhythm + "\n" : "");
+  var d = null;
+  try { d = ceolDefaultTempo(stub, ""); } catch (e) {}
+  return d && d.bpm ? Math.round(d.bpm * 4 * d.duration[0]) : 0;
 }

@@ -71,7 +71,7 @@ public struct ABCLayoutStrip: View {
             }
             HStack {
                 if problems.contains(where: { $0.fixable }) {
-                    Button("Tidy the layout") { draft = ABCLayout.tidy(draft) }
+                    Button("Tidy the layout") { draft = ABCLayout.phrased(draft) }   // FONN-LAYOUT-2
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                 }

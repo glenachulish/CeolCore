@@ -13,10 +13,17 @@ import SwiftData
 public struct SetPatternBuilderView: View {
     var opening: Tune?
     var onSaved: (TuneSet) -> Void
+    /// FONN-SETPREVIEW-1: the app's own set player, given a name and tunes in
+    /// order. The Mac shows it beside every step; the phone opens it as a
+    /// sheet. Nil leaves the builder as it was, with no preview.
+    var preview: ((_ name: String, _ tunes: [Tune]) -> AnyView)?
 
-    public init(opening: Tune? = nil, onSaved: @escaping (TuneSet) -> Void = { _ in }) {
+    public init(opening: Tune? = nil,
+                onSaved: @escaping (TuneSet) -> Void = { _ in },
+                preview: ((_ name: String, _ tunes: [Tune]) -> AnyView)? = nil) {
         self.opening = opening
         self.onSaved = onSaved
+        self.preview = preview
     }
 
     private enum Stage { case setup, choosing, finishing }
@@ -34,6 +41,9 @@ public struct SetPatternBuilderView: View {
     @State private var search = ""
     @State private var name = ""
     @State private var seeded = false
+    /// FONN-SETPREVIEW-1: a tune being tried after the set so far.
+    @State private var candidate: Tune?
+    @State private var showingPreview = false
 
     private static let types = ["reel", "jig", "slip jig", "hornpipe", "polka", "slide",
                                 "strathspey", "march", "barndance", "highland", "mazurka",
@@ -62,7 +72,13 @@ public struct SetPatternBuilderView: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 640, idealWidth: 720, minHeight: 640, idealHeight: 760)
+        .frame(minWidth: preview == nil ? 640 : 1000,
+               idealWidth: preview == nil ? 720 : 1180,
+               minHeight: 640, idealHeight: 780)
+        #else
+        .sheet(isPresented: $showingPreview) {
+            if let preview { preview(previewName, previewTunes) }
+        }
         #endif
         .onAppear {
             guard !seeded else { return }
@@ -84,6 +100,7 @@ public struct SetPatternBuilderView: View {
                 if stage == .choosing && !picked.isEmpty {
                     Button {
                         picked.removeLast()
+                        candidate = nil
                         if picked.isEmpty && opening == nil { search = "" }
                     } label: {
                         Label("Back", systemImage: "arrow.uturn.backward")
@@ -212,9 +229,79 @@ public struct SetPatternBuilderView: View {
         }
     }
 
+    // MARK: - Preview (FONN-SETPREVIEW-1)
+
+    /// While choosing: the set so far, then the tune being tried. At the end:
+    /// the set as it will be saved.
+    private var previewTunes: [Tune] {
+        guard stage == .choosing, let candidate,
+              !picked.contains(where: { $0.persistentModelID == candidate.persistentModelID })
+        else { return picked }
+        return picked + [candidate]
+    }
+
+    private var previewName: String {
+        let typed = name.trimmingCharacters(in: .whitespaces)
+        return typed.isEmpty ? "Preview" : typed
+    }
+
+    private var previewCaption: String {
+        if stage == .finishing { return "The whole set, as it will be saved. Press ▶ to hear it." }
+        if let candidate, stage == .choosing {
+            let what = picked.isEmpty ? "" : "The set so far, then "
+            return what + "\u{201C}\(TitleDisplay.plain(candidate.title))\u{201D}. Select it to keep it."
+        }
+        if picked.isEmpty { return "Click the eye beside a tune to see and hear it here." }
+        return "The set so far. Click the eye beside a tune to try it next."
+    }
+
+    private var previewPane: some View {
+        let tunes = previewTunes
+        let playable = tunes.contains { $0.hasNotation }
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(previewCaption)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            Divider()
+            if let preview, playable {
+                preview(previewName, tunes)
+                    .id(tunes.map(\.persistentModelID))
+            } else {
+                Text(tunes.isEmpty ? "Nothing to show yet." : "These tunes have no notation to show.")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(minWidth: 400, maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The step beside its preview on the Mac; on its own on the phone.
+    @ViewBuilder
+    private func withPreview<Content: View>(_ content: Content) -> some View {
+        #if os(macOS)
+        if preview != nil {
+            HStack(spacing: 0) {
+                content.frame(minWidth: 380, idealWidth: 420, maxWidth: 480, maxHeight: .infinity)
+                Divider()
+                previewPane
+            }
+        } else {
+            content
+        }
+        #else
+        content
+        #endif
+    }
+
     // MARK: - 2/3. Choosing the tunes
 
     private var choosing: some View {
+        withPreview(choosingList)
+    }
+
+    private var choosingList: some View {
         let pool = SetPatternLogic.pool(allTunes, filter: filter, collections: collections, excluding: picked)
         let offered: [Tune] = {
             let base: [Tune]
@@ -321,15 +408,30 @@ public struct SetPatternBuilderView: View {
                 .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
+            if preview != nil {
+                Button {
+                    candidate = tune
+                    #if os(iOS)
+                    showingPreview = true
+                    #endif
+                } label: {
+                    Image(systemName: "eye")
+                }
+                .buttonStyle(.bordered)
+                .help("See and hear it after the set so far")
+            }
             Button("Select") { select(tune) }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
         }
         .padding(.vertical, 2)
+        .listRowBackground(candidate?.persistentModelID == tune.persistentModelID
+                           ? Color.green.opacity(0.12) : Color.clear)
     }
 
     private func select(_ tune: Tune) {
         picked.append(tune)
+        candidate = nil
         search = ""
         if let count = pattern.tuneCount, picked.count >= count {
             stage = .finishing
@@ -339,6 +441,10 @@ public struct SetPatternBuilderView: View {
     // MARK: - 4. Saving
 
     private var finishing: some View {
+        withPreview(finishingForm)
+    }
+
+    private var finishingForm: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Your set").font(.title3.weight(.semibold))
@@ -358,6 +464,18 @@ public struct SetPatternBuilderView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                #if os(iOS)
+                if preview != nil {
+                    Button {
+                        candidate = nil
+                        showingPreview = true
+                    } label: {
+                        Label("See and hear the whole set", systemImage: "play.circle")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                #endif
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Name").font(.headline)
                     TextField(SetPatternLogic.defaultName(picked), text: $name)

@@ -784,6 +784,9 @@ function ceolLayoutProblems(abc) {
   var start = ceolBodyStart(text);
   if (!start) return out;
   var lines = text.slice(start).split("\n");
+  // FONN-HEADBLANK-1: a blank line between the first header line and K:.
+  var headLines = text.slice(0, start).replace(/\n$/, "").split("\n"), seen = false, headBlank = false;
+  headLines.forEach(function (l) { if (l.trim()) seen = true; else if (seen) headBlank = true; });
   var lastMusic = -1;
   lines.forEach(function (l, i) { if (l.trim() && !ceolIsFieldLine(l)) lastMusic = i; });
   var blank = false, bangs = false, noBars = false, header = false, secondTune = false, short = 0, music = 0;
@@ -799,8 +802,8 @@ function ceolLayoutProblems(abc) {
     if (bars === 0 && notes > 24) noBars = true;
     if (bars <= 2 && i !== lastMusic && !/\\\s*$/.test(l)) short++;
   });
-  if (blank) out.push({ id: "blank", fixable: true, title: "A blank line in the music",
-    detail: "A blank line ends a tune in ABC, so everything after it is dropped without a word. Tidy takes blank lines out of the music." });
+  if (blank || headBlank) out.push({ id: "blank", fixable: true, title: "A blank line in the tune",
+    detail: "A blank line ends a tune in ABC, so everything after it is dropped without a word. Tidy takes blank lines out of the header and the music." });
   if (bangs) out.push({ id: "bang", fixable: true, title: "Old-style ! line breaks",
     detail: "Older ABC (much of thesession.org's early music) used ! to end a line. Each one forces a new stave there, whatever the width of the screen, and one with no space after it can swallow the notes that follow. Tidy takes them out and lets Fonn lay the bars out itself." });
   if (CEOL_HIDDEN.test(text)) out.push({ id: "hidden", fixable: true, title: "Hidden characters",
@@ -824,7 +827,10 @@ function ceolTidyLayout(abc) {
                 .replace(/\u00A0/g, " ").replace(/[\u200B\u200C\u200D\u2060\uFEFF]/g, "");
   var start = ceolBodyStart(text);
   if (!start) return text;
-  var head = text.slice(0, start), lines = text.slice(start).split("\n");
+  // FONN-HEADBLANK-1: blank lines out of the header too (twin of ABCLayout.tidy).
+  var head = text.slice(0, start).split("\n").filter(function (l, i, a) {
+    return l.trim() || i === a.length - 1;
+  }).join("\n"), lines = text.slice(start).split("\n");
   var hasSecond = lines.some(function (l) { return /^\s*X:/.test(l); });
   var out = [], current = "";
   function flush() { if (current.trim()) out.push(current.replace(/\s+$/, "")); current = ""; }
@@ -844,7 +850,53 @@ function ceolTidyLayout(abc) {
     if (/(:\||\|\]|\|\||::)\s*$/.test(current)) flush();
   }
   flush();
-  return head + out.join("\n").replace(/\n*$/, "\n");
+  return head + ceolCloseLaterEndings(ceolLeadingFieldsAsLines(out)).join("\n").replace(/\n*$/, "\n");
+}
+
+/// FONN-LEADFIELD-1 (twin of ABCLayout.leadingFieldsAsLines). abcjs draws a
+/// [M:…]/[K:…] that opens a line at the end of the line before; on a line of
+/// its own it is drawn where the new line starts.
+/// FONN-CLOSEEND-1 (twin of ABCLayout.closeLaterEndings). A second-time bar
+/// ending its line with a plain | before the next part's |: gets ||, or abcjs
+/// closes it on the next line and draws a stub of bracket there.
+function ceolCloseLaterEndings(lines) {
+  var out = lines.slice();
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (/^\s*X:/.test(line)) break;
+    if (!line.trim() || ceolIsFieldLine(line)) continue;
+    var t = line.replace(/[ \t]+$/, "");
+    if (!/\|$/.test(t) || /(\|\||:\||\[\|)$/.test(t)) continue;
+    var s = -1;
+    for (var j = 0; j < t.length - 1; j++) if ((t[j] === "[" || t[j] === "|") && /[2-9]/.test(t[j + 1])) s = j;
+    if (s < 0) continue;
+    var tail = t.slice(s + 1);
+    if ([":|", "||", "|]", "|:", "::"].some(function (x) { return tail.indexOf(x) >= 0; })) continue;
+    var opens = false;
+    for (var k = i + 1; k < lines.length; k++) {
+      var n = lines[k];
+      if (!n.trim()) continue;
+      if (ceolIsFieldLine(n)) { if (/^\s*P:/.test(n)) opens = true; continue; }
+      if (/^[ \t]*(\|:|\[\||::)/.test(n)) opens = true;
+      break;
+    }
+    if (opens) out[i] = t + "|";
+  }
+  return out;
+}
+
+function ceolLeadingFieldsAsLines(lines) {
+  var out = [], second = false;
+  lines.forEach(function (line) {
+    if (/^\s*X:/.test(line)) second = true;
+    if (second || !line.trim() || ceolIsFieldLine(line)) { out.push(line); return; }
+    var rest = line.replace(/^[ \t]+/, ""), fields = [], m;
+    while ((m = /^\[([MK]:[^\]]*)\][ \t]*/.exec(rest))) { fields.push(m[1].trim()); rest = rest.slice(m[0].length); }
+    if (!fields.length) { out.push(line); return; }
+    out.push.apply(out, fields);
+    if (rest) out.push(rest);
+  });
+  return out;
 }
 
 // ── Snippets ────────────────────────────────────────────────────────────────

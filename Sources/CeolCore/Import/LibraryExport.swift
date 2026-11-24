@@ -106,6 +106,7 @@ public enum LibraryExport {
             }
             var dict: [String: Any] = [
                 "name": set.name,
+                "created_at": ISO8601DateFormatter().string(from: set.createdAt), // FONN-ADDEDDATE-1
                 "notes": set.notes,
                 "rating": set.rating,
                 "is_favourite": set.isFavourite ? 1 : 0,

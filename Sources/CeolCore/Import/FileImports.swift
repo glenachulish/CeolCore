@@ -19,6 +19,16 @@ public enum FileImports {
         public var collectionsCreated = 0
         public var versionGroups = 0
         public var mediaAttached = 0
+        /// FONN-KEEPBARE-1: links on tunes, restored straight from the
+        /// library file. Kept apart from `mediaAttached`, which a folder
+        /// import reports as "N of M recordings" — counting links in there
+        /// made N larger than M.
+        public var tuneLinksAttached = 0
+        /// FONN-KEEPBARE-1: which tune each `id` in the file became (new or
+        /// matched), so the folder import attaches recordings by id rather
+        /// than by title + notation, which can't tell apart two tunes of the
+        /// same title that both have no notation.
+        var tuneForFileID: [Int: Tune] = [:]
         /// FONN-RESOURCES-1: links taken into Resources.
         public var linksAdded = 0
         public var linksAlreadyThere = 0
@@ -59,6 +69,9 @@ public enum FileImports {
             // FONN-SHARE-1: links and PDFs from a shared file.
             else if mediaAttached > 0 {
                 parts.append("\(mediaAttached) link\(mediaAttached == 1 ? "" : "s") or PDF\(mediaAttached == 1 ? "" : "s") attached")
+            }
+            if tuneLinksAttached > 0 {
+                parts.append("\(tuneLinksAttached) link\(tuneLinksAttached == 1 ? "" : "s") on tunes")
             }
             if setsCreated > 0 { parts.append("\(setsCreated) set\(setsCreated == 1 ? "" : "s")") }
             if collectionsCreated > 0 { parts.append("\(collectionsCreated) collection\(collectionsCreated == 1 ? "" : "s")") }
@@ -121,7 +134,7 @@ public enum FileImports {
                 continue
             }
             let tune = Tune(title: parsed.title, type: parsed.type,
-                            key: parsed.key, mode: parsed.mode, abc: parsed.abc)
+                            key: parsed.key, mode: parsed.mode, abc: ABCLayout.onImport(parsed.abc))   // FONN-LIBTIDY-1
             tune.composer = parsed.composer
             tune.aliases = parsed.aliases
             context.insert(tune)
@@ -135,8 +148,45 @@ public enum FileImports {
     /// Import a .ceol.json exported from any Fonn library. Merges tunes,
     /// recreates set/collection structure, skips duplicates — same rules
     /// as v3's import_ceol_json.
-    public static func importCeolJSON(url: URL, context: ModelContext) throws -> Summary {
-        let data = try readFileData(url: url)
+    public static func importCeolJSON(url: URL, context: ModelContext,
+                                      keepAddedDates: Bool = true) throws -> Summary {
+        try importCeolJSON(data: readFileData(url: url), context: context,
+                           keepAddedDates: keepAddedDates)
+    }
+
+    /// FONN-MULTIFONN-1: several Fonn files picked at once (or a folder of
+    /// them), each read while its scope was open. Imported in turn; one that
+    /// fails doesn't stop the rest. The summaries are added together.
+    public static func importCeolFiles(_ files: [Data], context: ModelContext) -> (summary: Summary, failed: Int) {
+        var total = Summary()
+        var failed = 0
+        for data in files {
+            guard let s = try? importCeolJSON(data: data, context: context) else { failed += 1; continue }
+            total.tunesImported += s.tunesImported
+            total.tunesSkipped += s.tunesSkipped
+            total.tunesOverLimit += s.tunesOverLimit
+            total.setsCreated += s.setsCreated
+            total.collectionsCreated += s.collectionsCreated
+            total.versionGroups += s.versionGroups
+            total.mediaAttached += s.mediaAttached
+            total.linksAdded += s.linksAdded
+            total.linksAlreadyThere += s.linksAlreadyThere
+            total.linkFoldersCreated += s.linkFoldersCreated
+        }
+        return (total, failed)
+    }
+
+    /// The same, for a message: "N files: …", with any that couldn't be read.
+    public static func importCeolFilesMessage(_ files: [Data], context: ModelContext) -> String {
+        let result = importCeolFiles(files, context: context)
+        try? context.save()
+        var message = "\(files.count) Fonn files: " + result.summary.message
+        if result.failed > 0 { message += " \(result.failed) couldn't be read." }
+        return message
+    }
+
+    static func importCeolJSON(data: Data, context: ModelContext,
+                               keepAddedDates: Bool = true) throws -> Summary {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw ImportError.notCeolFile
         }
@@ -144,7 +194,8 @@ public enum FileImports {
 
         let ftype = json["type"] as? String ?? "tunes"
         if ftype == "library" {
-            return try importLibrary(json: json, context: context)
+            return try importLibrary(json: json, context: context,
+                                     keepAddedDates: keepAddedDates)
         }
         // FONN-RESOURCES-1: a folder of links someone sent.
         if ftype == "links" {
@@ -170,13 +221,16 @@ public enum FileImports {
                 existing = existingTunes.first { $0.theSessionID == sessionID }
             }
             if existing == nil {
-                existing = existingTunes.first {
+                // FONN-STARTERVERSIONS-1: of the versions with this title, the
+                // one in the key the file asks for; else the default.
+                existing = bestVersion(of: existingTunes.filter {
                     $0.title.lowercased().trimmingCharacters(in: .whitespaces) == titleKey
-                }
+                }, keyHint: keyHint(td))
             }
 
             if let existing {
-                titleToTune[titleKey] = existing
+                titleToTune[matchKey(td)] = existing
+                if titleToTune[titleKey] == nil { titleToTune[titleKey] = existing }
                 summary.tunesSkipped += 1
                 // FONN-SHARE-1: a shared tune you already have still brings
                 // its links and PDFs, without doubling the ones you have.
@@ -207,7 +261,8 @@ public enum FileImports {
             tune.practiceBeat = td["practice_beat"] as? String ?? ""
             tune.aliases = (td["aliases"] as? [String]) ?? []
             context.insert(tune)
-            titleToTune[titleKey] = tune
+            titleToTune[matchKey(td)] = tune
+            if titleToTune[titleKey] == nil { titleToTune[titleKey] = tune }
             summary.tunesImported += 1
             summary.mediaAttached += attachShared(td["media"], to: tune, context: context)
         }
@@ -232,7 +287,7 @@ public enum FileImports {
             importedCollection = collection
             for td in tuneList {
                 let key = (td["title"] as? String ?? "").trimmingCharacters(in: .whitespaces).lowercased()
-                if let tune = titleToTune[key],
+                if let tune = titleToTune[matchKey(td)] ?? titleToTune[key],
                    collection.tunes?.contains(where: { $0 === tune }) != true {
                     collection.tunes?.append(tune)
                 }
@@ -326,7 +381,10 @@ public enum FileImports {
     /// skipped when both title and ABC match exactly.
     /// Internal rather than private so `StarterLibrary.addMissing` can hand
     /// it a cut-down starter file without writing that file to disk first.
-    static func importLibrary(json: [String: Any], context: ModelContext) throws -> Summary {
+    /// `keepAddedDates`: false for the built-in starter tunes, which are new
+    /// to whoever is adding them, whatever the file says (FONN-ADDEDDATE-1).
+    static func importLibrary(json: [String: Any], context: ModelContext,
+                              keepAddedDates: Bool = true) throws -> Summary {
         var summary = Summary()
 
         // Duplicate key → the tune that owns it. Seeded from the library, then
@@ -338,8 +396,53 @@ public enum FileImports {
         // never reached idToTune, and any version group it anchored was lost.
         // That cost 39 of 222 groups.
         var byDupKey: [String: Tune] = [:]
-        for tune in try context.fetch(FetchDescriptor<Tune>()) {
+        let libraryTunes = try context.fetch(FetchDescriptor<Tune>())
+        for tune in libraryTunes {
             byDupKey[tune.title.lowercased() + "|#|" + tune.abc] = tune
+        }
+
+        // FONN-KEEPBARE-1: tunes with no notation (a photo or a PDF of the
+        // page) used to be dropped here, so restoring your own export lost
+        // them and every set entry pointing at them. They come in now. Title
+        // + empty notation can't tell two such tunes of the same title apart,
+        // so they pair up in order instead: the nth one in the file matches
+        // the nth one already in the library, and any beyond that are new.
+        // Re-importing the same file still adds nothing; a fresh restore
+        // still brings every one.
+        var bareByTitle: [String: [Tune]] = [:]
+        for tune in libraryTunes where tune.abc.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            bareByTitle[tune.title.lowercased(), default: []].append(tune)
+        }
+        for (key, list) in bareByTitle {
+            bareByTitle[key] = list.sorted { $0.createdAt < $1.createdAt }
+        }
+        var bareUsed: [String: Int] = [:]
+        // Links already on each tune, plus those this run adds, because
+        // `tune.media` can't be trusted to show unsaved inserts.
+        var linksOn: [ObjectIdentifier: Set<String>] = [:]
+        func attachLinks(_ td: [String: Any], to tune: Tune) {
+            let items = (td["media"] as? [[String: Any]]) ?? []
+            guard !items.isEmpty else { return }
+            var have = linksOn[ObjectIdentifier(tune)]
+                ?? Set((tune.media ?? []).map(\.urlString).filter { !$0.isEmpty })
+            for item in items {
+                let url = (item["url"] as? String ?? "").trimmingCharacters(in: .whitespaces)
+                guard !url.isEmpty, !have.contains(url) else { continue }
+                // Same kind as written: a YouTube link may be "video", an Apple
+                // Music one "audio". Only the file-backed kinds need the folder.
+                let kind = MediaKind(rawValue: item["kind"] as? String ?? "") ?? .link
+                let media = MediaItem(kind: kind, title: item["title"] as? String ?? "",
+                                      urlString: url)
+                if let a = (item["loop_start"] as? NSNumber)?.doubleValue,
+                   let b = (item["loop_end"] as? NSNumber)?.doubleValue, b > a, a >= 0 {
+                    media.setLoop(a...b)
+                }
+                media.tune = tune
+                context.insert(media)
+                have.insert(url)
+                summary.tuneLinksAttached += 1
+            }
+            linksOn[ObjectIdentifier(tune)] = have
         }
 
         var idToTune: [Int: Tune] = [:]
@@ -353,15 +456,31 @@ public enum FileImports {
         for td in tuneList {
             let title = (td["title"] as? String ?? "").trimmingCharacters(in: .whitespaces)
             let abc = td["abc"] as? String ?? ""
-            guard !title.isEmpty, !abc.isEmpty else { continue }
+            guard !title.isEmpty else { continue }
             let originalID = td["id"] as? Int
+            let isBare = abc.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
             let dupKey = title.lowercased() + "|#|" + abc
-            if let match = byDupKey[dupKey] {
+            let match: Tune?
+            if isBare {
+                let pool = bareByTitle[title.lowercased()] ?? []
+                let used = bareUsed[title.lowercased(), default: 0]
+                match = used < pool.count ? pool[used] : nil
+                if match != nil { bareUsed[title.lowercased()] = used + 1 }
+            } else {
+                match = byDupKey[dupKey]
+            }
+            if let match {
                 // Already have this one — but still point its id at the tune
                 // that stands in for it, or the grouping pass loses the link.
                 summary.tunesSkipped += 1
                 if let originalID { idToTune[originalID] = match }
+                attachLinks(td, to: match)
+                // FONN-ADDEDDATE-1: re-importing your own export mends a
+                // library that was restored before this fix.
+                if keepAddedDates {
+                    match.createdAt = LibraryDates.earlier(match.createdAt, td["imported_at"])
+                }
                 continue
             }
 
@@ -401,11 +520,18 @@ public enum FileImports {
             tune.practiceBPM = td["practice_bpm"] as? Int
             tune.practiceBeat = td["practice_beat"] as? String ?? ""
             tune.aliases = (td["aliases"] as? [String]) ?? []
+            // FONN-ADDEDDATE-1: the day it first came into the library, not
+            // the day of this restore.
+            if keepAddedDates, let added = LibraryDates.parse(td["imported_at"]) { tune.createdAt = added }
             context.insert(tune)
-            byDupKey[dupKey] = tune
+            // A bare tune isn't keyed by title alone: a second one of the
+            // same title further down the file is a different page.
+            if !isBare { byDupKey[dupKey] = tune }
             if let originalID { idToTune[originalID] = tune }
+            attachLinks(td, to: tune)
             summary.tunesImported += 1
         }
+        summary.tuneForFileID = idToTune
 
         // Version groups, rebuilt from the Pi's parent_id. Without this every
         // setting arrives as a separate top-level tune — 222 groups' worth of
@@ -443,6 +569,7 @@ public enum FileImports {
                 // it if it's an empty shell (e.g. from an earlier partial import).
                 guard (found.entries ?? []).isEmpty else {
                     setForIndex[fileIndex] = found
+                    if keepAddedDates { found.createdAt = LibraryDates.earlier(found.createdAt, sd["created_at"]) } // FONN-ADDEDDATE-1
                     continue
                 }
                 set = found
@@ -456,6 +583,7 @@ public enum FileImports {
             set.onHitlist = (sd["on_hitlist"] as? Int ?? 0) != 0
             set.practiceBPM = sd["practice_bpm"] as? Int   // FONN-SETTEMPO-1
             set.practiceBeat = sd["practice_beat"] as? String ?? ""
+            if keepAddedDates { set.createdAt = LibraryDates.earlier(set.createdAt, sd["created_at"]) } // FONN-ADDEDDATE-1
             var position = 0
             let entries = ((sd["entries"] as? [[String: Any]]) ?? [])
                 .sorted { (($0["position"] as? Int) ?? 0) < (($1["position"] as? Int) ?? 0) }
@@ -580,6 +708,7 @@ public enum FileImports {
         let media = await attachMedia(
             from: json,
             mediaFolder: mediaFolder,
+            tuneForFileID: summary.tuneForFileID,
             context: context,
             progress: progress)
         summary.mediaAttached = media.attached
@@ -651,6 +780,7 @@ public enum FileImports {
     @MainActor
     private static func attachMedia(from json: [String: Any],
                                     mediaFolder: URL,
+                                    tuneForFileID: [Int: Tune] = [:],
                                     context: ModelContext,
                                     progress: @escaping (Int, Int) -> Void) async -> MediaOutcome {
         let tuneDicts = (json["tunes"] as? [[String: Any]]) ?? []
@@ -695,7 +825,10 @@ public enum FileImports {
             guard !items.isEmpty || !fromNotes.isEmpty else { continue }
             let title = (dict["title"] as? String ?? "").trimmingCharacters(in: .whitespaces)
             let abc = dict["abc"] as? String ?? ""
-            guard let tune = byKey[title.lowercased() + "|#|" + abc] else {
+            // FONN-KEEPBARE-1: by the file's id first — exact even for two
+            // same-titled tunes with no notation — then title + notation.
+            guard let tune = (dict["id"] as? Int).flatMap({ tuneForFileID[$0] })
+                    ?? byKey[title.lowercased() + "|#|" + abc] else {
                 // No tune with this title AND this notation. The commonest
                 // cause is an edit since the export, or a title that differs by
                 // punctuation — "Bog-an-Lochan" against "Bog An Lochan".
@@ -719,19 +852,9 @@ public enum FileImports {
                 let filename = item["filename"] as? String ?? ""
                 let urlString = item["url"] as? String ?? ""
 
-                if !urlString.isEmpty {
-                    guard !existing.contains(where: { $0.urlString == urlString }) else { continue }
-                    let media = MediaItem(kind: kind, title: item["title"] as? String ?? "",
-                                          urlString: urlString)
-                    if let a = (item["loop_start"] as? NSNumber)?.doubleValue,
-                       let b = (item["loop_end"] as? NSNumber)?.doubleValue, b > a, a >= 0 {
-                        media.setLoop(a...b)
-                    }
-                    media.tune = tune
-                    context.insert(media)
-                    attached += 1
-                    continue
-                }
+                // FONN-KEEPBARE-1: links were attached by importLibrary, which
+                // always runs first, so a plain file brings them back too.
+                if !urlString.isEmpty { continue }
 
                 guard !filename.isEmpty else { continue }
                 filesDone += 1
@@ -856,6 +979,53 @@ public enum FileImports {
     }
 
     /// Returns 1 if a new set was created, 0 if one with the same name existed.
+    // MARK: - Choosing a version (FONN-STARTERVERSIONS-1)
+
+    /// "D", "D major", "Dmaj", "Bm", "A dorian dorian" and the like, as
+    /// "d major", "b minor", "a dorian". Empty when there is no key.
+    static func normalisedKey(_ key: String, _ mode: String) -> String {
+        let words = (key + " " + mode).lowercased()
+            .split(separator: " ").map(String.init)
+        guard var root = words.first, !root.isEmpty else { return "" }
+        let modes = ["major", "minor", "dorian", "mixolydian", "lydian", "phrygian",
+                     "locrian", "aeolian", "ionian"]
+        var found = words.dropFirst().first(where: { modes.contains($0) }) ?? "major"
+        if root.hasSuffix("maj") {
+            root.removeLast(3)
+        } else if root.hasSuffix("min") {
+            root.removeLast(3)
+            found = "minor"
+        } else if root.count > 1, root.hasSuffix("m") {
+            root.removeLast()
+            found = "minor"
+        }
+        if found == "ionian" { found = "major" }
+        if found == "aeolian" { found = "minor" }
+        return root.isEmpty ? "" : root + " " + found
+    }
+
+    /// The key a file's tune entry asks for, if it names one.
+    static func keyHint(_ td: [String: Any]) -> String {
+        normalisedKey(td["key"] as? String ?? "", td["mode"] as? String ?? "")
+    }
+
+    /// How a tune entry is looked up: its title, and its key when it names
+    /// one, so two versions of a title in different keys stay apart.
+    static func matchKey(_ td: [String: Any]) -> String {
+        let title = (td["title"] as? String ?? "").trimmingCharacters(in: .whitespaces).lowercased()
+        let hint = keyHint(td)
+        return hint.isEmpty ? title : title + "|" + hint
+    }
+
+    /// Of several tunes with the same title: those in the asked-for key if
+    /// any are, and of those the default version, else the first.
+    static func bestVersion(of candidates: [Tune], keyHint: String) -> Tune? {
+        guard !candidates.isEmpty else { return nil }
+        let inKey = keyHint.isEmpty ? [] : candidates.filter { normalisedKey($0.key, $0.mode) == keyHint }
+        let pool = inKey.isEmpty ? candidates : inKey
+        return pool.first(where: { $0.isDefaultVersion }) ?? pool[0]
+    }
+
     private static func createSet(named name: String, notes: String,
                                   tuneDicts: [[String: Any]],
                                   titleToTune: [String: Tune],
@@ -875,7 +1045,7 @@ public enum FileImports {
         }
         for td in ordered {
             let key = (td["title"] as? String ?? "").trimmingCharacters(in: .whitespaces).lowercased()
-            guard let tune = titleToTune[key] else { continue }
+            guard let tune = titleToTune[matchKey(td)] ?? titleToTune[key] else { continue }
             let entry = SetEntry(position: position, tune: tune)
             entry.keyOverride = td["_key_override"] as? String ?? ""
             entry.tuneSet = set

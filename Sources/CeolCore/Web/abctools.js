@@ -473,7 +473,9 @@ function ceolBuildOffsetMap(source, re, replacement) {
 /// the tune actually stores it.
 function ceolTidyRepeatsMapped(abc) {
   if (!abc) return { text: abc, mapBack: function (n) { return n; } };
-  return ceolBuildOffsetMap(abc, /:\|\s*\|:/g, function () { return "::"; });
+  // FONN-SPLITREPEAT-1: on one line only. Across a line break the :| ends
+  // one part and the |: opens the next, and joined they hung off the end.
+  return ceolBuildOffsetMap(abc, /:\|[ \t]*\|:/g, function () { return "::"; });
 }
 
 // FONN-TEMPO-1 ---------------------------------------------------------------
@@ -547,6 +549,27 @@ function ceolDefaultTempo(abc, type) {
   if (!top || !bottom) return null;
   var beat = (bottom === 8 && top % 3 === 0) ? 3 / 8 : 1 / bottom;
   return { duration: [beat], bpm: CEOL_TYPE_TEMPO[key] };
+}
+
+/// FONN-SNIPSTD-1. A standard speed in crotchets a minute, whatever the tune
+/// says: its type's speed, or for a tune with no type a moderate one for its
+/// time signature. For snippets, which are for recognising a tune, so a tune
+/// with no type or a stray Q: (Q:200 with L:1/16, say) mustn't gallop.
+var CEOL_METER_TEMPO = {     // beat length -> beats a minute, for untyped tunes
+  "1/2": 80, "1/4": 110, "3/8": 100, "1/8": 200
+};
+function ceolStandardQpm(abc, type) {
+  var key = ceolTypeKey(abc, type);
+  var meter = ceolCountingMeter(abc, type);
+  if (meter === "C") meter = "4/4";
+  if (meter === "C|") meter = "2/2";
+  var parts = meter.split("/");
+  var top = parseInt(parts[0], 10), bottom = parseInt(parts[1], 10);
+  if (!top || !bottom) { top = 4; bottom = 4; }
+  var beat = (bottom === 8 && top % 3 === 0) ? 3 / 8 : 1 / bottom;
+  var bpm = key ? CEOL_TYPE_TEMPO[key]
+                : CEOL_METER_TEMPO[beat === 3 / 8 ? "3/8" : "1/" + bottom] || 110;
+  return Math.round(bpm * 4 * beat);
 }
 
 /// The same, as the text of a Q: field, for ABC that is built rather than

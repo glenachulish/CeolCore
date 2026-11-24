@@ -222,7 +222,7 @@ public enum ABCImportPlan {
 
     private static func make(from parsed: ABCParser.ParsedTune) -> Tune {
         let tune = Tune(title: parsed.title, type: parsed.type,
-                        key: parsed.key, mode: parsed.mode, abc: parsed.abc)
+                        key: parsed.key, mode: parsed.mode, abc: ABCLayout.onImport(parsed.abc))   // FONN-LIBTIDY-1
         tune.composer = parsed.composer
         tune.aliases = parsed.aliases
         return tune
@@ -250,6 +250,7 @@ public enum ABCImportPlan {
             }
             .joined()
             .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "|", with: "")   // FONN-LIBTIDY-1: bar lines a tidy may add
             .lowercased()
     }
 

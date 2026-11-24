@@ -7,6 +7,7 @@
 <script src="abcjs-basic-min.js"></script>
 <script>var chordsOn = false;</script>
 <script src="voices.js"></script>
+<script src="abctools.js"></script>
 <script src="edittools.js"></script>
 <script src="editpreview.js"></script>
 <link rel="stylesheet" href="editpages.css">
@@ -21,34 +22,60 @@
   .region { grid-column: 1 / -1; font: 600 13px -apple-system, sans-serif; margin: 6px 0 0; }
   .caveat { font-size: 11px; color: #888; margin-top: 6px; }
   #render { padding-bottom: 60px; }
+  /* FONN-STYLES-2: the preview is always in sight. Side by side when there is
+     room (the Mac, an iPad); on a phone the commands take the top of the
+     screen and scroll on their own, with the music below them. */
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+  #controls { flex: 0 1 auto; max-height: 48%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    border-bottom: 2px solid #d0d0d7; }
+  #preview { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .phead { padding: 8px 16px 0; font: 600 12px -apple-system, sans-serif; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #888; }
+  .phead span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .rhythm { text-align: left; font-weight: 600; padding: 8px 10px; flex: 1 1 160px; }
+  .rhythm small { display: block; font: 400 11px/1.3 -apple-system, sans-serif; opacity: 0.75; margin-top: 3px; }
+  .wide-only { display: none; }
+  @media (min-width: 760px) {
+    body { flex-direction: row; }
+    #controls { flex: 0 0 360px; max-height: none; border-bottom: none; border-right: 2px solid #d0d0d7; }
+    .styles { grid-template-columns: 1fr; }
+    .wide-only { display: inline; }
+    .narrow-only { display: none; }
+  }
+  @media (prefers-color-scheme: dark) { #controls { border-color: #3a3a3f; } }
   @media (prefers-color-scheme: dark) { .section { border-bottom-color: #3a3a3f; } }
 </style>
 </head>
 <body>
+<div id="controls">
 <div class="bar">
-  <span id="hint" class="hint">Try a rhythm or a style; nothing is kept until you save.</span>
+  <span id="hint" class="hint">Try a rhythm or a style: the preview <span class="wide-only">on the right</span><span class="narrow-only">below</span> shows the result. Nothing is kept until you save.</span>
   <button id="undo" class="small" disabled>&#8617;</button>
   <button id="reset" class="small" disabled>Reset</button>
 </div>
 <div class="section">
   <h3>Rhythm</h3>
   <div class="row">
-    <button id="lilt" class="small" title="Even pairs of quavers become dotted: A>B">Hornpipe swing</button>
-    <button id="snap" class="small" title="Scotch snaps on the 2nd and 4th beats: A&lt;B">Strathspey snaps</button>
-    <button id="straight" class="small" title="Dotted and snapped pairs back to even quavers">Straighten</button>
+    <button id="lilt" class="small rhythm">Hornpipe swing<small>Even pairs of quavers become dotted (A&gt;B)</small></button>
+    <button id="snap" class="small rhythm">Strathspey snaps<small>Dotted on beats 1 and 3, Scotch snaps on 2 and 4</small></button>
+    <button id="straight" class="small rhythm">Straighten<small>Dotted and snapped pairs back to even quavers</small></button>
   </div>
 </div>
 <div class="section">
   <h3>Ornaments</h3>
-  <div id="styles" class="styles"></div>
-  <div class="caveat">Each style is a rule of thumb from how that tradition is usually described: a starting point to play and edit, not any one player's way.</div>
-  <div class="row" style="margin-top:8px">
+  <div class="row" style="margin-bottom:8px">
     <span class="label">How much</span>
     <span class="seg"><button class="dens small" data-d="1">A little</button><button class="dens small" data-d="2">Some</button><button class="dens small" data-d="3">Lots</button></span>
     <button id="none" class="small">No ornaments</button>
-    <button id="strip" class="small" title="Take out the grace notes and rolls the tune already has">Remove existing ornaments</button>
+    <button id="strip" class="small">Remove the tune's own ornaments</button>
   </div>
+  <div id="styles" class="styles"></div>
+  <div class="caveat">Each style is a rule of thumb from how that tradition is usually described: a starting point to play and edit, not any one player's way.</div>
 </div>
+</div>
+<div id="preview">
+<div class="phead">Preview <span>&mdash; changes as you choose</span></div>
 <div class="tools">
   <button id="compare" class="small">Original</button>
   <button id="sizeDown" class="small">A&#8722;</button>
@@ -57,6 +84,7 @@
 </div>
 <div id="msg" class="msg"></div>
 <div id="render" class="render"></div>
+</div>
 <div id="audio" style="display:none"></div>
 <script>
 // Two layers, so choices can be changed freely: `base` is the tune with any

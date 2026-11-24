@@ -7,6 +7,7 @@
 <script src="abcjs-basic-min.js"></script>
 <script>var chordsOn = false;</script>
 <script src="voices.js"></script>
+<script src="abctools.js"></script>
 <script src="edittools.js"></script>
 <script src="editpreview.js"></script>
 <link rel="stylesheet" href="editpages.css">
@@ -186,9 +187,11 @@ function play(r, button) {
   if (!r.visual) return;
   playing = r;
   ceolPrev.button = button;
-  // The snippet has no Q: line (it would be drawn); the tune's own tempo is
-  // handed to the player instead.
-  var qpm = ceolTempoQpm(r.t.abc);
+  // FONN-SNIPSTD-1: always a standard speed (the type's, or the time
+  // signature's for a tune with no type), never the tune's own Q:. A snippet
+  // is for recognising a tune, and a tune with no type, or an odd Q:, played
+  // at abcjs's 180 a minute whatever its time: some went by in a blur.
+  var qpm = ceolStandardQpm(r.t.abc, r.t.type);
   ceolPreviewStart(r.visual, r.music, qpm ? { qpm: qpm } : null);
 }
 

@@ -24,6 +24,9 @@ public enum ImportRouter {
     public enum Outcome {
         /// A whole Fonn library, exported from the web app or another phone.
         case ceolLibrary(URL, hasMedia: Bool)
+        /// FONN-MULTIFONN-1: several Fonn files (collections, sets, tunes),
+        /// already read, to import one after another.
+        case ceolFiles([Data])
         /// Notation, to go through the review screen.
         case notation([ABCImportPlan.Source])
         /// Recordings, photos, PDFs and video, to be matched to tunes.
@@ -51,6 +54,9 @@ public enum ImportRouter {
     public struct Scan: Sendable {
         var ceolFile: URL?
         var ceolFolder: URL?
+        /// FONN-MULTIFONN-1: every Fonn file picked, read while its scope was
+        /// open (a file inside a picked folder has no scope of its own).
+        var ceolData: [Data] = []
         var notation: [ABCImportPlan.Source] = []
         var media: [Scanned] = []
         var unusable: [String] = []
@@ -92,12 +98,29 @@ public enum ImportRouter {
                 // before anything else is read, otherwise every recording in
                 // the folder gets copied into the store twice — once here and
                 // once by the import — and the first copy is orphaned.
-                if let export = files.first(where: {
+                let fonnFiles = files.filter {
                     $0.lastPathComponent.lowercased().hasSuffix(".ceol.json")
                         // FONN-SHARE-2: a shared tune or collection.
                         || $0.pathExtension.lowercased() == LibraryExport.fonnFileExtension
-                }) {
-                    if isFolder { scan.ceolFolder = url } else { scan.ceolFile = export }
+                }
+                if let export = fonnFiles.first {
+                    // FONN-MULTIFONN-1: a folder is a backup only if it looks
+                    // like one (library.ceol.json, or a media folder). A
+                    // folder of shared collections was taken for a backup and
+                    // nothing came in; and of several files picked, only the
+                    // last was kept.
+                    let fm = FileManager.default
+                    let isBackup = isFolder && (
+                        fonnFiles.contains { $0.lastPathComponent == LibraryBackup.jsonName }
+                        || fm.fileExists(atPath: url.appendingPathComponent(LibraryBackup.mediaFolderName).path))
+                    if isBackup {
+                        scan.ceolFolder = url
+                    } else {
+                        if !isFolder { scan.ceolFile = export }
+                        for file in fonnFiles {
+                            if let data = try? Data(contentsOf: file) { scan.ceolData.append(data) }
+                        }
+                    }
                     continue
                 }
 
@@ -242,6 +265,8 @@ public enum ImportRouter {
     /// Turn a scan into a proposal. Main actor: it touches SwiftData.
     public static func classify(_ scan: Scan, in context: ModelContext) -> Outcome {
         if let folder = scan.ceolFolder { return .ceolLibrary(folder, hasMedia: true) }
+        if scan.ceolData.count == 1, let file = scan.ceolFile { return .ceolLibrary(file, hasMedia: false) }
+        if !scan.ceolData.isEmpty { return .ceolFiles(scan.ceolData) }
         if let file = scan.ceolFile { return .ceolLibrary(file, hasMedia: false) }
 
         let tunes = (try? context.fetch(FetchDescriptor<Tune>())) ?? []

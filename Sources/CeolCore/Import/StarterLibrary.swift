@@ -81,7 +81,7 @@ public enum StarterLibrary {
         // they added, so they neither use up the free version's allowance nor
         // are refused by it.
         guard let summary = try? TuneAllowance.shared.uncounted({
-                  try FileImports.importCeolJSON(url: file, context: context)
+                  try FileImports.importCeolJSON(url: file, context: context, keepAddedDates: false)
               }),
               summary.tunesImported > 0 else {
             // A failed seed is not worth a second attempt on every launch, but
@@ -199,7 +199,7 @@ public enum StarterLibrary {
             return FileImports.Summary()
         }
         let summary = try TuneAllowance.shared.uncounted {
-            try FileImports.importLibrary(json: trimmed, context: context)
+            try FileImports.importLibrary(json: trimmed, context: context, keepAddedDates: false)
         }
         try context.save()
         // So the automatic seed cannot add them a second time later.
