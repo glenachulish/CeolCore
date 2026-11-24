@@ -1,0 +1,372 @@
+{
+ "ceol": 1,
+ "type": "collection",
+ "name": "Starter Sets — Shetland",
+ "description": "",
+ "tunes": [
+  {
+   "title": "Da Full Rigged Ship",
+   "type": "jig",
+   "key": "C",
+   "mode": "major",
+   "abc": "X:1\nT:Da Full Rigged Ship\nA: Flutefling\nL:1/8\nQ:1/4=147\nM:6/8\nK:none\n%%stretchlast true\nV:1 treble\n%%MIDI program 73\nV:1\nP:A\n|: e2 a aea | aea aba | e2 ^f g2 g | gag ^f2 d |\ne2 a aea | aea aba | g2 e edB | A3 A3 :|\nP:B\n|: efe edB | A2 B c3 | B2 G B2 G | Bcd E3 |\nefe edB | A2 B c2 d | efe dBG | A3 A3 :|\nP:C\n|: EGE EGE | EGE c3 | EEE E2 D | E2 F GEE |\nEGE EGE | EGE c2 d | efe dBG | A3 A3 :|\n"
+  },
+  {
+   "title": "Da Shaalds O Foula",
+   "type": "reel",
+   "key": "A",
+   "mode": "major",
+   "abc": "X: 1\nT: Da Shaalds O Foula\nZ: Akira M.\nS: https://thesession.org/tunes/17662#setting34069\nR: reel\nM: 4/4\nL: 1/8\nK: Amaj\nP:A\n|:EAAe fecB|AAAB A2GF|EAAe fecA|BABc e2E2:|\nP:B\n|:a2c2 eAcA|aecA eAcA|aecA eAcA|BABc e2E2:|\n"
+  },
+  {
+   "title": "Willafjord",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 1\nT: Willafjord\nZ: Redbird\nS: https://thesession.org/tunes/292#setting292\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\nB2|A2F A2D FA|B2G B2D GB|A2F A2D FA|EFGA GFED|\nA2F A2D FA|B2G B2D GB|ABcd efge|f2d2 d2:|\nP:B\nde|f2d f2f df|geaf gfed|f2d f2A df|e2ce Aece|\nf2d f2f df|gdaf gfed|ABcd efge|f2d2 d2:|\n",
+   "transcribed_by": "Redbird",
+   "source_url": "/private/var/mobile/Containers/Data/Application/313866CE-7CA6-458F-9954-926D72B30F3F/tmp/com.flagpig.thecraic-Inbox/willafjord-1.abc"
+  },
+  {
+   "title": "Merry Dancers, The",
+   "type": "jig",
+   "key": "D",
+   "mode": "minor",
+   "abc": "X: 1\nT: Merry Dancers, The\nZ: suskin\nS: https://thesession.org/tunes/17330#setting33213\nR: jig\nM: 6/8\nL: 1/8\nK: Dmix\nP:A\n|:c|BAB cBE|GAG G2 c|BAB cGE|DED D2 c|\nBAB cGE|GAG G2 c|B/c/dB c2 B|AFD D2:|\nP:B\n|:c|B/c/dB GAG|B/c/dB G2 c|B/c/dB GAB|AFD D2 c|\nB/c/dB GAG|B/c/dB c2 e|dcB c2 B|AFD D2:|\nP:C\n|:g|fef gdB|gdB G2 g|fef gdB|AFD D2 g|\nfef gdB|def gdB|c2 a B2 g|AFD D2:|\n"
+  },
+  {
+   "title": "Jack Broke Da Prison Door",
+   "type": "reel",
+   "key": "G",
+   "mode": "major",
+   "abc": "X: 3\nT: Jack Broke Da Prison Door\nC: John Gaudie\nZ: NfldWhistler\nS: https://thesession.org/tunes/1260#setting36469\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\n|:G2BG BdBG|cBAB dBAB|G2BG BdBG|ABAG E2D2:|\nP:B\n|:g2gd edBd|g2gd eaaf|g2gd edBG|ABAG E2D2:|\n",
+   "composer": "John Gaudie"
+  },
+  {
+   "title": "Da Mirrie Boys o Greenland ",
+   "type": "reel",
+   "key": "D",
+   "mode": "major",
+   "abc": "X:1\nT:Da Mirrie Boys o Greenland\nM:4/4\nL:1/8\nK:D\nP:A\nABde fd f2 | e2 ce Aece | ABde fdfa | gecA d2 d2 :|\nP:B\nfgfe fgaf | gfec efge | fgfe fgaf | gecA d2 d2 :|\n"
+  },
+  {
+   "title": "Lasses Trust In Providence",
+   "type": "reel",
+   "key": "D",
+   "mode": "major",
+   "abc": "X: 1\nT: Lasses Trust In Providence\nZ: domhnall.\nS: https://thesession.org/tunes/8229#setting8229\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:d2 de fdef|d2 fd edBA|d2 de fdef|1 dBAF E2 A2:|2 dBAF E2 FG||\nP:B\nA2 AB ADFA|d2 d2 BABd|A2 AB ADFA|1 GFEC D3 F:|2 GFEC D2 z2||\n"
+  },
+  {
+   "title": "Faroe Rum",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 1\nT: Faroe Rum\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:A(A2F) ABd(B|AF)FD E2(FG)|A(A2F) ABde|fafe d2[f2d2]:|\nP:B\n|:e(AcA) e(AcA)|ABde f2af|e(AcA) e(AcA)|e(gfe) d2d2:|\n"
+  },
+  {
+   "title": "Sleep Soond Ida Mornin'",
+   "type": "reel",
+   "key": "A",
+   "mode": "minor",
+   "abc": "X: 1\nT: Sleep Soond Ida Mornin'\nZ: Mark Cordova\nS: https://thesession.org/tunes/1001#setting1001\nR: reel\nM: 4/4\nL: 1/8\nK: Amin\nP:A\nAB|:cAeA cAeA|BcdB G2 AB|cAeA cAeA|1 BAGB A2 AB:|2 BAGB A2 GB||\nP:B\n|:Aaag a2 ea|gedB GBdB|Aaag a2 ea|1 gedB A2 GB:|2 gedB A2 AB||\nP:C\n|:(3cBA gA ^fAgA|edBA G2 AB|(3cBA aA gAaA|ecdB A2 AB:|\nP:D\n|:cBcd c2 .c.c|dcde d2 .d.d|eaag agea|gedB A2 AB:|\n"
+  },
+  {
+   "title": "Da Auld Swaara Jupie",
+   "type": "barndance",
+   "key": "G",
+   "mode": "major",
+   "abc": "X: 3\nT: Da Auld Swaara Jupie\nZ: ceolachan\nS: https://thesession.org/tunes/7342#setting18869\nR: barndance\nM: 4/4\nL: 1/8\nK: Gmaj\nM:2/4\nP:A\n|:D/|[M:3/4] G2 G>D BG|[M:2/4] DG/D/ (3BAB|G>B B/c/4B/4A/F/|\n[M:3/4] G2 G>D BG|[M:2/4] (3DGD (3BAB|1 DG G3/2:|2 d g g3/2||\nP:B\n|:a/|g/f/e/d/ ce/c/|Bd/B/ A>B|G>B BA/F/|\ng/f/e/d/ ce/c/|(3BdB A>B|1 dg g3/2:|2 DG G3/2||\nP:C\n|:D/|G/F/E/D/ Gg|ed/B/ d/e/f/g/|a>A B/c/4B/4A/F/|\nG/F/E/D/ Gg|ed/B/ (3dgd|1 BG G3/2:|2 B<G G3/2||\n"
+  },
+  {
+   "title": "Aandowin At Da Bow",
+   "type": "shetland reel",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X:746\nT:Aandowin At Da Bow\nC:Joe Buchanan's Scottish Tome - Page 186.3\nI:186 3\nZ:Carl Allison\nR:Shetland Reel\nL:1/8\nM:4/4\nK:G\nP:A\nv(A | BG)AG !snap!E2 D2 | v(BG)(AG) BGAd | BGAG !snap!E2 (DE) | GABA G2 G :|\nP:B\nu(g | eg)dB AG E2 | u(eg)dg egvd(g | eg)dB AG Eu(e | !>!g2 g)(vg a)(uf g2) |\negdg egvdu(g | eg)dB vA(GED) | GAG !snap!E2 (uDE) | (GG)BA G3 |]\n",
+   "composer": "Joe Buchanan's Scottish Tome - Page 186.3",
+   "transcribed_by": "Carl Allison",
+   "source_url": "http://www.thisoldtractor.com/guzzi007/Scottish_Tome/st_abc/186.3_Aandowin_At_Da_Bow.abc"
+  },
+  {
+   "title": "Da Day Dawn",
+   "type": "air",
+   "key": "E dorian",
+   "mode": "dorian",
+   "abc": "X:18\nT:Da Day Dawn\nC:Traditional Shetland arr. Gordon Turnbull   \nZ:Gordon Turnbull <http://www.theflow.org.uk>\nN:Traditionally played by the nightwatchman through the streets early on New Year's Day\nN:Play freely.\nB:Scots Music Group Songbook\nM:4/4\nL:1/8\nR:Air\nK:EDor\nEF | GA {E}F2- F2- F E | G<A {E}F2- F2- F E | (AB-B4) EF |\nG<A F2- F2- F E | FF E2- E2 DE- | E6 :|\nGF | E z e2 {A}B3 A/G/ | {E}F6 ED |E z {d}e2 {A}B2 AG |\n{A}B6 E{G}F |E z {d}e2 {A}B3 A/G/ | F6 EF |\nGA {E}F2- F2- F {G}E | GA {E}F2- F2- F E | {A}B6 |]\n\"End\" EF | GA F2- F2- F E | FF {D}E2- E2 DE-| E6 |]\n",
+   "composer": "Traditional Shetland arr. Gordon Turnbull",
+   "transcribed_by": "Gordon Turnbull <http://www.theflow.org.uk>",
+   "source_url": "http://www.flutefling.co.uk/wp-content/uploads/2014/09/FF_repertoire_2014-15_edit.txt"
+  },
+  {
+   "title": "Da New Rigged Ship",
+   "type": "reel",
+   "key": "A dorian",
+   "mode": "dorian",
+   "abc": "X: 1\nT: da New Rigged Ship #1\nO: Shetland\nR: reel\nZ: 2014 John Chambers <jc:trillian.mit.edu>\nM: C|\nL: 1/8\nQ:1/4=252\nK: Ador\nP:A\n\"Em\"eg |\"Am\"a2ab ageg | \"Am\"a2ab \"D7\"agef |\"G\"g2gg \"D(A7)\"fgag | \"D\"f2d2 d2 :|\nP:B\n|: \"E7\"ed |\"A\"^cAcA \"E7\"B2ed | \"A\"^cAcA \"E7\"E2ed |\"A\"^cAcA \"E7\"B2ed | \"A\"^c2A2 A2 :|\nP:C\n|: AB |\"C\"cdec \"G\"BcdB | \"D\"ABAF \"Em\"GFE2 |\"C\"cdec \"G\"BcdB | \"Am\"c2A2 A2 :|\n",
+   "aliases": [
+    "da New Rigged Ship #1"
+   ],
+   "transcribed_by": "2014 John Chambers <jc:trillian.mit.edu>",
+   "source_url": "http://trillian.mit.edu/~jc/music/abc/reel/New_Rigged_Ship_R1-AmA-24-3.abc"
+  },
+  {
+   "title": "Unst Bridal March",
+   "type": "march",
+   "key": "A major",
+   "mode": "major",
+   "abc": "X:494\nT:Unst Bridal March\nO:Shetland\nS:Haand Me Doon da Fiddle\nM:3/4\nL:1/8\nQ:1/4=110\nK:A\n%abcjs_soundfont fluid\n%%MIDI program 141\n%%MIDI bassprog 0\n%%MIDI chordprog 0\n%%MIDI bassvol 64\n%%MIDI chordvol 64\nP:A\na2 | A2  A2 B2 | c4     e2 | fg  a2 c2 | BA B2 a/g/a/f/ |\ne2  A2 AB | c2  e2 Bd | c2  A2 A2 | A4            :|\nP:B\na2 | f2  e2 a2 | f2  e2 a2 | f2  e2 a2 | f4    e2       |\nf>g a2 e2 | f>g a2 e2 | f>g a2 a2 | a4    c2       |\nd2  d2 cB | c2  e2 e2 | fg  a2 c2 | BA B2 a/g/a/f/ |\ne2  A2 AB | c2  e2 Bd | c2  A2 A2 | A4            |]\n"
+  },
+  {
+   "title": "Wha'll Dance Wi' Wattie?",
+   "type": "reel",
+   "key": "A",
+   "mode": "minor",
+   "abc": "X: 1\nT: Wha'll Dance Wi' Wattie?\nZ: Kenny\nS: https://thesession.org/tunes/14942#setting27609\nR: reel\nM: 4/4\nL: 1/8\nK: Amix\nP:A\n|:edef gage|dcBG Bddf|edef gage|aefd cA A2:|\nP:B\n|:eAcA eAcA|d=cBG Bddf|eAcA eAce|faed cA A2:|\n"
+  },
+  {
+   "title": "Donald Blue",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 1\nT: Donald Blue\nN: Ali Bain's version\nS: Alistair C\nZ: 1998 by John Chambers <jc:trillian.mit.edu>\nR: Reel\nO: Shetland\nM: 4/4\nK: D\nP:A\n|: \"D\"dB AF DF AB | dB AF \"A7\"E2 \"D\"D2 | dB AF DF Ad | \"G\"BB2A B2 \"(D)\"d2 :|\nP:B\n|: \"D\"AB de fa fd | fa fd \"G\"ed Bd | \"D\"AB de fa fd | \"G\"BB2A B2\"(D)\"d2 :|\n",
+   "transcribed_by": "1998 by John Chambers <jc:trillian.mit.edu>",
+   "source_url": "http://trillian.mit.edu/~jc/music/book/500/DonaldBlue.abc"
+  },
+  {
+   "title": "Garster's Dream",
+   "type": "jig",
+   "key": "G",
+   "mode": "major",
+   "abc": "X: 3\nT: Garster's Dream\nZ: JACKB\nS: https://thesession.org/tunes/4808#setting38923\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:G2B BGB|cdc BAG|FGA AFA|AdA FED|\nD2B BGB|cdc BAG|F2 E DEF|1 G3 G2 D:|2 G2B GB/c/d||\nP:B\n|:g2d gdB|ABA AB/c/d|gdg gdB|dd2 def|\ngdg gdB|ABA AGE|G2 E DEF|1 G2B GB/c/d:|2 G3 G2D||\n"
+  },
+  {
+   "title": "Da Grocer",
+   "type": "reel",
+   "key": "D",
+   "mode": "major",
+   "abc": "X: 3\nT: Da Grocer\nC: Tom Anderson\nZ: Helen Snibson\nS: https://thesession.org/tunes/5298#setting49466\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:\"D\"ADD/D/D DEFA|defd edcd|\"Em\"BEE/E/E EFGB|\"G\"gefd \"D\"edB/c/d|\n\"D\"ADD/D/D DEFA|defd edcd|\"Em\"BEE/E/E Bcde|1 \"D\"fd\"A\"ec \"D\"d2dB:|2 \"D\"fd\"A\"ec \"D\"d2de||\nP:B\n|:\"D\"fdd/d/d fgaf|\"Em\"gefd edBA|\"Em\"Bee/e/e edef|\"A\"gefd edB/c/d|\n\"D\"ADD/D/D DEFA|defd edcd|\"Em\"BEE/E/E Bcde|1 \"D\" fd\"A\"ec \"D\"d2de:|2 \"D\"fd\"A\"ec \"D\"d4||\n",
+   "composer": "Tom Anderson"
+  },
+  {
+   "title": "Pottinger's",
+   "type": "reel",
+   "key": "G",
+   "mode": "major",
+   "abc": "X: 2\nT: Pottinger's\nC: Tom Anderson\nZ: gian marco\nS: https://thesession.org/tunes/4696#setting17213\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\n|:G2Gd BGGf|gagd BGGB|A^GAB cBce|agfe fddB|\nG2Gd BGGf|gagd BGGB|cdec BcdB|dcBA BGGf:|\nP:B\ng2dg Bgdg|gbab gddB|eaag a2ab|c'bag fdef|\ng2dg Bgdg|gbab gddB|cdec BcdB|dcBA BGGD:|\n",
+   "composer": "Tom Anderson"
+  },
+  {
+   "title": "Da Lerwick Lasses",
+   "type": "reel",
+   "key": "G",
+   "mode": "major",
+   "abc": "X: 1\nT: Da Lerwick Lasses\nZ: gian marco\nS: https://thesession.org/tunes/1381#setting1381\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\ndc|:BGG2 AFAc|BG~G2 g2dc|BGG2 AFAc|1 BGAF G2dc:|2 BGAF G2Bd||\nP:B\n|:g2ge fafe|d2fd fafd|g2gf ege^c|1 eaaf gede:|2 eaaf ge||\n"
+  },
+  {
+   "title": "Ahint Da Daeks O' Voe",
+   "type": "reel",
+   "key": "D",
+   "mode": "minor",
+   "abc": "X: 2\nT: Ahint Da Daeks O' Voe\nZ: Jürgen\nS: https://thesession.org/tunes/12042#setting21141\nR: reel\nM: 4/4\nL: 1/8\nK: Dmix\nP:A\n|:ABAF D3A|c2cA BGBG|ABAF D3g|1 fage d3B:|2 fage d3e||\nP:B\n|:fdge ^cdeg|fdge fdge|fdge ^cdeg|1 fage d3e:|2 fage d4||\n"
+  },
+  {
+   "title": "Da Forfeit O' Da Ship",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 1\nT: Da Forfeit O' Da Ship\nZ: domhnall.\nS: https://thesession.org/tunes/7438#setting7438\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\nA |: \"D\"d2 dB dA F2|\"D\"ABAF EDEF|\"D\"AAAF ABde|\"G\"f2 ed \"A\"B2 A2 :|\nP:B\n|: \"D\"d2 fd adfd|\"G\"d2 fd \"A\"eAAf|\"D\"aa2 e fdef|\"G\"dBAF \"A\"E3 A :|\n",
+   "transcribed_by": "domhnall.",
+   "source_url": "/private/var/mobile/Containers/Data/Application/6D86A715-A8FE-40D6-8D9D-D92D566DD857/tmp/com.flagpig.thecraic-Inbox/daforfeitodaship-1.abc"
+  },
+  {
+   "title": "Da Forfeit O_ Da Ship",
+   "type": "reel",
+   "abc": "\nX: 1\nT: Da Forefit O' Da Ship\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\nA|:\"D\"d2 dB dA F2|\"D\"ABAF EDEF|\"D\"AAAF ABde|\"G\"f2 ed \"A\"B2 A2:|\nP:B\n|:\"D\"d2 fd adfd|\"G\"d2 fd \"A\"eAAf|\"D\"aa2 e fdef|\"G\"dBAF \"A\"E3 A:|\n"
+  },
+  {
+   "title": "Da New Rigged Ship",
+   "type": "shetland reel",
+   "abc": "X:1\nT:Da New Rigged Ship\nA: Flutefling\nL:1/8\nQ:1/4=147\nM:4/4\nK:none\n%%stretchlast true\nV:1 treble\n%%MIDI program 73\nV:1\nP:A\n|: a3 b ageg | a2 ab age^f | g2 g2 ^fgag |1 ^f2 d2 d2 eg :|2 ^f2 d2 d2 ed |\nP:B\n|:[K:A] cAcA B2 ed | cAcA E2 ed | cAcA B2 ed |1 c2 A2 A2 ed :|2 c2 A2 A3 B |\nP:C\n|:[K:C] cdec BcdB | ABA^F GF E2 |cdec BcdB |1 c2 A2 A3 B :|2 c2 A2 A4 |]\n",
+   "source_url": "https://flutefling.scot/resources/flutefling-session-tunes/"
+  }
+ ],
+ "sets": [
+  {
+   "name": "Shetland 1 · Da Full Rigged Ship / Da Shaalds O Foula / Willafjord",
+   "tunes": [
+    {
+     "title": "Da Full Rigged Ship",
+     "key": "C",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Da Shaalds O Foula",
+     "key": "A",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "Willafjord",
+     "key": "D major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Shetland 2 · The Merry Dancers / Jack Broke Da Prison Door",
+   "tunes": [
+    {
+     "title": "Merry Dancers, The",
+     "key": "D",
+     "mode": "minor",
+     "_position": 0
+    },
+    {
+     "title": "Jack Broke Da Prison Door",
+     "key": "G",
+     "mode": "major",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Shetland 3 · Da Mirrie Boys o Greenland / Lasses Trust In Providence / Faroe Rum",
+   "tunes": [
+    {
+     "title": "Da Mirrie Boys o Greenland ",
+     "key": "D",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Lasses Trust In Providence",
+     "key": "D",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "Faroe Rum",
+     "key": "D major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Shetland 4 · Sleep Soond Ida Mornin' / Da Auld Swaara Jupie / Aandowin At Da Bow",
+   "tunes": [
+    {
+     "title": "Sleep Soond Ida Mornin'",
+     "key": "A",
+     "mode": "minor",
+     "_position": 0
+    },
+    {
+     "title": "Da Auld Swaara Jupie",
+     "key": "G",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "Aandowin At Da Bow",
+     "key": "G major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Shetland 5 · Da Day Dawn / Da New Rigged Ship",
+   "tunes": [
+    {
+     "title": "Da Day Dawn",
+     "key": "E dorian",
+     "mode": "dorian",
+     "_position": 0
+    },
+    {
+     "title": "Da New Rigged Ship",
+     "key": "A dorian",
+     "mode": "dorian",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Shetland 6 · Unst Bridal March / Wha'll Dance Wi' Wattie?",
+   "tunes": [
+    {
+     "title": "Unst Bridal March",
+     "key": "A major",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Wha'll Dance Wi' Wattie?",
+     "key": "A",
+     "mode": "minor",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Shetland 7 · Donald Blue / Garster's Dream / Da Grocer",
+   "tunes": [
+    {
+     "title": "Donald Blue",
+     "key": "D major",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Garster's Dream",
+     "key": "G",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "Da Grocer",
+     "key": "D",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Shetland 8 · Pottinger's / Da Lerwick Lasses",
+   "tunes": [
+    {
+     "title": "Pottinger's",
+     "key": "G",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Da Lerwick Lasses",
+     "key": "G",
+     "mode": "major",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Shetland 9 · Ahint Da Daeks O' Voe / Da Forfeit O' Da Ship",
+   "tunes": [
+    {
+     "title": "Ahint Da Daeks O' Voe",
+     "key": "D",
+     "mode": "minor",
+     "_position": 0
+    },
+    {
+     "title": "Da Forfeit O' Da Ship",
+     "key": "D major",
+     "mode": "major",
+     "_position": 1
+    }
+   ]
+  }
+ ]
+}

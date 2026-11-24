@@ -1,0 +1,237 @@
+{
+ "ceol": 1,
+ "type": "collection",
+ "name": "Starter Sets — Breton",
+ "description": "",
+ "tunes": [
+  {
+   "title": "Tri Martolod",
+   "type": "reel",
+   "key": "A",
+   "mode": "minor",
+   "abc": "X: 2\nT: Tri Martolod\nC: Alan Stivell\nZ: Paddy de Brún\nS: https://thesession.org/tunes/23345#setting47712\nR: reel\nM: 4/4\nL: 1/8\nK: Amin\nP:A\nE2|\"Am\"AG AB \"C\"cc /B/c/ z/x/|\"D\"dc ~BA \"F\"c2 \"G\"B2|\"Am\"AG AB \"C\"cc /B/c/ z/x/|\"D\"dc (3/B/c/B/A \"F\"c2 \"G\"Bd|[M:1/4]cB|\nM:4/4\nP:B\n|:\"Am\"A2 AA \"G\"G2 cB|\"F\"A2 AG/^F/ \"E\"E=F GE|\"Am\"A2 AA \"G\"G2 cB|1 \"F\"A2 \"G\"G2 \"Am\"AE EE:|2 [M:3/4] A2 G2 A2||\nM:4/4\nP:C\nAG AB cc /B/c/ z/x/|dc ~BA c2 B2|AG AB cc /B/c/ z/x/|dc (3/B/c/B/A c2 B\"_tri\"d|[M:1/4]\"_mar\"c\"_to-\"B|\nM:4/4\nP:D\n|:\"_lod\"A2 (3\"_yao-\"ABA \"_uank\"G2 \"_tra\"c\"_la\"B|\"_la\"A2 \"_la\"AG/\"_la\"^F/\"_la\" E\"_tri\"=F \"_mar-\"G\"_to\"E|\"_lod\"A2 (3\"_yao-\"ABA \"_uank\"G \"_o\"G \"_vo-\"c\"_ned\"B|1 \"_de\"A\"_ve-\"A \"_a-\"G\"_jiñ\"A2 \"_tri\"E\"_mar-\"E\"_to\"E:|2 [M:3/4] \"_de\"A2 \"_vea\"G2 \"_jiñ\"\"^D.C.\"A2||\n",
+   "composer": "Alan Stivell"
+  },
+  {
+   "title": "40 Vloaz 'zo",
+   "type": "barndance",
+   "key": "A",
+   "mode": "minor",
+   "abc": "X: 1\nT: 40 Vloaz 'zo\nZ: Damien Rogeau\nS: https://thesession.org/tunes/19322#setting38036\nR: barndance\nM: 4/4\nL: 1/8\nK: Amin\nP:A\n|:\"Am\"A>B cd ed {d}e2|{B}\"F\"cA AB/c/ \"G\"dd ee|\"Fm7\"A>B cd ed {d}e2|1 \"Dm7\"{B}cc AA \"Em7\"GG AA:|2 \"F\"{B}cA {AB}A2 \"G\"GG A2||\nP:B\n|:\"C\"e2 gg ed {cd}c2|\"G\"dd aa {ga}g2 e2|\"Am\"{ed}e2 gg ed c2|\"Em7\"dd ed cB A2:|\n"
+  },
+  {
+   "title": "Hanter dros Vannetais",
+   "key": "G",
+   "abc": "X:1\nT:Hanter dros Vannetais\nL:1/8\nQ:1/4=159\nM:none\nK:F\n%%stretchlast true\nV:1 treble\n%%MIDI program 21\nV:1\nP:A\n|: B2 cB A2 F2 G4 | B2 cB A3 F AG F2 | B2 cB A2 F2 G4 | B2 cB AF G_E F4 :|\nP:B\n|: F2 _EF A2 F2 G4 | B2 cB A2 F2 AG F2 | F2 _EF A2 F2 G4 | B2 cB AF G_E F4 :|\nP:C\n|: f2 af c2 A2 Bc d2 | c2 BA c2 B2 A4 | FA AF c2 A2 Bc d2 | c2 BA GB AG F4 :|\nP:D\n|: F2 AF c2 =A2 Bc d2 | c2 BA c2 B2 A4 | e2 dc B2 d2 cB A2 | c2 BA GB AG F4 :|\nP:E\n|: A2 GF e3 d c2 e2 | d2 cB e3 d c4 | AB BA d3 c B4 | GA AG B2 AG F4 |\n_A2 GF e3 d c2 e2 | d2 cB e3 d c4 | e2 dc B2 d2 cB A2 | c2 BA GB AG F4 :|\nP:F\n|: cc cc Bc Ac Gc cG | cc Ac Bc Ac Gc cc | FA AF c3 B A e3 | d2 cB Ac AG F4 :|\n"
+  },
+  {
+   "title": "Hanter Dro",
+   "type": "slide",
+   "key": "B",
+   "mode": "minor",
+   "abc": "X: 1\nT: Hanter Dro\nC: Tiennet Simonnin, Ronan Le Dissez\nZ: Vasha\nS: https://thesession.org/tunes/21528#setting43016\nR: slide\nM: 12/8\nL: 1/8\nK: Bmin\nP:A\n|:B,2 FD E2 ED CD EF|B,2 DC B,2 CD B,2 A,2|B,2 FD E2 ED CD EF|B,2 DC B,2 A,2 B,2 B,2:|\nP:B\nC2 DE D2 EF EF GA|G2 FE D2 B,2 CD C2|B,2 CD C2 E2 D2 D2|C2 FE D2 C2 B,2 B,2|\nC2 DE D2 EF EF GA|G2 FE D2 B,2 CD C2|E2 E2 F2 G2 E4|DF ED C2 B,A, B,2 B,2||\n",
+   "composer": "Tiennet Simonnin, Ronan Le Dissez"
+  },
+  {
+   "title": "Gavottes Pourleth",
+   "key": "G",
+   "abc": "X: 1\nT: Gavottes Pourleth\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
+  },
+  {
+   "title": "Ton doubl gavotte",
+   "key": "G",
+   "abc": "X: 1\nT: Ton doubl gavotte\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
+  },
+  {
+   "title": "Heuliad Gavotten",
+   "key": "G",
+   "abc": "X: 1\nT: Heuliad Gavotten\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
+  },
+  {
+   "title": "Heuliad Plinn",
+   "key": "G",
+   "abc": "X: 1\nT: Heuliad Plinn\nM: 4/4\nL: 1/8\nK: D\n% No ABC notation stored"
+  },
+  {
+   "title": "Skolvan Doubl Plinn",
+   "type": "reel",
+   "key": "B",
+   "mode": "minor",
+   "abc": "X: 1\nT: Skolvan Doubl Plinn\nC: Gaby Kerdoncuff, Y. Le Bihan\nZ: Fred Saur\nS: https://thesession.org/tunes/6150#setting6150\nR: reel\nM: 4/4\nL: 1/8\nK: Bmin\nP:A\n|e2 ef ed (3cBA|e2 de fg f2|e2 f2 ed (3cBA|e2 de fe f2|\nP:B\n|:f2 fd ef gf|e2 (3dcB cd B2|(3Bcd ef af g2|fg ed e2 e2:|",
+   "composer": "Gaby Kerdoncuff, Y. Le Bihan"
+  },
+  {
+   "title": "Laride",
+   "key": "A minor",
+   "mode": "minor",
+   "abc": "X:26\nT:Laride\nI:last changed 14/2/2016\nF:http://www.campin.me.uk/Music/Edinbal.abc\nC:Breton\nS:Blowzabella\nM:2/2\nL:1/8\nQ:1/2=120\nK:AMin\nP:A\nA4 e4|d2f2 e4|d3 e d2B2|c2d2 edcB|\nA4 e4|d2f2 e4|d3 e d2B2|c2B2 A4 :|\nP:B\nA4 c4|c2A2 B4|B3c  d2B2|c2d2 edcB|\nA4 c4|c2A2 B4|B3 c d2e2|c2B2 A4 :|\n",
+   "composer": "Breton",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "Kas Ha Barh",
+   "type": "reel",
+   "key": "B",
+   "mode": "minor",
+   "abc": "X: 2\nT: Kas Ha Barh\nZ: JACKB\nS: https://thesession.org/tunes/1456#setting23448\nR: reel\nM: 4/4\nL: 1/8\nK: Bmin\nP:A\n|:Bffg f2ed|e2de fdBA|Bffg f2ed|e2de f3A|\nBffg f2ed|e2de fdBA|Bffg f2ed|e2 dc B4||\nP:B\n|:f2 ab f3d|e2de fdBA|Bffg f2ed|e2de f3g|\nf2 ab f3d|e2 de fdBA|Bffg f2ed|e2 dc B4||\nP:C\n|:BABc d3B|cdec dcBA|(3Bcd ec dcBc|dBcd B4:|\n"
+  },
+  {
+   "title": "Dans Fisel",
+   "type": "reel",
+   "key": "D",
+   "mode": "major",
+   "abc": "X: 2\nT: Dans Fisel\nZ: Anantacitta\nS: https://thesession.org/tunes/16043#setting34118\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nBd BA Bc|e2 cd cd|B2 B2 Bd|BA Bc e2|\ncd cd B2|B2 Bd BA|Bc e2 cd|cd B2 B2|\nBd BA Bc|e2 cd cd|B2 B2 Bf|fd ef gf|\nef ed/c/ de|fe dc BA|Bc e2 cd|cd B2 B2|\nBf fd ef|gf ef ed/c/|de fe dc|BA Bc e2|\ncd cd B2|B2 Bd BA|Bc e2 cd|cd B2 B2|\nBd BA Bc|e2 cd cd|B2 B2 Bd|BA Bc e2|\ncd cd B2|B2 Bd BA|Bc e2 cd|cd B2 B2|\nBf fd ef|gf ef ed/c/|de fe dc|BA Bc e2|\ncd cd B2|B2 Bf fd|ef gf ef|ed/c/ de fe|\ndc BA Bc|e2 cd cd|B2 B2 Bd|BA Bc e2|\ncd cd B2|B2 Bd BA|Bc e2 cd|cd B2 B2|\nBd BA Bc|e2 cd cd|B2 B2 Bd|BA Bc e2|\ncd cd B2|B2 Bf fd|ef gf ef|ed/c/ de fe|\ndc BA Bc|e2 cd cd|B2 B2 Bf|fd ef gf|\nef ed/c/ de|fe dc BA|Bc e2 cd|cd B2 B2||\n"
+  },
+  {
+   "title": "Ridee",
+   "type": "waltz",
+   "key": "E",
+   "mode": "minor",
+   "abc": "X: 1\nT: Ridee\nZ: m.r.kelahan\nS: https://thesession.org/tunes/8130#setting8130\nR: waltz\nM: 3/4\nL: 1/8\nK: Emin\nP:A\n|:\"Em\" EB AG FG|\"A7\" A2 GF ED|\"Em\" EB AG FG|1 \"A7\" AF A2 GF:|2 \"A7\" A2 GF E2||\nP:B\n\"G\" G2 FD G2|FD EF GB|\"Am\" A2 GB AF|1 A2 GF EF:|2 A2 GF ED||\n"
+  },
+  {
+   "title": "Valse de Galorne",
+   "type": "waltz",
+   "key": "E dorian",
+   "mode": "dorian",
+   "abc": "X:17\nT:Valse de Galorne\nC:Traditional Breton \nD:Shegui: In the Wind\nZ:Gordon Turnbull, Edinburgh\nZ:http://www.theflow.org.uk\nM:3/4\nL:1/8\nQ:1/4=135\nK:Edor\nP:A\nBG |: {D}E2 {D}EF GA | B2 {c}BA (3Bcd | {G}A2 {AB}AG FG | A2 {B}A2 BG|\n{D}E2 {D}EF GA | B2 {c}BA (3Bcd | A2 GA FA | [1 {D}E4 BG :|[2 {D}E4 GA |]\nP:B\n|: {A}B2 {c}BA (3Bcd | {A}B2 {c}BA (3Bcd | {G}A2 {AB}AG FG | A2 {B}A2 GA |\n{A}B2 {c}BA (3Bcd | {A}B2 {c}BA (3Bcd | A2 GA FA |[1 {D}E4 GA :| [2{D}E4 BG|]\nP:C\n",
+   "composer": "Traditional Breton",
+   "transcribed_by": "Gordon Turnbull, Edinburgh",
+   "source_url": "http://www.flutefling.co.uk/wp-content/uploads/2013/11/FF_SMG_repertoire_2012-13-3.txt"
+  },
+  {
+   "title": "An Alarc'h",
+   "type": "polka",
+   "key": "A",
+   "mode": "minor",
+   "abc": "X: 2\nT: An Alarc'h\nZ: Buyse_A\nS: https://thesession.org/tunes/10231#setting54677\nR: polka\nM: 2/4\nL: 1/8\nK: Amin\nE |A B c z | A2 ^G G |\nw:Eunn a-larc'h, eunn a larc'h tre\n/[M:2/8] A E||\n[M:2/4] A B c z | A2 ^G G |\nw:-mor, Eunn a-larc'h, eunn a larc'h tre\n/[M:2/8] A c ||\n[M:2/4] c d e> e |d> c (c2| B4)|\nw:mor. War lein tour moal kas tel Ar vor!\nA B c B/2 A/2 |A ^G/2 G/2 A z |\nw: Dinn, dinn, daon! d'anu em-gaun! dann em gaun!\nHE2 z| A B c B/2 A/2| A ^G HA2||\nw: oh! Dinn, dinn, daon! d'ann em gann * eauu\n"
+  }
+ ],
+ "sets": [
+  {
+   "name": "Breton 1 · Tri Martolod / 40 Vloaz 'zo",
+   "tunes": [
+    {
+     "title": "Tri Martolod",
+     "key": "A",
+     "mode": "minor",
+     "_position": 0
+    },
+    {
+     "title": "40 Vloaz 'zo",
+     "key": "A",
+     "mode": "minor",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Breton 2 · Hanter dros Vannetais / Hanter Dro",
+   "tunes": [
+    {
+     "title": "Hanter dros Vannetais",
+     "key": "G",
+     "mode": "",
+     "_position": 0
+    },
+    {
+     "title": "Hanter Dro",
+     "key": "B",
+     "mode": "minor",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Breton 3 · Gavottes Pourleth / Ton doubl gavotte / Heuliad Gavotten",
+   "tunes": [
+    {
+     "title": "Gavottes Pourleth",
+     "key": "G",
+     "mode": "",
+     "_position": 0
+    },
+    {
+     "title": "Ton doubl gavotte",
+     "key": "G",
+     "mode": "",
+     "_position": 1
+    },
+    {
+     "title": "Heuliad Gavotten",
+     "key": "G",
+     "mode": "",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Breton 4 · Heuliad Plinn / Skolvan Doubl Plinn",
+   "tunes": [
+    {
+     "title": "Heuliad Plinn",
+     "key": "G",
+     "mode": "",
+     "_position": 0
+    },
+    {
+     "title": "Skolvan Doubl Plinn",
+     "key": "B",
+     "mode": "minor",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Breton 5 · Laride / Kas Ha Barh",
+   "tunes": [
+    {
+     "title": "Laride",
+     "key": "A minor",
+     "mode": "minor",
+     "_position": 0
+    },
+    {
+     "title": "Kas Ha Barh",
+     "key": "B",
+     "mode": "minor",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Breton 6 · Dans Fisel / Ridee",
+   "tunes": [
+    {
+     "title": "Dans Fisel",
+     "key": "D",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Ridee",
+     "key": "E",
+     "mode": "minor",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Breton 7 · Valse de Galorne / An Alarc'h",
+   "tunes": [
+    {
+     "title": "Valse de Galorne",
+     "key": "E dorian",
+     "mode": "dorian",
+     "_position": 0
+    },
+    {
+     "title": "An Alarc'h",
+     "key": "A",
+     "mode": "minor",
+     "_position": 1
+    }
+   ]
+  }
+ ]
+}

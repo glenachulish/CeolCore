@@ -1,0 +1,506 @@
+{
+ "ceol": 1,
+ "type": "collection",
+ "name": "Starter Sets — Irish",
+ "description": "",
+ "tunes": [
+  {
+   "title": "Silver Spear, The",
+   "type": "reel",
+   "abc": "X:1\nT:The Silver Spear\nA: Flutefling\nL:1/8\nQ:1/4=176\nM:4/4\nK:D\n%%stretchlast true\nV:1 treble\n%%MIDI program 73\nV:1\n|: FAAA BAFA | dfed BcdA | FAAA BAFA | dfed B2 A2 |FAAA BAFA | dfed (3Bcd ef | g2 ge f2 fe | dfed B2 A2 ::\nfaaf bfaf | gfed Bcde | faaf bfaf | gfed B2 A2 |faaf bfaf | gfed (3Bcd ef | g2 ge f2 fe | dfed B2 A2 :|\n"
+  },
+  {
+   "title": "The Mountain Road",
+   "type": "reel",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X: 5\nT: The Mountain Road\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\nP:A\nB2 dBeB dB|B2 dB ABGA|B2 dB eBdB|cABG AGEG|\nB2 dBeB dB|B2 dB ABGA|Bd d2 edBd|egfa g4||\nP:B\ng3e dG (3Bcd|g3a bgaf|g3e dG (3Bcd|cABG AGEG|\ng3e dG (3Bcd|g3a bgaf|g3e dG (3Bcd|cABG AGEG||\n"
+  },
+  {
+   "title": "The Merry Blacksmith",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X:360\nT:The Boys of the Lake\nT:(The Merry Blacksmith)\nB:Joyce, P. W.; \"Old Irish Folk Music and Songs\"\nN:See #356 for history\nR:reel\nA:Kildare\nO:Irish\nL:1/8\nM:C\nZ:Allan Garvin\nK:D\nP:A\nA|d2 dA BAFA|AFdA BAFA|ABde f2 ed|Beed Beef|\nd3 A BAFA|AFdA BAFA|ABde f2 ec|dBAF D3||\nP:B\nf|ac'ag fafe|d3 A BAFA|ABde f2 ed|Beed Beef|\nac'ag fafe|d3 A BAFA|ABde f2 ec|dBAF D3||\n",
+   "aliases": [
+    "(The Merry Blacksmith)"
+   ],
+   "transcribed_by": "Allan Garvin",
+   "source_url": "http://trillian.mit.edu/~jc/music/abc/mirror/AllanGarvin/All.abc"
+  },
+  {
+   "title": "Cooley's Reel",
+   "type": "reel",
+   "key": "E dorian",
+   "mode": "dorian",
+   "abc": "X:54\nT:Cooley's Reel\nR:Reel\nA:Ireland\nM:C|\nQ:1/4=143\nK:EDor\nP:A\nD2|EBBA B2EB | B2AB dBAG | (3FED AD BDAG | (3FED FA dAFD |\nEBBA B2EB | B2AB defg | afec dBAF | DEFD E2 :|\nP:B\ngf | eB~B2 efgf | eB~B2 gedB | A2FA DAFA | ~A2FA defg |\neB~B2 efgf | eB~B2 defg | afec dBAF | DEFD E2 :|\n",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "The Wise Maid",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 6\nT: The Wise Maid\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:DE|F2 F/F/F FEDE|FAAB AFED|d2 e/f/g fdec|dBAd BE E2|\nF2 F/F/F FEDE|FAAB AFED|d2 e/f/g fdec|dBAG FD:|\nP:B\n|:FA|d2 AG FDFA|dfaf gfeg|fAdf eAce|dfed cA A2|\nBDGB ADFA|dfaf gfed|B/c/d ce dBAG|FGEF D2:|\n"
+  },
+  {
+   "title": "The Kesh Jig",
+   "type": "jig",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X:7\nT:The Kesh Jig\nM:6/8\nB:Bulmer & Sharpley\nA:Ireland\nR:Jig\nQ:1/4=198\nK:G\nP:A\nD| GFG GAB | ~A3 ABd | edd gdd | edB dBA |\nGFG GAB | ABA ABd | edd gdB | AGF G2 :|\nP:B\nA|BAB dBd | ege dBG | BAB dBG | ABA AGA |\nBAB dBd | ege dBd | gfg aga | bgg g2 :|\n",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "Out on the Ocean",
+   "type": "jig",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X:15\nT:Out on the Ocean\nA:Ireland\nS:Sessions\nR:Jig\nM:6/8\nL:1/8\nK:G\nP:A\n~B3 BAG | BdB A2 B|GED G2A | BAB GED |\nBAB BAG |BdB A2B | GED G2A | BGG G3 :|\nP:B\nege edB | ege edB | ded dBA | ded dBA |\nG2A B2d | ege dBA | GED G2A | BGG G3 |\nege edB | ege edB | ded def | gfe dBA |\nG2A B2d | ege dBA | GED G2A | BGG G3 ||\n",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "Lark in the morning",
+   "type": "jig",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 28\nT:Lark in the morning\nM:6/8\nL:1/8\nC:Trad\nR:Jig\nK:D\nP:A\nAFA AFA | BGB BdB | AFA Ade | fed BdB |\nAFA AFA | BGB BdB | def afe | fd B BdB :|\nP:B\n|: def afa | baf afe | def afe | fdB B2 A |\ndef afa | baf a2 f | gag fgf | edB BdB :|\nP:C\n|: d2 f fef | fef fef | d2 f fef | edB B2 A |\nd2 f fef | fef fef | gag f gf | edB BAB :|\nP:D\n|: Add fdd | edd fdB | Add fdd | edB B2 A |\nAdd fdd | ede f2 f | gag fgf | edB BdB :|\n",
+   "composer": "Trad",
+   "source_url": "http://trillian.mit.edu/~jc/music/abc/mirror/banjolin.supanet.com/pvs1.abc"
+  },
+  {
+   "title": "Morrison's Jig",
+   "type": "jig",
+   "key": "E dorian",
+   "mode": "dorian",
+   "abc": "X:9\nT:Morrison's Jig\nM:6/8\nR:Jig\nA:Ireland\nK:EDor\nP:A\n|\"Em\"~E3 BEB|EBE \"D\"AFD|\"Em\"~E3 BEB|\"D\"dcB AFD|\n\"Em\"~E3 BEB|EBE \"D\"AFD|\"G\"~G3 \"D\"FGA|\"G\"BAG \"D\"FED:|\nP:B\n\"Em\"Bee fee|aee fed|Bee fee|\"D\"fag fed|\n\"Em\"Bee fee|aee fed|\"G\"gfe d2A|BAG \"D\"FED|\n\"Em\"Bee fee|aee fed|Bee fee|\"D\"faf def|\n\"G\"~g3 gfe|\"D\"def \"G\"g2 d|edc \"D\"d2 A|\"G\"BAG \"D\"FED||\n",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "Saddle The Pony",
+   "type": "jig",
+   "key": "G",
+   "mode": "major",
+   "abc": "X: 2\nT: Saddle The Pony\nZ: tmcelrea\nS: https://thesession.org/tunes/307#setting13070\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\nD|:GBA G2B|def gdB|GBA G2B|AFD D2F|\nGBA G2B|def g2f|ecA dBG|1 FEF G2 D:|2 FEF G2 B||\nP:B\n|:d2d dcd|def gfe|d2d dcd|AFD D2c|\nd2d dcd|def g2f|ecA dBG|1 FEF G2 B:|2 FEF G2 D||\n"
+  },
+  {
+   "title": "The Rambling Pitchfork",
+   "type": "jig",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 3\nT: The Rambling Pitchfork\nR: jig\nM: 6/8\nL: 1/8\nK: Dmaj\n|:E|F3 AFF|dFF AFD|GFG ABc|ded cAG|\nFAF AFF|dFF AFD|GFG BAB|AFD D2:|\n|:A|d2 e fed|ecA AFA|dcd efg|faf gfe|\n[1 dcd fed|ecA AGF|GFG BAB|AFD D2:|\n[2 a2 f gfe|fed ecA|GFG BAB|AFD D2||"
+  },
+  {
+   "title": "The Butterfly",
+   "type": "slipjig",
+   "key": "E dorian",
+   "mode": "dorian",
+   "abc": "X:22\nT:The Butterfly\nR:Slipjig\nC:Tommy Potts\nD:Bothy Band: 1975.\nA:Ireland\nZ:id:hn-slipjig-3\nM:9/8\nK:Edor\nP:A\nB2E G2E F3|B2E G2E FED|B2E G2E FGA|B2d d2B AFA:|\nP:B\n|:B2d e2f g3|B2d g2e dBA|B2d e2f g2a|b2a g2e dBA:|\nP:C\n|:B3 B2A G2A|B3 BAB dBA|B3 B2A G2A|B2d g2e dBA:|\n",
+   "composer": "Tommy Potts",
+   "transcribed_by": "id:hn-slipjig-3",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "The Kid on the Mountain",
+   "type": "slipjig",
+   "key": "E minor",
+   "mode": "minor",
+   "abc": "X:23\nT:The Kid on the Mountain\nR:Slipjig\nA:Ireland\nM:9/8\nK:Em\nP:A\n\"Em\"~E3 FEF  ~G3| ~E3 c2 A BGE|EDE FEF G2 A|\"D\"BAG FAG FED:|\nP:B\n\"G\"BGB \"D\"AFA \"G\"G2D|GAB dge \"D\"dBA|\"G\"BGB \"D\"AFA \"G\"G2 A|\"Em\"BAG \"D\"FAGFED:|\nP:C\n\"Em\"egg eBB e2 f|~g3 efg \"D\"afd|\"Em\"egg eBB ega|\"G\"bag \"D\"fag fed:|\nP:D\n\"Em\"eBB e2 f ~g3| eBB efg \"D\"afd|\"Em\"eBB e2f g2 a|\"G\"bag \"D\"fag fed:|\nP:E\n\"G\"edB \"D\"dBA \"G\"G2 D|GAB dge \"D\"dBd|\"G\"edB \"D\"dBA \"G\"G2 A|\"Em\"BAG \"D\"FAG FED:|\n",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "Comb Your Hair And Curl It",
+   "type": "slip jig",
+   "key": "E",
+   "mode": "dorian",
+   "abc": "X: 8\nT: Comb Your Hair And Curl It\nZ: janglecrow\nS: https://thesession.org/tunes/1030#setting27452\nR: slip jig\nM: 9/8\nL: 1/8\nK: Edor\nP:A\n|:B2E E2F G2A|B2e ece dBA|B2E E2F G2A|B=cB ABG FED:|\nP:B\ng2e efe e2f|g3 efg afd|g2e efe e2c|d2B ABG FED|\ng2e efe e2f|g3 efg afd|gfg afd g2e|d2B ABG FED||\n"
+  },
+  {
+   "title": "John Ryan's",
+   "type": "polka",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 66\nT:John Ryan's\nM:2/4\nL:1/8\nC:Trad\nR:Polka\nK:D\nP:A\ndd B/c/d/B/|AF AF|dd B/c/d/B/|AF ED|\ndd B/c/d/B/|AF Ad/e/|fd e/d/c|1 d2 d2:|2 d2 d>e||\nP:B\n|:fd de/f/|gf ed/e/|fd Ad|fd/f/ a>g|\nfd de/f/|gf ed/e/|fd e/d/c|1 d2 d>e:|2 d2 d2||\n",
+   "composer": "Trad",
+   "source_url": "http://trillian.mit.edu/~jc/music/abc/mirror/banjolin.supanet.com/pvs1.abc"
+  },
+  {
+   "title": "Britches Full of Stitches",
+   "type": "polka",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X:52\nT:Britches full of Stiches (Polka), The\nM:2/4\nL:1/8\nQ:1/4=160\nR:Polka\nK:D Major\nP:A\n|:\"A\"(A>B) (cA)|(BA) (ce)|(A>B) (cA)|\"A\"(BA) \"D\"F2|\n\"A\"(A>B) (cA)|(BA) (ce)|(A>B) (AF)|\"E\"(FE) E2:|]\nP:B\n|:\"A\"(ef) (ec)|(BA) (Bc)|(e>f) (ec)|\"A\"(BA) \"D\"F2|\n\"A\"(ef) (ec)|(BA) (Bc)|(A>B) (AF)|\"A\"(FE) \"E\"E2:|\n",
+   "aliases": [
+    "Britches full of Stiches (Polka), The"
+   ],
+   "source_url": "http://www.slainte.ch/music/MyLucerneSessionTunesV4.txt"
+  },
+  {
+   "title": "Maggie In The Woods",
+   "type": "polka",
+   "key": "G",
+   "mode": "major",
+   "abc": "X: 6\nT: Maggie In The Woods\nZ: Mix O'Lydian\nS: https://thesession.org/tunes/291#setting26487\nR: polka\nM: 2/4\nL: 1/8\nK: Gmaj\nP:A\n|:D|GD GA|Be ef/e/|dB B/A/G/A/|BA A>D|\nGD GA|Be ef/e/|dB AB/A/|1 G2 G:|2 G2 G z||\nP:B\n|:gf ed|ef g>e|dB B/A/G/A/|BA A z|\ngf ed|ef g>e|dB AB/A/|1 G2 G2:|2 G2 G||\n"
+  },
+  {
+   "title": "Denis Murphy's",
+   "type": "slide",
+   "key": "D",
+   "mode": "major",
+   "abc": "X: 13\nT: Denis Murphy's\nZ: Fernando Durbán Galnares\nS: https://thesession.org/tunes/159#setting47842\nR: slide\nM: 12/8\nL: 1/8\nK: Dmaj\nP:A\n|:B|\"D\"A2D FED F2A A2f|\"G\"g2e f2d \"A\"e2d Bcd|\"D\"A2D FED F2A A2f|\"G\"a2f \"A\"efe \"D\"d3 d2:|\nP:B\n|:A|\"D\"d2e f2f \"G\"gfe \"D\"f2f|\"Em\"gfe f2d \"A\"e2d BAB|\"D\"d2e f2f \"G\"gfe \"D\"f2g|\"A\"a2f efe \"D\"d3 d2:|\n"
+  },
+  {
+   "title": "The Star Above The Garter",
+   "type": "slide",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X: 1\nT: The Star Above The Garter\nR: slide\nM: 12/8\nL: 1/8\nK: Gmajor\nP:A\n|:d2B BAG ~A3 ABA|G2E c2B BAG ABc|  d2B BAG ~A3 ABA|G2E c2E D3 D3:|\nP:B\n|:d2e f2a g2e d2B|G2B c2B BAG ABc|  d2e f2a g2e d2B|G2B c2E D3 D3:|\n",
+   "aliases": [
+    "An Réalt Os Cionn An Ghairtéir",
+    "The Kerry",
+    "Lisheen No.1",
+    "The Lisheen Slides"
+   ],
+   "session_id": 1398,
+   "setting_id": "1398"
+  },
+  {
+   "title": "Merrily Kiss the Quaker's Wife",
+   "type": "single jig",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X:4\nT:Merrily Kiss the Quaker's Wife\nR:single jig\nH:See also slide#54\nZ:id:hn-slide-4\nM:6/8\nK:G\nGAB D2B|c2A BGE|GAB DEG|A3 AGE|\nGAB D2B|c2A BGE|GAB D2E|1 G3 G2D:|2 G3 G2A||\n|:BGG AGG|BGG AGE|GAB DEG|A3 AGA|\nBGG AGG|BGG AGE|GAB D2E|1 G3 G2A:|2 G3 GBd||\n|:~g3 aga|bge dBd|~g3 gab|~a3 agf|\ng2g faf|ege dBA|GAB D2E|1 G3 GBd:|2 G3 G2D||\nP:Variations of 1st part\n|:GAB D2B|BcA B2A|GAB DEG|ABA AGE|\nGAB DED|cBA B2A|GAB D2E|1 G3 G2D:|2 G3 G2A||",
+   "transcribed_by": "id:hn-slide-4",
+   "source_url": "http://www.norbeck.nu/abc/i/hnsl0.abc"
+  },
+  {
+   "title": "Harvest Home",
+   "type": "reel",
+   "key": "A major",
+   "abc": "X: 1\n%%MIDI transpose -2\nT: Harvest Storm\nZ: Will Harmon\nS: https://thesession.org/tunes/356#setting356\nR: reel\nM: 4/4\nL: 1/8\nK: Gmaj\n|d3e dGBd|eGfG gfeg|(3ddd de dGBG|FGAB cege|\nd2 de dGBd|ec (3ccc gfeg|(3ddd de dGBG|FGAB cdef|\ng2 fa gdBd|gG (3GGG dGBd|(3gag fa gdBG|FGAB cdef|\ng2 fa gdBd|gG (3GGG dGBd|gGfG eGdB|cBAB cege",
+   "aliases": [
+    "Harvest Storm"
+   ],
+   "transcribed_by": "Will Harmon"
+  },
+  {
+   "title": "Boys of Blue Hill",
+   "type": "hornpipe",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 6\nT:Boys of Bluehill\nM:4/4\nL:1/8\nC:Trad\nR:Hornpipe\nQ:1/4=162\nK:D\nP:A\nFG | BAFA  D2 FA | BABd e2 de | faaf egfe | dfed B2 dB |\nBAFA D2 FA | BA Bd e2 de | faaf egfe | d2d2d2:|\nP:B\nfg | afdf a2 gf | gfga b2 ag | faaf egfe | dfed B2 dB |\nBAFA D2 FA | BAB d e2 de | faaf egfe | d2d2d2:|\n",
+   "composer": "Trad",
+   "source_url": "http://trillian.mit.edu/~jc/music/abc/mirror/banjolin.supanet.com/pvs1.abc"
+  },
+  {
+   "title": "The Rights Of Man",
+   "type": "hornpipe",
+   "key": "E minor",
+   "mode": "minor",
+   "abc": "X: 1\nT: The Rights Of Man\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Emin\nP:A\n|:GA|B2A2 G2F2|EFGA B2ef|gfed edBd|cBAG A2GA|\nBcAB GAFG|EFGA B2ef|gfed Bgfg|e2 E2 E2:|\nP:B\n|:ga|babg efga|babg egfe|d^cde fefg|afdf a2gf|\nedef gfga|bgaf gfef|gfed Bgfg|e2 E2 E2:|\n",
+   "aliases": [
+    "High Could Cat",
+    "The Right Of Man"
+   ],
+   "session_id": 83,
+   "setting_id": "24377"
+  },
+  {
+   "title": "The Maid Behind the Bar",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 180\nT: The Maid Behind the Bar\nT: The Green Mountain\nN: page 59\nN: heptatonic\nQ:1/4=168\nM:C|\nR:reel\nZ:Vancouver, Boston\nZ:In O'Neill's as the Green Mountain, with a bit different setting.\nE:7\nK:D\nP:A\nAG|FAAB AFED|FAAB A2 de|fBBA Bcde|f2 gf edBA|\nFAAB AFED|FAAB A2 de|fBBA BcdB|AFEF D3:|\nP:B\ne|fgag fdde|fdad fd d2|efga beef|gebe ge ~e2|\nfaaf bfaf|defd e2 de|fBBA BcdB|AFEF D3:|\n",
+   "aliases": [
+    "The Green Mountain"
+   ],
+   "transcribed_by": "Vancouver, Boston",
+   "source_url": "http://ifdo.ca/~seymour/ottawaslowjam/OSJ_abc_vol2.abc"
+  },
+  {
+   "title": "The Concertina",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 3\nT: The Concertina\nR: reel\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n\u0014|:A2FA BAFG|A2FA BAFA|B2cA BAcA|BAcA BAFG|\nA2FA BAFG|A2FA BAFE|FABc dedB|AFEF D4:|\nP:B\n|:Ad ~d2 Ad ~d2|AddA BAFA|B2cA BAcA|BAcA BAFG|\nAd ~d2 Ad ~d2|Addc d3B|A2FA BcdB|AFEF D4:|\n"
+  },
+  {
+   "title": "The Earl's Chair",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 2\nT: The Earl's Chair\nR: reel\nM: 4/4\nL: 1/8\nK: Dmajor\nP:A\n|:B2 dB BAFA|B2 dB BAFB|AF (3FFF DF (3FFF|AFdB ADFA|\nB2 dB BAFA|B2 dB BAFB|A3 B defd|1 edef d3 A:|2 edef d3 f||\nP:B\n|:e2 ef d2 df|edef dB A2|e2 ef dcde|fedB ADFA|\ne2 ef dB (3BBB|gB (3BBB defg|afbf afeg|fedB ADFA:|\n",
+   "aliases": [
+    "Cathaoir An Iarla"
+   ],
+   "session_id": 221,
+   "setting_id": "12904"
+  },
+  {
+   "title": "The Banshee (ornamented)",
+   "type": "reel",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X:57\nT:The Banshee\nT:McMahon's Reel\nR:Reel\nC:James McMahon\nA:Irish\nM:4/4\nL:1/8\nB:Bulmer and Sharpley\nD:Barde\nK:G\nP:A\nDE|:~G3 D {F}EDEG | {B}AGAB ~d2 Bd | {f}efge {e}dBGA | {c}BAGE {F}ED{E}DE |\n{A}GFGD {F}EDEG | {B}AGAB ~d2 Bd | {f}efge {e}dBGA | {c}BAGE {F}ED{E}D2 :|\nP:B\nea{b}ag {f}efge | {e}dB{c}BA ~B3 d | {f}eB~B2 {f}egfg | {f}eB{c}BA B3d|\n{f}ea{b}ag {f}efge | {e}dB{c}BA B3d | {f}efed {c}BAGA | {c}BAGE {F}ED {E}D2 :|\n",
+   "aliases": [
+    "McMahon's Reel"
+   ],
+   "composer": "James McMahon",
+   "source_url": "theCraic"
+  },
+  {
+   "title": "The Sligo Maid",
+   "type": "reel",
+   "key": "A dorian",
+   "mode": "dorian",
+   "abc": "X: 1\nT: The Sligo Maid\nR: reel\nM: 4/4\nL: 1/8\nK: Ador\nP:A\n|:A2BA (3B^cd ef|gedB AGEF|G2BG dGBG|DEGA BAdB|\nA2BA (3B^cd ef|gedB AGEG|B3G A2GE|DEGA BAA2:|\nP:B\n|:eaag a2ga|bgaf gfed|eggf g2ge|dega bgag|\neaag a2ga|bgaf gfed|eg (3gfg edBA|dBgB BAA2:|\n"
+  },
+  {
+   "title": "the Bucks of Oranmore",
+   "type": "reel",
+   "key": "D major",
+   "mode": "major",
+   "abc": "X: 23\nT: the Bucks of Oranmore\nR: reel\nZ: 2012 John Chambers <jc@trillian.mit.edu>\nB: \"100 Essential Irish Session Tunes\" 1995 Dave Mallinson, ed.\nM: 4/4\nL: 1/8\nK: D\n%\n|: \"D\"A2-AF A2dB | A2FA \"Em\"BE~E2 |[1 \"D\"A2-AF A2AB | \"(G)\"defd \"A7\"ecdB :|\n[2 \"D\"DEFG AFAB | \"(G)\"defd \"A7\"ecdB |]\n%\n|: \"D\"ADFD ADBD | ADFA \"Em\"BE~E2 |[1 \"D\"ADFD A2AB | \"(G)\"defd \"A7\"ecdB :|\n[2 \"D\"DEFG AFAB | \"(G)\"defd \"A7\"efge |]\n%\n|: \"D\"a2fd edBf | a2fa \"Em\"be~e2 |[1 \"D\"a2fd edBd | \"G\"gefd \"A7\"edBf :|\n[2 \"D\"fdad bdaf | \"G\"((3efg) fd \"A7\"edBe |]\n%\n|: \"D\"f2df ((3efe) de | f2df \"Em\"edBe |[1 \"D\"f2df edBd | \"G\"gefd \"A7\"edBe |[2 \"D\"fdad bdaf | \"G\"((3efg) fd \"A7\"edBd |]\n%\n|: \"D\"Adfd edfd | Adfd \"Em\"edB [1 d | \"D\"Adfd adfd | \"G\"((3efg) fd \"A7\"edBd :|\n[2 e | \"D\"fdad bdaf | \"G\"((3efg) fd \"A7\"efdB |]\n",
+   "transcribed_by": "2012 John Chambers <jc@trillian.mit.edu>",
+   "source_url": "http://trillian.mit.edu/~jc/music/abc/Ireland/session/Bucks_of_Oranmore_1_DM.abc"
+  },
+  {
+   "title": "The Banshee",
+   "type": "reel",
+   "key": "G major",
+   "mode": "major",
+   "abc": "X:57\nT:The Banshee\nT:McMahon's Reel\nR:Reel\nC:James McMahon\nA:Irish\nM:4/4\nL:1/8\nB:Bulmer and Sharpley\nD:Barde\nK:G\nP:A\nDE|:~G3 D EDEG | AGAB ~d2 Bd | efge dBGA | BAGE EDDE |\nGFGD EDEG | AGAB ~d2 Bd | efge dBGA | BAGE EDD2 :|\nP:B\neaag efge | dBBA ~B3 d | eB~B2 egfg | eBBA B3d|\neaag efge | dBBA B3d | efed BAGA | BAGE ED D2 :|\n",
+   "aliases": [
+    "McMahon's Reel"
+   ],
+   "composer": "James McMahon",
+   "source_url": "theCraic"
+  }
+ ],
+ "sets": [
+  {
+   "name": "Irish 1 · The Silver Spear / The Mountain Road / The Merry Blacksmith",
+   "tunes": [
+    {
+     "title": "Silver Spear, The",
+     "key": "",
+     "mode": "",
+     "_position": 0
+    },
+    {
+     "title": "The Mountain Road",
+     "key": "G major",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "The Merry Blacksmith",
+     "key": "D major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 2 · Cooley's / The Wise Maid",
+   "tunes": [
+    {
+     "title": "Cooley's Reel",
+     "key": "E dorian",
+     "mode": "dorian",
+     "_position": 0
+    },
+    {
+     "title": "The Wise Maid",
+     "key": "D major",
+     "mode": "major",
+     "_position": 1
+    }
+   ]
+  },
+  {
+   "name": "Irish 3 · The Kesh / Out on the Ocean / The Lark in the Morning",
+   "tunes": [
+    {
+     "title": "The Kesh Jig",
+     "key": "G major",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Out on the Ocean",
+     "key": "G major",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "Lark in the morning",
+     "key": "D major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 4 · Morrison's / Saddle the Pony / The Rambling Pitchfork",
+   "tunes": [
+    {
+     "title": "Morrison's Jig",
+     "key": "E dorian",
+     "mode": "dorian",
+     "_position": 0
+    },
+    {
+     "title": "Saddle The Pony",
+     "key": "G",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "The Rambling Pitchfork",
+     "key": "D major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 5 · The Butterfly / The Kid on the Mountain / Comb Your Hair and Curl It",
+   "tunes": [
+    {
+     "title": "The Butterfly",
+     "key": "E dorian",
+     "mode": "dorian",
+     "_position": 0
+    },
+    {
+     "title": "The Kid on the Mountain",
+     "key": "E minor",
+     "mode": "minor",
+     "_position": 1
+    },
+    {
+     "title": "Comb Your Hair And Curl It",
+     "key": "E",
+     "mode": "dorian",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 6 · John Ryan's / Britches Full of Stitches / Maggie in the Woods",
+   "tunes": [
+    {
+     "title": "John Ryan's",
+     "key": "D major",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "Britches Full of Stitches",
+     "key": "D major",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "Maggie In The Woods",
+     "key": "G",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 7 · Denis Murphy's / The Star Above the Garter / Merrily Kiss the Quaker",
+   "tunes": [
+    {
+     "title": "Denis Murphy's",
+     "key": "D",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "The Star Above The Garter",
+     "key": "G major",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "Merrily Kiss the Quaker's Wife",
+     "key": "G major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 8 · The Harvest Home / The Boys of Bluehill / The Rights of Man",
+   "tunes": [
+    {
+     "title": "Harvest Home",
+     "key": "A major",
+     "mode": "",
+     "_position": 0
+    },
+    {
+     "title": "Boys of Blue Hill",
+     "key": "D major",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "The Rights Of Man",
+     "key": "E minor",
+     "mode": "minor",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 9 · The Maid Behind the Bar / The Concertina Reel / The Earl's Chair",
+   "tunes": [
+    {
+     "title": "The Maid Behind the Bar",
+     "key": "D major",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "The Concertina",
+     "key": "D major",
+     "mode": "major",
+     "_position": 1
+    },
+    {
+     "title": "The Earl's Chair",
+     "key": "D major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  },
+  {
+   "name": "Irish 10 · The Banshee / The Sligo Maid / The Bucks of Oranmore",
+   "tunes": [
+    {
+     "title": "The Banshee (ornamented)",
+     "key": "G major",
+     "mode": "major",
+     "_position": 0
+    },
+    {
+     "title": "The Sligo Maid",
+     "key": "A dorian",
+     "mode": "dorian",
+     "_position": 1
+    },
+    {
+     "title": "the Bucks of Oranmore",
+     "key": "D major",
+     "mode": "major",
+     "_position": 2
+    }
+   ]
+  }
+ ]
+}
