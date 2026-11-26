@@ -91,28 +91,45 @@ public enum Snippets {
     /// FONN-SNIPKEEP-1: snippets.html says, as you scroll, which tune is at
     /// the top of the screen. Kept per device, so the list opens there.
     /// True when the message was one of these.
+    ///
+    /// FONN-SNIPKEEP-2: held in memory while you scroll and written to
+    /// UserDefaults only when the list closes (`savePlace`). Writing it on
+    /// every pause in scrolling made SwiftUI redraw the page, which handed
+    /// the list over again and sent you back.
     @discardableResult
     public static func rememberPlace(from message: [String: Any]) -> Bool {
         guard let anchor = message["anchor"] as? String else { return false }
-        UserDefaults.standard.set(anchor, forKey: SnippetFilter.anchorKey)
-        UserDefaults.standard.set(message["list"] as? String ?? "", forKey: SnippetFilter.anchorListKey)
+        place = (anchor, message["list"] as? String ?? "")
         return true
+    }
+
+    nonisolated(unsafe) private static var place: (anchor: String, list: String)?
+
+    /// When the list closes, or a tune is opened from it.
+    public static func savePlace() {
+        guard let place else { return }
+        UserDefaults.standard.set(place.anchor, forKey: SnippetFilter.anchorKey)
+        UserDefaults.standard.set(place.list, forKey: SnippetFilter.anchorListKey)
     }
 
     /// Run when the page loads: back to the remembered tune, if it was
     /// remembered for these same filters.
     public static func returnScript(list: String) -> String? {
         let defaults = UserDefaults.standard
-        guard let anchor = defaults.string(forKey: SnippetFilter.anchorKey),
-              UUID(uuidString: anchor) != nil,
-              defaults.string(forKey: SnippetFilter.anchorListKey) == list else { return nil }
+        let kept = place ?? (defaults.string(forKey: SnippetFilter.anchorKey) ?? "",
+                             defaults.string(forKey: SnippetFilter.anchorListKey) ?? "")
+        let anchor = kept.anchor
+        guard UUID(uuidString: anchor) != nil, kept.list == list else { return nil }
         return "snippetsScrollTo(\"\(anchor)\");"
     }
 
     /// What snippets.html's loadABC() is handed: the rows as JSON text. Tunes
     /// with no music yet are left out and counted.
     public static func payload(for tunes: [Tune], list: String = "") -> String {
-        let withMusic = tunes.filter(\.hasNotation)
+        // FONN-SNIPKEEP-2: in a fixed order (the page sorts them its own
+        // way), so the same library always makes the same text and the page
+        // is only handed a list when something in it really changed.
+        let withMusic = tunes.filter(\.hasNotation).sorted { $0.uuid.uuidString < $1.uuid.uuidString }
         let rows = withMusic.map { tune in
             Row(id: tune.uuid.uuidString,
                 title: TitleDisplay.plain(tune.title),

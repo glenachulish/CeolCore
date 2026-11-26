@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import SwiftData
 
 // FONN-NOTYPE-1
@@ -63,13 +64,36 @@ public enum UntypedTunes {
     }
 
     // FONN-QUICKTYPE-1
-    /// The types offered by the quick Type button on a tune with none,
-    /// commonest first (the iPhone's details list, in its order).
-    public static let commonTypes = [
-        "reel", "jig", "hornpipe", "slip jig", "polka", "waltz", "march", "strathspey",
-        "slide", "hop jig", "air", "slow air",
-        "mazurka", "barndance", "schottische", "highland", "set dance",
+    /// FONN-REGIONTYPES-1: the types Fonn offers, by tradition. The first
+    /// group is the commonest, in the iPhone details list's old order; the
+    /// others are the dances of the Breton, Galician and Asturian, and Nordic
+    /// traditions, which The Session has no types for (its tunes from them
+    /// come in as reel, jig, waltz…).
+    public struct TypeGroup: Identifiable {
+        public let name: String
+        public let types: [String]
+        public var id: String { name }
+    }
+
+    public static let typeGroups: [TypeGroup] = [
+        TypeGroup(name: "Irish, Scottish, English", types: [
+            "reel", "jig", "hornpipe", "slip jig", "polka", "waltz", "march", "strathspey",
+            "slide", "hop jig", "air", "slow air",
+            "mazurka", "barndance", "schottische", "highland", "set dance", "three-two",
+        ]),
+        TypeGroup(name: "Breton", types: [
+            "an dro", "hanter dro", "gavotte", "plinn", "laridé", "kas a-barh", "fisel", "ridée",
+        ]),
+        TypeGroup(name: "Galician and Asturian", types: [
+            "muiñeira", "jota", "alborada", "pasodoble",
+        ]),
+        TypeGroup(name: "Nordic", types: [
+            "polska", "gånglåt", "schottis", "reinlender", "springar", "halling", "hambo",
+        ]),
     ]
+
+    /// Every type above, in order.
+    public static let commonTypes: [String] = typeGroups.flatMap(\.types)
 
     /// What one quick Type tap changed, so it can be put back.
     public struct QuickTypeChange {
@@ -125,5 +149,76 @@ public enum UntypedTunes {
             collection.tunes = members
         }
         try? context.save()
+    }
+}
+
+// FONN-NOTYPEPAGE-1
+/// At the top of a tune's page while it has no type: look at the music (or
+/// the PDF), then choose the type here. `onTyped` is told what changed, so
+/// a page opened from "No tune type" can go back to the list.
+public struct NoTypeBanner: View {
+    @Bindable var tune: Tune
+    let onTyped: (UntypedTunes.QuickTypeChange) -> Void
+
+    public init(tune: Tune, onTyped: @escaping (UntypedTunes.QuickTypeChange) -> Void) {
+        self.tune = tune
+        self.onTyped = onTyped
+    }
+
+    public var body: some View {
+        if tune.type.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            HStack(spacing: 10) {
+                Image(systemName: "tag.fill")
+                    .font(.title3).foregroundStyle(Color.accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("No type yet")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Look at the music, then choose its type.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Menu {
+                    TypeMenuItems { type in
+                        if let change = UntypedTunes.setType(type, on: tune) { onTyped(change) }
+                    }
+                } label: {
+                    Label("Type", systemImage: "chevron.down")
+                }
+                .fixedSize()
+                #if os(iOS)
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                #endif
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.accentColor.opacity(0.1))
+        }
+    }
+}
+
+/// FONN-REGIONTYPES-1: the type choices for a Menu: the commonest types,
+/// then one submenu per tradition, so the list stays short on a phone.
+public struct TypeMenuItems: View {
+    let onPick: (String) -> Void
+
+    public init(onPick: @escaping (String) -> Void) {
+        self.onPick = onPick
+    }
+
+    public var body: some View {
+        ForEach(UntypedTunes.typeGroups) { group in
+            if group.id == UntypedTunes.typeGroups.first?.id {
+                ForEach(group.types, id: \.self) { type in
+                    Button(type.capitalized) { onPick(type) }
+                }
+            } else {
+                Menu(group.name) {
+                    ForEach(group.types, id: \.self) { type in
+                        Button(type.capitalized) { onPick(type) }
+                    }
+                }
+            }
+        }
     }
 }

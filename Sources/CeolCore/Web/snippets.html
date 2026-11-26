@@ -26,9 +26,12 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
   .snip .name small { font-weight: 400; color: #999; margin-left: 6px; font-size: 11px; }
   .snip .marks { color: #c9a227; font-size: 11px; margin-left: 4px; }
-  .snip .music { min-height: 40px; overflow: hidden; padding: 2px 0; }
+  /* FONN-SNIPKEEP-2: every row the same height, drawn or not, so drawing a
+     snippet never moves the list under your finger. */
+  .snip .music { height: 46px; overflow: hidden; padding: 2px 0; box-sizing: content-box; }
   .snip .music { max-width: 380px; }
-  .snip .music svg { display: block; }
+  .snip .music svg { display: block; width: 100%; height: 100%; }
+  .snip .music > div { height: 100%; }
   @media (min-width: 700px) {
     .snip { grid-template-columns: 40px minmax(180px, 280px) minmax(0, 380px); grid-template-rows: auto; }
     .snip .play { grid-row: 1; }
@@ -50,7 +53,12 @@
 // D-major reels sit together, which is how you'd want to jog your memory
 // before a session — then by title.
 var TYPE_ORDER = ["reel", "jig", "slip jig", "hornpipe", "polka", "slide", "strathspey",
-                  "march", "barndance", "highland", "mazurka", "waltz", "air"];
+                  "march", "barndance", "highland", "mazurka", "waltz", "air",
+                  // FONN-REGIONTYPES-1: then each tradition's own dances together.
+                  "hop jig", "slow air", "schottische", "set dance", "three-two",
+                  "an dro", "hanter dro", "gavotte", "plinn", "laridé", "kas a-barh", "fisel", "ridée",
+                  "muiñeira", "jota", "alborada", "pasodoble",
+                  "polska", "gånglåt", "schottis", "reinlender", "springar", "halling", "hambo"];
 var KEY_ROOTS = "C C# Db D D# Eb E F F# Gb G G# Ab A A# Bb B".split(" ");
 
 function typeRank(t) {
@@ -137,13 +145,23 @@ function loadSnippets(data) {
     if (ka.mode !== kb.mode) return ka.mode.localeCompare(kb.mode);
     return (a.sortTitle || a.title).localeCompare(b.sortTitle || b.title);
   });
+  var skipped = data.withoutMusic || 0;
+  // FONN-SNIPKEEP-2: the same tunes in the same places (a star changed, a
+  // tune's notes edited, or simply the app redrawing): change just those
+  // rows and leave the list, and where you are in it, alone. Rebuilding it
+  // each time was what kept snapping you back while you scrolled.
+  var shape = data.list + "|" + tunes.map(function (x) {
+    return x.id + "/" + (x.type || "") + "/" + (x.key || "");
+  }).join(",");
+  if (rows.length && shape === lastShape) {
+    tunes.forEach(function (x, i) { refreshRow(rows[i], x); });
+    setSummary(tunes.length, skipped);
+    return;
+  }
+  lastShape = shape;
   var list = document.getElementById("list");
   list.innerHTML = ""; rows = [];
-  var skipped = data.withoutMusic || 0;
-  document.getElementById("summary").textContent =
-    tunes.length + (tunes.length === 1 ? " tune" : " tunes") +
-    (skipped ? " · " + skipped + " with no music yet not shown" : "") +
-    " · tap ▶ to hear the opening, a name to open the tune";
+  setSummary(tunes.length, skipped);
   if (!tunes.length) {
     list.innerHTML = '<div class="empty">No tunes match. Try fewer filters.</div>';
     return;
@@ -167,13 +185,12 @@ function loadSnippets(data) {
     }
     var row = document.createElement("div");
     row.className = "snip";
-    var marks = (t.rating ? "★".repeat(t.rating) : "") + (t.favourite ? " ♥" : "") + (t.hitlist ? " ◎" : "");
     row.innerHTML = '<button class="play small" title="Hear the opening">&#9654;</button>' +
-      '<a class="name">' + esc(t.title) + (marks ? '<span class="marks">' + marks + '</span>' : "") + "</a>" +
+      '<a class="name">' + nameHTML(t) + "</a>" +
       '<div class="music"></div>';
     var entry = { t: t, row: row, music: row.querySelector(".music"), drawn: false, visual: null };
     row.querySelector(".name").addEventListener("click", function () {
-      try { window.webkit.messageHandlers.noteedit.postMessage({ open: t.id }); } catch (e) {}
+      try { window.webkit.messageHandlers.noteedit.postMessage({ open: entry.t.id }); } catch (e) {}
     });
     row.querySelector(".play").addEventListener("click", function () { play(entry, this); });
     list.appendChild(row);
@@ -199,17 +216,39 @@ function loadSnippets(data) {
   if (hadRows) window.scrollTo(0, 0);
 }
 
-/// FONN-SNIPKEEP-1: a row drawn wholly above the screen grows upwards into
-/// what you're reading unless the page moves down by the same amount.
-function draw(r) {
-  if (r.drawn) return;
-  var before = r.row.getBoundingClientRect();
-  drawRow(r);
-  if (before.bottom <= headerBottom()) {
-    var grew = r.row.getBoundingClientRect().height - before.height;
-    if (grew) window.scrollBy(0, grew);
+var lastShape = null;
+
+function setSummary(count, skipped) {
+  document.getElementById("summary").textContent =
+    count + (count === 1 ? " tune" : " tunes") +
+    (skipped ? " · " + skipped + " with no music yet not shown" : "") +
+    " · tap ▶ to hear the opening, a name to open the tune";
+}
+
+function nameHTML(t) {
+  var marks = (t.rating ? "★".repeat(t.rating) : "") + (t.favourite ? " ♥" : "") + (t.hitlist ? " ◎" : "");
+  return esc(t.title) + (marks ? '<span class="marks">' + marks + '</span>' : "");
+}
+
+/// FONN-SNIPKEEP-2: one row brought up to date where it stands.
+function refreshRow(r, t) {
+  var old = r.t;
+  r.t = t;
+  if (old.title !== t.title || old.rating !== t.rating ||
+      old.favourite !== t.favourite || old.hitlist !== t.hitlist) {
+    r.row.querySelector(".name").innerHTML = nameHTML(t);
+  }
+  if (old.abc !== t.abc || old.transpose !== t.transpose) {
+    if (playing === r) { ceolPreviewStop(); playing = null; }
+    var wasDrawn = r.drawn;
+    r.drawn = false; r.visual = null; r.music.innerHTML = "";
+    if (wasDrawn) drawRow(r);
+    else if (observer) observer.observe(r.row);
   }
 }
+
+/// Rows are a fixed height (FONN-SNIPKEEP-2), so drawing one moves nothing.
+function draw(r) { drawRow(r); }
 
 function drawRow(r) {
   if (r.drawn) return;
@@ -236,9 +275,10 @@ function drawRow(r) {
     try {
       var bb = svg.getBBox();
       svg.setAttribute("viewBox", [bb.x - 2, bb.y - 2, bb.width + 4, bb.height + 4].join(" "));
-      svg.removeAttribute("height");
+      svg.setAttribute("height", "100%");
       svg.setAttribute("width", "100%");
-      svg.style.height = "auto";
+      svg.setAttribute("preserveAspectRatio", "xMinYMid meet");
+      svg.style.height = "100%";
     } catch (e) {}
   }
 }

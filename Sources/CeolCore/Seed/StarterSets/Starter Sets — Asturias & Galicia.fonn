@@ -6,33 +6,33 @@
  "tunes": [
   {
    "title": "Muineira De Casu",
-   "type": "jig",
+   "type": "muiñeira",
    "key": "G major",
    "mode": "major",
-   "abc": "X: 1\nT: Muineira De Casu\nZ: Trinil\nS: https://thesession.org/tunes/1096#setting1096\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:GBc|ded cBc|dcB GAB|\nded cBA|ABG GBc|ded cBc|\ndcB GAB|ded cBA|G3:|\nP:B\n|:gfe|dBc dce|dcB GAB|\nded cBc|d2 d gfe|dBc dce|\ndcB GAB|ded cBA|G3:|\nP:C\n|:GAB|Bcc cBc|dcB GAB|\nBcc cBA|B2 G GAB|cdc cBc|\nd2 B G2 B|ded cBA|G3:|\n",
+   "abc": "X: 1\nT: Muineira De Casu\nZ: Trinil\nS: https://thesession.org/tunes/1096#setting1096\nR: muiñeira\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:GBc|ded cBc|dcB GAB|\nded cBA|ABG GBc|ded cBc|\ndcB GAB|ded cBA|G3:|\nP:B\n|:gfe|dBc dce|dcB GAB|\nded cBc|d2 d gfe|dBc dce|\ndcB GAB|ded cBA|G3:|\nP:C\n|:GAB|Bcc cBc|dcB GAB|\nBcc cBA|B2 G GAB|cdc cBc|\nd2 B G2 B|ded cBA|G3:|\n",
    "transcribed_by": "Trinil",
    "source_url": "/private/var/mobile/Containers/Data/Application/DE142C33-0382-4FC8-87BF-62647EB744DE/Documents/Inbox/muineiradecasu-1.abc"
   },
   {
    "title": "Muiñeira De Chantada",
-   "type": "jig",
+   "type": "muiñeira",
    "key": "G",
    "mode": "major",
-   "abc": "X: 2\nT: Muiñeira De Chantada\nZ: ceolachan\nS: https://thesession.org/tunes/7738#setting19092\nR: jig\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:g2 f|d2 e f2 d|e3 d2 c|\nA2 B c2 d|B2 G g2 f|d2 e f2 d|\nefe d2 c|A2 B c2 d|G3-:|\nP:B\n|:G2 d|f2 e ecA|e2 d dBG|d2 c A2 F|e2 d dBd|\nf2 e ecA|e2 d dBG|d2 c A2 B|G3:|\nP:C\n|:G2 D|G3 ABc|d3- dBc|d^cd e2 d|\nd3 A3|A3 Bcd|e3- ed^c|ded cBA|\nB2 A G2 d|G3 ABc|d3- dBc|d^cd g2 f|\nf3 e3|g^fg a2 g|g3 d3|ded cBA|\nG3-:|\n"
+   "abc": "X: 2\nT: Muiñeira De Chantada\nZ: ceolachan\nS: https://thesession.org/tunes/7738#setting19092\nR: muiñeira\nM: 6/8\nL: 1/8\nK: Gmaj\nP:A\n|:g2 f|d2 e f2 d|e3 d2 c|\nA2 B c2 d|B2 G g2 f|d2 e f2 d|\nefe d2 c|A2 B c2 d|G3-:|\nP:B\n|:G2 d|f2 e ecA|e2 d dBG|d2 c A2 F|e2 d dBd|\nf2 e ecA|e2 d dBG|d2 c A2 B|G3:|\nP:C\n|:G2 D|G3 ABc|d3- dBc|d^cd e2 d|\nd3 A3|A3 Bcd|e3- ed^c|ded cBA|\nB2 A G2 d|G3 ABc|d3- dBc|d^cd g2 f|\nf3 e3|g^fg a2 g|g3 d3|ded cBA|\nG3-:|\n"
   },
   {
    "title": "La Gallega",
-   "type": "jig",
+   "type": "muiñeira",
    "key": "E",
    "mode": "dorian",
-   "abc": "X: 1\nT: La Gallega\nZ: NfldWhistler\nS: https://thesession.org/tunes/18867#setting36964\nR: jig\nM: 6/8\nL: 1/8\nK: Edor\n|:E3 B BA|AB BA GB|A2 {B}AG FG|A2 F2 D2|\n[1 E3 B BA|AB BA GE|F2 d3 e|d2 F2 D2:|\n[2 E3 F GA|AB B2 ef/e/|d2 c2 A2|A3 A Bd||\ne2 ef ed|Bd ef g2|f2 d2 {a}gf|dA Bd gf|\ne2 ef ed|ef g2 gg|f4 {a}gf|d3 A Bd|\ne2 ef ed|Bc d2 BG|GA A2 AB|F3 E ED|\nE3 B BA|AB B2 eg|f2 d2 B2|A6||\n"
+   "abc": "X: 1\nT: La Gallega\nZ: NfldWhistler\nS: https://thesession.org/tunes/18867#setting36964\nR: muiñeira\nM: 6/8\nL: 1/8\nK: Edor\n|:E3 B BA|AB BA GB|A2 {B}AG FG|A2 F2 D2|\n[1 E3 B BA|AB BA GE|F2 d3 e|d2 F2 D2:|\n[2 E3 F GA|AB B2 ef/e/|d2 c2 A2|A3 A Bd||\ne2 ef ed|Bd ef g2|f2 d2 {a}gf|dA Bd gf|\ne2 ef ed|ef g2 gg|f4 {a}gf|d3 A Bd|\ne2 ef ed|Bc d2 BG|GA A2 AB|F3 E ED|\nE3 B BA|AB B2 eg|f2 d2 B2|A6||\n"
   },
   {
    "title": "Xota De Vilabol",
-   "type": "waltz",
+   "type": "jota",
    "key": "D",
    "mode": "minor",
-   "abc": "X: 1\nT: Xota De Vilabol\nZ: gian marco\nS: https://thesession.org/tunes/8951#setting8951\nR: waltz\nM: 3/4\nL: 1/8\nK: Dmix\nP:A\n|:d c/B/ A c B G|B A/G/ F/G/ A3-|A3 d c/B/ A|c B G B A/G/ F/G/|1 A/B/ A/G/ F/E/ D3:|2 A/B/ A/G/ F/E/ D2D||\nP:B\n|:A D/A/ D/A/ G2 D|B A/B/ c/B/ A2 D|A D/A/ D/A/ G>_B G|1 A E/F/ (3G/F/E/ D2D:|2 D3 D3||\n"
+   "abc": "X: 1\nT: Xota De Vilabol\nZ: gian marco\nS: https://thesession.org/tunes/8951#setting8951\nR: jota\nM: 3/4\nL: 1/8\nK: Dmix\nP:A\n|:d c/B/ A c B G|B A/G/ F/G/ A3-|A3 d c/B/ A|c B G B A/G/ F/G/|1 A/B/ A/G/ F/E/ D3:|2 A/B/ A/G/ F/E/ D2D||\nP:B\n|:A D/A/ D/A/ G2 D|B A/B/ c/B/ A2 D|A D/A/ D/A/ G>_B G|1 A E/F/ (3G/F/E/ D2D:|2 D3 D3||\n"
   }
  ],
  "sets": [

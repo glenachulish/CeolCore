@@ -6,45 +6,45 @@
  "tunes": [
   {
    "title": "Gånglåt Från Mockfjärd",
-   "type": "hornpipe",
+   "type": "gånglåt",
    "key": "D",
    "mode": "major",
-   "abc": "X: 2\nT: Gånglåt Från Mockfjärd\nZ: Bob Massie\nS: https://thesession.org/tunes/10703#setting21494\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\nFG|:A2>B2 A2G2|F2>D2 F2FG|ABAF A2d2|f4- f2ef|\ng2bg f2af|e2fe d2fd|c2ec E^GBG|A6 FG|\nA2>B2 A2G2|F2>D2 F2FG|ABAF A2d2|f6 ef|\ng2bg f2af|e2fe d2fd|c2a2 Acec|d6 f2:|\nP:B\n|:g2>a2 gfga|b2g2 d2B2|A2>g2 fefg|\na6 g2|f2e2 e^def|g2e2 c2A2\n|1 d2fd c2ec|B2dB A2ef:|2 d2a2 Acec|d8||\n"
+   "abc": "X: 2\nT: Gånglåt Från Mockfjärd\nZ: Bob Massie\nS: https://thesession.org/tunes/10703#setting21494\nR: gånglåt\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\nFG|:A2>B2 A2G2|F2>D2 F2FG|ABAF A2d2|f4- f2ef|\ng2bg f2af|e2fe d2fd|c2ec E^GBG|A6 FG|\nA2>B2 A2G2|F2>D2 F2FG|ABAF A2d2|f6 ef|\ng2bg f2af|e2fe d2fd|c2a2 Acec|d6 f2:|\nP:B\n|:g2>a2 gfga|b2g2 d2B2|A2>g2 fefg|\na6 g2|f2e2 e^def|g2e2 c2A2\n|1 d2fd c2ec|B2dB A2ef:|2 d2a2 Acec|d8||\n"
   },
   {
    "title": "Gärdebylåten",
-   "type": "hornpipe",
+   "type": "gånglåt",
    "key": "D",
    "mode": "major",
-   "abc": "X: 3\nT: Gärdebylåten\nZ: Mix O'Lydian\nS: https://thesession.org/tunes/2948#setting26545\nR: hornpipe\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:FG|\"D\" ABAF ABAF|\"D\" A2 fe d2 c2|\"G\" BdBG BdBG|\n\"G\" B2 gf e2 d2|\"A\" c3 d cdcB|\"A\" A2 eg f2 ec\n|1 \"D\" dcde \"F#m\" fefg|\"D\" a4a z:|2 \"D\" d2 fd \"A\" Acec|\"D\" d3 c de||\nP:B\n|:fg|\"D\" a4 a2 ^ga|\"D\" b2 a2 g2 f2|\"G\" g2 gd BGBd|\n\"G\" g2 f2 e2 d2|\"A\" c3 B cdcB|\"A\" A2 eg f2 ec\n|1 \"D\" dcde \"F#m\" fe|\"F#m\" fg \"D\" a4a z:|2 \"D\" d2 fd \"A\" Acec|\"D\" d3 c d2||\n"
+   "abc": "X: 3\nT: Gärdebylåten\nZ: Mix O'Lydian\nS: https://thesession.org/tunes/2948#setting26545\nR: gånglåt\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:FG|\"D\" ABAF ABAF|\"D\" A2 fe d2 c2|\"G\" BdBG BdBG|\n\"G\" B2 gf e2 d2|\"A\" c3 d cdcB|\"A\" A2 eg f2 ec\n|1 \"D\" dcde \"F#m\" fefg|\"D\" a4a z:|2 \"D\" d2 fd \"A\" Acec|\"D\" d3 c de||\nP:B\n|:fg|\"D\" a4 a2 ^ga|\"D\" b2 a2 g2 f2|\"G\" g2 gd BGBd|\n\"G\" g2 f2 e2 d2|\"A\" c3 B cdcB|\"A\" A2 eg f2 ec\n|1 \"D\" dcde \"F#m\" fe|\"F#m\" fg \"D\" a4a z:|2 \"D\" d2 fd \"A\" Acec|\"D\" d3 c d2||\n"
   },
   {
    "title": "Djarven",
-   "type": "mazurka",
+   "type": "polska",
    "key": "G",
    "mode": "minor",
-   "abc": "X: 1\nT: Djarven\nZ: krysolove\nS: https://thesession.org/tunes/11056#setting11056\nR: mazurka\nM: 3/4\nL: 1/8\nK: Gmin\nP:A\n|:D|GG/^F/ DD FG|AB/A/ G^F/G/ A/B/A/F/|GA Bd/B/ A/B/A/^F/|G^F/G/ A/B/A/F/ D2|\nGG/^F/ DD FG|AB/A/ G^F/G/ A/B/A/F/|GA Bd/B/ A/B/A/^F/|D/^F/A/F/ G2- G:|\nP:B\n|:d-|dB- Bd- de/d/|c/d/c/A/ ^F/D/F/A/ cd/c/|B/c/B/A/ G/^F/G/A/ B/A/B/c/|A/B/A/^F/ D/F/A/F/ D2|\ndB- Bd- de/d/|c/d/c/A/ ^F/D/F/A/ cd/c/|B/c/B/A/ G/^F/G/A/ B/A/B/c/|D/^F/A/F/ G2- G:|\n"
+   "abc": "X: 1\nT: Djarven\nZ: krysolove\nS: https://thesession.org/tunes/11056#setting11056\nR: polska\nM: 3/4\nL: 1/8\nK: Gmin\nP:A\n|:D|GG/^F/ DD FG|AB/A/ G^F/G/ A/B/A/F/|GA Bd/B/ A/B/A/^F/|G^F/G/ A/B/A/F/ D2|\nGG/^F/ DD FG|AB/A/ G^F/G/ A/B/A/F/|GA Bd/B/ A/B/A/^F/|D/^F/A/F/ G2- G:|\nP:B\n|:d-|dB- Bd- de/d/|c/d/c/A/ ^F/D/F/A/ cd/c/|B/c/B/A/ G/^F/G/A/ B/A/B/c/|A/B/A/^F/ D/F/A/F/ D2|\ndB- Bd- de/d/|c/d/c/A/ ^F/D/F/A/ cd/c/|B/c/B/A/ G/^F/G/A/ B/A/B/c/|D/^F/A/F/ G2- G:|\n"
   },
   {
    "title": "Liten Karen",
-   "type": "mazurka",
+   "type": "polska",
    "key": "D",
    "mode": "major",
-   "abc": "X: 1\nT: Liten Karen\nZ: ceolachan\nS: https://thesession.org/tunes/11096#setting11096\nR: mazurka\nM: 3/4\nL: 1/8\nK: Dmaj\nP:A\n|:D>F A>^G A>B|A2 F2- F>E|D>F d>c d>e|d2 c4|\nE>F G>F G>A|G2 E4|A>B c>d c>B|A2 F2- F>E|\nD>F A>^G A>B|(3ABA F2 E2|D>F d>c d>e|d2 c2- c>e|\nd>c B2- B>d|c>B A2- A>d|c>B A>G F>E|D2 D4:|\nP:B\n|:A>d f2 f2|A>d f2 f2|f2 (3efe d2|d2 c2- c>e|\nd>c B2- B>d|c>B A2- A>^G|A>B c>d c>B|(3ABA F4|\nA>d f2 f2|A>d f2 f2|f2 (3efe d2|d2 c2- c>e|\nd>c B2- B>d|c>B A2- A>d|c>B A>G F>E|D2 D4:|\n"
+   "abc": "X: 1\nT: Liten Karen\nZ: ceolachan\nS: https://thesession.org/tunes/11096#setting11096\nR: polska\nM: 3/4\nL: 1/8\nK: Dmaj\nP:A\n|:D>F A>^G A>B|A2 F2- F>E|D>F d>c d>e|d2 c4|\nE>F G>F G>A|G2 E4|A>B c>d c>B|A2 F2- F>E|\nD>F A>^G A>B|(3ABA F2 E2|D>F d>c d>e|d2 c2- c>e|\nd>c B2- B>d|c>B A2- A>d|c>B A>G F>E|D2 D4:|\nP:B\n|:A>d f2 f2|A>d f2 f2|f2 (3efe d2|d2 c2- c>e|\nd>c B2- B>d|c>B A2- A>^G|A>B c>d c>B|(3ABA F4|\nA>d f2 f2|A>d f2 f2|f2 (3efe d2|d2 c2- c>e|\nd>c B2- B>d|c>B A2- A>d|c>B A>G F>E|D2 D4:|\n"
   },
   {
    "title": "Reinlender Etter Ulrik Jensestogun",
-   "type": "march",
+   "type": "reinlender",
    "key": "D",
    "mode": "major",
-   "abc": "X: 1\nT: Reinlender Etter Ulrik Jensestogun\nZ: pbsinclair42\nS: https://thesession.org/tunes/18422#setting35990\nR: march\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:D>D F<A D>D F<A|D>D F<A d2 d2|D>D F<A D>D F<A|D>D F<A E2 E2|\nD>D F<A D>D F<A|D>D F<A d2 d2|e>f g<e c>A B<c|1 d2 dc d2 A2:|2 d2 dc d2 dc ]|\nP:B\n|:B2 G2 G>B d<B|B2 A2 A4|G2 E2 E>A B<A|F2 D2 D2 dc|\nB2 G2 G>B d<B|B2 A2 A3A|A>c e<f g>e c<e|1 d2 dc d2 dc:|2 d2 dc d4||\n"
+   "abc": "X: 1\nT: Reinlender Etter Ulrik Jensestogun\nZ: pbsinclair42\nS: https://thesession.org/tunes/18422#setting35990\nR: reinlender\nM: 4/4\nL: 1/8\nK: Dmaj\nP:A\n|:D>D F<A D>D F<A|D>D F<A d2 d2|D>D F<A D>D F<A|D>D F<A E2 E2|\nD>D F<A D>D F<A|D>D F<A d2 d2|e>f g<e c>A B<c|1 d2 dc d2 A2:|2 d2 dc d2 dc ]|\nP:B\n|:B2 G2 G>B d<B|B2 A2 A4|G2 E2 E>A B<A|F2 D2 D2 dc|\nB2 G2 G>B d<B|B2 A2 A3A|A>c e<f g>e c<e|1 d2 dc d2 dc:|2 d2 dc d4||\n"
   },
   {
    "title": "Schottis Från Norrbotten",
-   "type": "barndance",
+   "type": "schottis",
    "key": "E",
    "mode": "minor",
-   "abc": "X: 4\nT: Schottis Från Norrbotten\nZ: pipemakermike\nS: https://thesession.org/tunes/4556#setting38458\nR: barndance\nM: 4/4\nL: 1/8\nK: Emin\nP:A\n|:B,2|E2 EF|G2 GA|B2 Bc|\nB4|e2 ef|g2 f2|e4|\nB2ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2A2|(B4|\nB2)ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2F2|(E4|\nE2):|\nP:B\n|:B2|BG EG|BG EG|B2e2|\nd2c2|Bc BA|G2A2|(B4|\nB4)|BG EG|BG EG|B2e2|\nd2c2|Bc BA|G2F2|(E4|\nE2):|\nP:C\n|:ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2A2|(B4|\nB2)ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2F2|(E4|\nE2):|\n"
+   "abc": "X: 4\nT: Schottis Från Norrbotten\nZ: pipemakermike\nS: https://thesession.org/tunes/4556#setting38458\nR: schottis\nM: 4/4\nL: 1/8\nK: Emin\nP:A\n|:B,2|E2 EF|G2 GA|B2 Bc|\nB4|e2 ef|g2 f2|e4|\nB2ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2A2|(B4|\nB2)ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2F2|(E4|\nE2):|\nP:B\n|:B2|BG EG|BG EG|B2e2|\nd2c2|Bc BA|G2A2|(B4|\nB4)|BG EG|BG EG|B2e2|\nd2c2|Bc BA|G2F2|(E4|\nE2):|\nP:C\n|:ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2A2|(B4|\nB2)ef|g2f2|e2Bc|d2c2|\nB2GA|Bc BA|G2F2|(E4|\nE2):|\n"
   },
   {
    "title": "Med Ludvig I Sekken",
