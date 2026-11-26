@@ -42,19 +42,88 @@ public enum UntypedTunes {
     /// Call after setting `type`; tunes still without one are left. Not
     /// @MainActor: UnknownTunes.adopt calls it from a plain function, and
     /// every caller is on the main thread with the tunes anyway.
-    public static func release(_ tunes: [Tune]) {
+    /// Returns the members it took out (FONN-QUICKTYPE-1, for Undo).
+    @discardableResult
+    public static func release(_ tunes: [Tune]) -> [Tune] {
         let typed = tunes.filter { !$0.type.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         guard let context = typed.first?.modelContext,
               let collection = try? context.fetch(FetchDescriptor<TuneCollection>())
                 .first(where: { $0.name == collectionName }),
-              var members = collection.tunes, !members.isEmpty else { return }
+              var members = collection.tunes, !members.isEmpty else { return [] }
         let groups = Set(typed.compactMap(\.groupID))
-        let before = members.count
-        members.removeAll { member in
+        let isReleased: (Tune) -> Bool = { member in
             typed.contains { $0 === member } || (member.groupID.map(groups.contains) ?? false)
         }
-        guard members.count != before else { return }
+        let removed = members.filter(isReleased)
+        guard !removed.isEmpty else { return [] }
+        members.removeAll(where: isReleased)
         collection.tunes = members
+        try? context.save()
+        return removed
+    }
+
+    // FONN-QUICKTYPE-1
+    /// The types offered by the quick Type button on a tune with none,
+    /// commonest first (the iPhone's details list, in its order).
+    public static let commonTypes = [
+        "reel", "jig", "hornpipe", "slip jig", "polka", "waltz", "march", "strathspey",
+        "slide", "hop jig", "air", "slow air",
+        "mazurka", "barndance", "schottische", "highland", "set dance",
+    ]
+
+    /// What one quick Type tap changed, so it can be put back.
+    public struct QuickTypeChange {
+        public let title: String
+        public let type: String
+        let versions: [Tune]
+        let removed: [Tune]
+    }
+
+    /// FONN-QUICKTYPE-1: give a tune a type from its row, without opening
+    /// Details. Every version of the tune still without a type gets it (as
+    /// Find Types on The Session does), and the tune leaves "No tune type".
+    @MainActor
+    @discardableResult
+    public static func setType(_ type: String, on tune: Tune) -> QuickTypeChange? {
+        let clean = type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !clean.isEmpty, let context = tune.modelContext else { return nil }
+        var versions = [tune]
+        if let group = tune.groupID {
+            let all = (try? context.fetch(FetchDescriptor<Tune>())) ?? []
+            versions = all.filter { $0.groupID == group }
+            if !versions.contains(where: { $0 === tune }) { versions.append(tune) }
+        }
+        let changed = versions.filter {
+            $0.type.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        guard !changed.isEmpty else { return nil }
+        for version in changed {
+            version.type = clean
+            version.updatedAt = Date()
+        }
+        try? context.save()
+        let removed = release(changed)
+        return QuickTypeChange(title: tune.title, type: clean, versions: changed, removed: removed)
+    }
+
+    /// Puts a quick Type back: no type again, and back in "No tune type" if
+    /// it was taken out.
+    @MainActor
+    public static func undo(_ change: QuickTypeChange) {
+        guard let context = (change.versions.first ?? change.removed.first)?.modelContext else { return }
+        for version in change.versions {
+            version.type = ""
+            version.updatedAt = Date()
+        }
+        if !change.removed.isEmpty,
+           let collection = try? context.fetch(FetchDescriptor<TuneCollection>())
+            .first(where: { $0.name == collectionName }) {
+            var members = collection.tunes ?? []
+            for tune in change.removed where !members.contains(where: { $0 === tune }) {
+                members.append(tune)
+            }
+            collection.tunes = members
+        }
         try? context.save()
     }
 }

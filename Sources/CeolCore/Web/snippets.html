@@ -77,7 +77,56 @@ function esc(s) {
 
 var rows = [], observer = null, playing = null;
 
+// FONN-SNIPKEEP-1: keep your place. The list used to be built afresh, and
+// scrolled back to the top, whenever any tune changed (an iCloud sync, a
+// tune opened and edited), and the Mac reopened it at the top each time.
+// Now: the tune at the top of the screen is remembered as you scroll and
+// told to the app; a refreshed list goes back to it; and a snippet drawn
+// above the screen moves the page by however much it grew, so what you are
+// looking at stays put.
+var lastList = null, reportTimer = null;
+
+function headerBottom() {
+  var h = document.querySelector("h2.type");
+  return h ? h.offsetHeight : 0;
+}
+/// The first row not hidden under the sticky heading, and where it sits.
+function topRow() {
+  if (!rows.length) return null;
+  var y = headerBottom(), lo = 0, hi = rows.length - 1;
+  while (lo < hi) {
+    var mid = (lo + hi) >> 1;
+    if (rows[mid].row.getBoundingClientRect().bottom > y + 1) hi = mid; else lo = mid + 1;
+  }
+  var rect = rows[lo].row.getBoundingClientRect();
+  return { id: rows[lo].t.id, offset: rect.top };
+}
+/// Puts a tune's row back where it was (offset from the top of the window),
+/// or just under the heading. False if the tune isn't in this list.
+function snippetsScrollTo(id, offset) {
+  for (var i = 0; i < rows.length; i++) {
+    if (rows[i].t.id !== id) continue;
+    var at = (typeof offset === "number") ? offset : headerBottom();
+    window.scrollTo(0, Math.max(0, window.scrollY + rows[i].row.getBoundingClientRect().top - at));
+    return true;
+  }
+  return false;
+}
+function reportPlace() {
+  var k = topRow();
+  if (!k) return;
+  try { window.webkit.messageHandlers.noteedit.postMessage({ anchor: k.id, list: lastList || "" }); } catch (e) {}
+}
+window.addEventListener("scroll", function () {
+  clearTimeout(reportTimer);
+  reportTimer = setTimeout(reportPlace, 300);
+}, { passive: true });
+
 function loadSnippets(data) {
+  // Same filters as the list on screen: stay where you are. New filters: top.
+  var keep = (rows.length && data.list === lastList) ? topRow() : null;
+  var hadRows = rows.length > 0;
+  lastList = data.list;
   var tunes = (data.tunes || []).slice();
   tunes.sort(function (a, b) {
     var t = typeRank(a.type) - typeRank(b.type);
@@ -146,9 +195,23 @@ function loadSnippets(data) {
   } else {
     rows.forEach(draw);
   }
+  if (keep && snippetsScrollTo(keep.id, keep.offset)) return;
+  if (hadRows) window.scrollTo(0, 0);
 }
 
+/// FONN-SNIPKEEP-1: a row drawn wholly above the screen grows upwards into
+/// what you're reading unless the page moves down by the same amount.
 function draw(r) {
+  if (r.drawn) return;
+  var before = r.row.getBoundingClientRect();
+  drawRow(r);
+  if (before.bottom <= headerBottom()) {
+    var grew = r.row.getBoundingClientRect().height - before.height;
+    if (grew) window.scrollBy(0, grew);
+  }
+}
+
+function drawRow(r) {
   if (r.drawn) return;
   r.drawn = true;
   var abc = ceolIncipit(r.t.abc, 2);
@@ -195,8 +258,16 @@ function play(r, button) {
   ceolPreviewStart(r.visual, r.music, qpm ? { qpm: qpm } : null);
 }
 
+// Redrawn only when the width changes (turning the iPad, resizing the
+// window): iOS also fires resize when the bars slide, which cleared every
+// drawing and threw the list about. FONN-SNIPKEEP-1
+var lastWidth = window.innerWidth;
 window.addEventListener("resize", function () {
+  if (window.innerWidth === lastWidth) return;
+  lastWidth = window.innerWidth;
+  var keep = topRow();
   rows.forEach(function (r) { if (r.drawn) { r.drawn = false; r.music.innerHTML = ""; } });
+  if (keep) snippetsScrollTo(keep.id, keep.offset);
   if (observer) rows.forEach(function (r) { observer.observe(r.row); }); else rows.forEach(draw);
 });
 

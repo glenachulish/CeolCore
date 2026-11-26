@@ -27,6 +27,17 @@ public struct SnippetFilter: Equatable {
     public static let favouritesKey = "fonn.snippets.favourites"
     public static let collectionKey = "fonn.snippets.collection"
 
+    /// FONN-SNIPKEEP-1: names these filters, so the page knows whether a
+    /// refreshed list is the same list (keep your place) or a new one (top).
+    public var key: String {
+        "\(minRating)|\(hitlistOnly)|\(favouritesOnly)|\(collectionID?.uuidString ?? "")"
+    }
+
+    /// Where you were in the list (the tune at the top of the screen), and
+    /// for which filters, kept per device.
+    public static let anchorKey = "fonn.snippets.anchor"
+    public static let anchorListKey = "fonn.snippets.anchorList"
+
     public var isFiltered: Bool {
         minRating > 0 || hitlistOnly || favouritesOnly || collectionID != nil
     }
@@ -50,6 +61,7 @@ public enum Snippets {
     struct Payload: Encodable {
         let tunes: [Row]
         let withoutMusic: Int
+        let list: String
     }
 
     /// One row per tune, as the library shows them (the default version of a
@@ -76,9 +88,30 @@ public enum Snippets {
         }
     }
 
+    /// FONN-SNIPKEEP-1: snippets.html says, as you scroll, which tune is at
+    /// the top of the screen. Kept per device, so the list opens there.
+    /// True when the message was one of these.
+    @discardableResult
+    public static func rememberPlace(from message: [String: Any]) -> Bool {
+        guard let anchor = message["anchor"] as? String else { return false }
+        UserDefaults.standard.set(anchor, forKey: SnippetFilter.anchorKey)
+        UserDefaults.standard.set(message["list"] as? String ?? "", forKey: SnippetFilter.anchorListKey)
+        return true
+    }
+
+    /// Run when the page loads: back to the remembered tune, if it was
+    /// remembered for these same filters.
+    public static func returnScript(list: String) -> String? {
+        let defaults = UserDefaults.standard
+        guard let anchor = defaults.string(forKey: SnippetFilter.anchorKey),
+              UUID(uuidString: anchor) != nil,
+              defaults.string(forKey: SnippetFilter.anchorListKey) == list else { return nil }
+        return "snippetsScrollTo(\"\(anchor)\");"
+    }
+
     /// What snippets.html's loadABC() is handed: the rows as JSON text. Tunes
     /// with no music yet are left out and counted.
-    public static func payload(for tunes: [Tune]) -> String {
+    public static func payload(for tunes: [Tune], list: String = "") -> String {
         let withMusic = tunes.filter(\.hasNotation)
         let rows = withMusic.map { tune in
             Row(id: tune.uuid.uuidString,
@@ -92,7 +125,7 @@ public enum Snippets {
                 favourite: tune.isFavourite,
                 hitlist: tune.onHitlist)
         }
-        let payload = Payload(tunes: rows, withoutMusic: tunes.count - withMusic.count)
+        let payload = Payload(tunes: rows, withoutMusic: tunes.count - withMusic.count, list: list)
         guard let data = try? JSONEncoder().encode(payload),
               let text = String(data: data, encoding: .utf8) else { return "{}" }
         return text
